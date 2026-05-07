@@ -9,6 +9,7 @@ dependencies = [
 
 [project.scripts]
 council_of_translation = "council_of_translation.server:main"
+mcp_council_of_translation = "council_of_translation.server:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]

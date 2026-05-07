@@ -41,6 +41,18 @@ Run the MCP server:
 uv run council_of_translation
 ```
 
+The package also provides the MCP-style command alias:
+
+```bash
+uv run mcp_council_of_translation
+```
+
+Run directly from GitHub:
+
+```bash
+uvx --from git+https://github.com/PigeonCrafty/Council-of-Translation mcp_council_of_translation
+```
+
 Run tests:
 
 ```bash
