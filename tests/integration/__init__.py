@@ -1,1 +1,1 @@
-"""Integration tests for Council of Mine workflows"""
+"""Integration tests for Council of Translation workflows"""

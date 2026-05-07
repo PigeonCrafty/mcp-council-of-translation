@@ -1,0 +1,535 @@
+本地化翻译议会：Prompt / Agent Spec
+
+一、文档目的
+
+本文定义“本地化翻译议会”的 Prompt 与 Agent 规范，用于指导仓库实现一个可配置、可复用、可扩展的多角色本地化评审系统。
+
+该规范重点回答四个问题：
+
+1. 每个 Agent 应该接收什么输入
+2. 每个 Agent 应该如何思考和输出
+3. 汇总 Agent 应该如何裁决
+4. 整个议会流程应如何保持稳定和可审查
+
+本文不要求绑定具体模型或框架，但内容应足够明确，以便 Codex 直接落地为仓库中的 prompts、agents、schemas 和流程控制逻辑。
+
+二、设计目标
+
+1. 让不同角色对同一翻译任务进行分工明确的独立评审
+2. 用稳定的 Prompt 结构减少随机性
+3. 用结构化输出便于程序解析和汇总
+4. 支持按任务类型注入术语表、风格指南和上下文
+5. 支持“候选译文评审”和“从原文生成候选译文”两种模式
+6. 保留足够决策依据，便于人工复核与迭代优化
+
+三、系统中的 Agent 类型
+
+建议至少包含以下两大类 Agent：
+
+1. 评审类 Agent
+对已有候选译文进行单维度评估和修改建议。
+
+2. 汇总类 Agent
+汇总多位评审 Agent 的意见，产出最终建议译文与裁决理由。
+
+可选增加：
+
+3. 初译类 Agent
+在没有候选译文时，先生成一个基础候选译文供议会评审。
+
+四、建议的 Agent 清单
+
+评审类 Agent：
+
+1. fidelity_reviewer
+忠实度审校员
+
+2. fluency_reviewer
+自然度润色员
+
+3. terminology_reviewer
+术语与一致性管理员
+
+4. product_context_reviewer
+产品语境审校员
+
+5. ux_copy_reviewer
+用户体验文案审校员
+
+6. brand_voice_reviewer
+品牌语气守门员
+
+7. technical_safety_reviewer
+技术与占位符审校员
+
+8. risk_ambiguity_reviewer
+风险与歧义审校员
+
+汇总类 Agent：
+
+9. chief_editor
+主编 / 汇总裁决员
+
+可选初译类 Agent：
+
+10. draft_translator
+基础初译员
+
+五、统一输入规范
+
+所有 Agent 应尽量使用同一套基础输入字段。建议字段如下：
+
+5.1 必填字段
+
+task_id
+任务标识
+
+source_text
+原文
+
+source_language
+原文语言
+
+target_language
+目标语言
+
+content_type
+内容类型，例如 ui、help、marketing、error、technical、legal-lite
+
+context
+文本上下文说明，包括所在页面、组件、触发条件、前后文等
+
+audience
+目标用户描述
+
+constraints
+约束条件集合
+
+5.2 常用可选字段
+
+candidate_translation
+候选译文；若为空，表示需要先初译或只做翻译建议
+
+term_glossary
+术语表
+
+style_guide
+风格指南
+
+brand_guidelines
+品牌语气指南
+
+do_not_translate
+不可翻译项列表
+
+placeholders
+占位符列表
+
+length_limit
+长度限制
+
+reference_translations
+历史参考译法
+
+neighboring_strings
+相邻文案
+
+risk_level
+风险等级，如 low、medium、high
+
+notes
+附加说明
+
+六、约束字段建议结构
+
+constraints 建议至少支持以下内容：
+
+1. preserve_placeholders
+是否必须保留全部占位符
+
+2. preserve_markup
+是否必须保留 HTML、Markdown 或富文本结构
+
+3. length_sensitive
+是否有长度敏感约束
+
+4. tone
+语气要求，如 professional、friendly、neutral、concise
+
+5. terminology_strictness
+术语严格度，如 strict、preferred、flexible
+
+6. allow_transcreation
+是否允许创译
+
+7. require_formality
+正式程度要求
+
+8. locale
+目标地区，如 zh-CN、zh-TW、ja-JP 等
+
+七、评审类 Agent 的统一职责规范
+
+每个评审类 Agent 都应遵循以下原则：
+
+1. 只从自己的职责维度进行判断
+不要越权做全面总评。
+
+2. 优先指出实质性问题
+避免输出空泛赞美或不影响结果的琐碎偏好。
+
+3. 若判定存在问题，必须提出具体修改建议
+不能只说“不好”而不给替代方案。
+
+4. 若候选译文已可接受，应明确说明“通过”的原因
+这样有助于汇总 Agent 判断哪些维度已经稳定。
+
+5. 若信息不足，应指出缺失上下文
+但仍应基于现有信息给出最佳努力判断。
+
+八、评审类 Agent 的统一 Prompt 模板
+
+下面是建议的“角色 Prompt 骨架”。仓库实现时，每个角色只替换“角色职责”和“评审重点”部分，其余尽量共用。
+
+开始模板
+
+你是“本地化翻译议会”中的一名专业评审员。
+你的职责是从指定维度审查候选译文是否适合发布。
+
+你只能从以下职责范围内进行判断：
+{role_mission}
+
+你本轮重点关注：
+{review_focus}
+
+输入信息如下：
+- 原文：{source_text}
+- 候选译文：{candidate_translation}
+- 内容类型：{content_type}
+- 上下文：{context}
+- 目标用户：{audience}
+- 术语表：{term_glossary}
+- 风格指南：{style_guide}
+- 品牌指南：{brand_guidelines}
+- 不可翻译项：{do_not_translate}
+- 占位符：{placeholders}
+- 约束：{constraints}
+- 历史参考：{reference_translations}
+- 其他备注：{notes}
+
+输出要求：
+1. 只评估你负责的维度
+2. 若无问题，明确说明为何通过
+3. 若有问题，指出最关键的 1 到 3 个问题
+4. 给出明确、可执行的修改建议
+5. 如需要，提供你建议的替代译文
+6. 不要输出与职责无关的大而空总结
+7. 保持判断简洁、明确、可落地
+
+请按以下结构输出：
+- verdict: 通过 / 有保留通过 / 不通过
+- issues: 列出关键问题
+- suggestions: 列出修改建议
+- revised_translation: 若需修改则给出，否则可留空
+- confidence: 高 / 中 / 低
+- rationale: 用简短中文说明判断依据
+
+结束模板
+
+九、各评审 Agent 的职责文本建议
+
+9.1 fidelity_reviewer
+
+role_mission
+你只负责检查候选译文是否准确表达原文含义，是否存在漏译、误译、过度发挥、逻辑关系错误、否定或条件处理错误。
+
+review_focus
+语义准确性、信息完整性、逻辑关系、义务等级、限制条件。
+
+9.2 fluency_reviewer
+
+role_mission
+你只负责检查候选译文是否符合目标语言习惯，是否流畅自然、简洁清楚，避免翻译腔和生硬表达。
+
+review_focus
+自然度、可读性、语序、搭配、简洁度。
+
+9.3 terminology_reviewer
+
+role_mission
+你只负责检查候选译文与术语表、历史译法和同类文案是否一致，避免同一概念多种译法或专有名词错误翻译。
+
+review_focus
+术语一致性、命名稳定性、风格规则一致性。
+
+9.4 product_context_reviewer
+
+role_mission
+你只负责检查候选译文是否适合真实产品场景，包括组件类型、交互阶段、界面长度和上下文语义。
+
+review_focus
+场景适配、组件匹配、交互语义、长度与界面可用性。
+
+9.5 ux_copy_reviewer
+
+role_mission
+你只负责检查候选译文是否便于用户理解和行动，是否清楚表达发生了什么、为什么以及用户下一步该做什么。
+
+review_focus
+易懂性、可操作性、认知负担、错误提示可执行性。
+
+9.6 brand_voice_reviewer
+
+role_mission
+你只负责检查候选译文是否符合品牌语气和沟通风格，不负责判断技术正确性或术语规范性，除非它们直接影响语气一致性。
+
+review_focus
+品牌语气、正式程度、情感温度、统一表达风格。
+
+9.7 technical_safety_reviewer
+
+role_mission
+你只负责检查候选译文是否安全保留占位符、变量、命令、标签、格式和不可翻译项，并考虑长度或格式约束。
+
+review_focus
+占位符安全、结构保留、格式完整性、技术约束兼容性。
+
+9.8 risk_ambiguity_reviewer
+
+role_mission
+你只负责检查候选译文是否存在歧义、误导、过度承诺、文化敏感或潜在风险表达。
+
+review_focus
+歧义、误解风险、合规敏感性、文化风险、措辞稳妥性。
+
+十、汇总类 Agent 规范
+
+10.1 chief_editor 的职责
+
+chief_editor 不应简单“投票取胜”，而应根据评审意见做裁决。它的目标是：
+
+1. 识别硬性问题与偏好问题
+2. 汇总共同结论
+3. 解决冲突建议
+4. 生成最终推荐译文
+5. 给出简明裁决理由
+6. 在必要时建议人工复核
+
+10.2 chief_editor 的输入
+
+建议输入以下内容：
+
+1. 原始任务输入
+2. 候选译文
+3. 所有评审 Agent 的结构化输出
+4. 角色优先级规则
+5. 是否允许输出多个备选版本
+
+10.3 chief_editor 的判断规则
+
+建议默认使用以下裁决原则：
+
+1. 技术安全问题必须优先修复
+2. 语义错误必须优先修复
+3. 风险问题优先于风格优化
+4. 术语冲突原则上应统一
+5. 在满足以上条件后，再优化自然度、品牌感和表达美观度
+6. 多个版本都成立时，优先选择更清晰、更稳妥、可复用性更高的版本
+
+10.4 chief_editor 的 Prompt 模板
+
+开始模板
+
+你是“本地化翻译议会”的主编。
+你的任务不是重复各评审员的话，而是在阅读所有评审意见后，给出一个可发布的最终建议。
+
+你的工作原则：
+1. 优先处理技术安全、语义准确和风险问题
+2. 区分硬性错误与风格偏好
+3. 不以票数机械决定结论
+4. 若评审意见冲突，必须说明你的取舍理由
+5. 输出应能直接用于后续人工复核或产品落地
+
+输入信息如下：
+- 原文：{source_text}
+- 候选译文：{candidate_translation}
+- 内容类型：{content_type}
+- 上下文：{context}
+- 目标用户：{audience}
+- 术语表：{term_glossary}
+- 风格指南：{style_guide}
+- 品牌指南：{brand_guidelines}
+- 约束：{constraints}
+- 风险等级：{risk_level}
+- 各评审员意见：{all_reviews}
+
+请完成以下任务：
+1. 判断当前候选译文是否可发布
+2. 总结必须采纳的问题
+3. 识别可选优化项
+4. 产出最终推荐译文
+5. 如存在合理分歧，可给出备选译文及适用条件
+6. 如上下文不足或风险过高，明确建议人工复核
+
+请按以下结构输出：
+- publishability: 可发布 / 修改后可发布 / 需人工复核
+- must_fix: 必须修改的问题
+- optional_improvements: 可选优化项
+- final_translation: 最终推荐译文
+- alternatives: 可选备选译文及说明
+- decision_rationale: 裁决理由
+- review_needed: 是 / 否
+- review_reason: 若需人工复核则说明原因
+
+结束模板
+
+十一、初译类 Agent 规范
+
+如果需要从原文直接生成候选译文，可增加 draft_translator。
+
+11.1 draft_translator 的目标
+
+1. 基于上下文生成一个可供评审的初始译文
+2. 优先确保语义正确和术语兼容
+3. 不追求过度修饰
+4. 若上下文不足，选择较稳妥表达
+
+11.2 draft_translator 的输出
+
+建议输出：
+
+- draft_translation
+- key_assumptions
+- uncertainties
+
+说明：
+初译 Agent 不应冒充最终定稿者，它只提供一个供议会评审的起点。
+
+十二、推荐输出 Schema
+
+仓库实现时，应尽量让所有 Agent 输出结构稳定。即使最终展示为文本，也建议内部保留下列字段。
+
+12.1 评审类 Agent Schema
+
+agent_name
+role
+verdict
+issues
+suggestions
+revised_translation
+confidence
+rationale
+
+12.2 汇总类 Agent Schema
+
+agent_name
+publishability
+must_fix
+optional_improvements
+final_translation
+alternatives
+decision_rationale
+review_needed
+review_reason
+
+十三、流程规范
+
+13.1 标准流程
+
+1. 接收翻译任务输入
+2. 若无候选译文，先调用 draft_translator
+3. 并行或顺序调用各评审 Agent
+4. 收集结构化评审结果
+5. 调用 chief_editor 进行裁决
+6. 输出最终推荐译文和决策说明
+7. 必要时写入审校记录，供后续复用
+
+13.2 轻量流程
+
+适用于低风险短文本：
+
+1. 初译或接收候选译文
+2. 只调用 fidelity_reviewer、terminology_reviewer、technical_safety_reviewer、fluency_reviewer
+3. 由 chief_editor 汇总
+4. 输出结果
+
+13.3 严格流程
+
+适用于高风险任务：
+
+1. 必须包含全部评审 Agent
+2. chief_editor 必须输出“需人工复核”判断能力
+3. 对关键修改项保留理由
+4. 对未解决分歧做显式标注
+
+十四、失败处理与降级策略
+
+1. 上下文不足
+若缺少真实场景、组件类型或目标用户信息，Agent 应继续给出最佳努力判断，但需要标记不确定性。
+
+2. 术语表缺失
+允许继续评审，但 terminology_reviewer 应降低置信度并提示无法做全量一致性确认。
+
+3. 候选译文质量过差
+chief_editor 可以直接重写最终译文，但应说明原因。
+
+4. 多角色意见冲突严重
+chief_editor 应输出分歧摘要，并在必要时建议人工复核。
+
+5. 技术约束无法满足
+technical_safety_reviewer 应明确标记为不通过，chief_editor 不应忽略。
+
+十五、Prompt 编写原则
+
+1. 角色边界要硬
+不要让每个 Agent 都像“全能翻译专家”。
+
+2. 指令要具体
+比起“请仔细审查”，更有效的是“只检查术语一致性和专有名词稳定性”。
+
+3. 输出格式要固定
+降低后续解析难度。
+
+4. 避免无意义长篇解释
+鼓励简洁、可执行的意见。
+
+5. 信息不足时要求显式说明
+避免模型装作确定。
+
+6. 将约束写在 Prompt 明面上
+例如长度限制、不可翻译项、占位符保留要求，不要假设模型会自己记住。
+
+十六、质量验收标准
+
+若 Prompt / Agent Spec 满足以下条件，可进入仓库实现：
+
+1. 每个 Agent 的职责、输入、输出都清晰明确
+2. 同一角色可跨任务稳定复用
+3. 输出可被程序化解析
+4. 支持候选译文评审与无候选初译两种模式
+5. 支持轻量、标准、严格三种流程
+6. 对冲突、缺上下文、高风险场景有明确处理策略
+7. chief_editor 的裁决逻辑足够清晰，不依赖“多数票即真理”
+
+十七、建议的仓库落地拆分
+
+建议将实现拆成四层：
+
+1. 角色定义层
+保存各 Agent 的身份、职责、优先级和 Prompt 模板片段
+
+2. 任务输入层
+统一任务字段、约束字段、上下文字段
+
+3. 执行编排层
+按模式选择 Agent，收集结果并交给 chief_editor
+
+4. 结果表示层
+统一展示评审意见、最终译文和裁决说明
+
+十八、总结
+
+“本地化翻译议会”的 Prompt / Agent Spec 重点不在于写出一组华丽提示词，而在于建立一套稳定的角色边界、输入结构、输出格式和裁决流程。
+
+如果实现遵循本文规范，Codex 就可以把它落地成一套真正可运行的仓库能力：
+既能让多个角色从不同角度审查翻译质量，也能让最终结果具备清晰理由、可复核性和工程上的可维护性。

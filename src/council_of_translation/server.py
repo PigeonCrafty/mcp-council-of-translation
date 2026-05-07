@@ -1,37 +1,40 @@
 from fastmcp import FastMCP
 
 INSTRUCTIONS = """
-Council of Mine is an MCP server that simulates a democratic council of 9 AI-powered members with distinct personalities who debate topics and vote on the best perspectives.
+Council of Translation is an MCP server for multi-agent localization translation review.
+
+This repository is being adapted from a general council deliberation server into a localization-focused council. The inherited debate workflow is still present during the transition, but the product direction is to support structured translation tasks, reviewer agents, and chief editor decisions.
 
 ## What it does
-The council engages in a structured debate process:
-1. Each of the 9 members generates an opinion on your topic from their unique perspective
-2. Members vote for the opinions they find most aligned with their values (excluding their own)
-3. Results show ALL individual opinions with vote counts, winners, individual vote reasoning, and an AI-generated synthesis
+The target workflow will:
+1. Accept source text, candidate translation, content type, context, audience, terminology, and constraints
+2. Route the task through specialized localization reviewers
+3. Produce structured review findings, recommended revisions, and a chief editor decision
 
-**Key Feature**: You see BOTH the individual perspectives AND the synthesized conclusion - never just a summary.
+**Key Feature**: Translation decisions should be traceable to role-specific findings rather than a generic summary.
 
 ## When to use this server
-Use Council of Mine when you need:
-- Diverse perspectives on complex topics or decisions
-- Democratic evaluation of ideas through voting
-- Balanced consideration of practical, visionary, and analytical viewpoints
-- Historical reference to past debates and decisions
+Use Council of Translation when you need:
+- Multi-role review of localized product copy
+- Checks for fidelity, fluency, terminology, product context, UX, brand voice, placeholders, and risk
+- A final editor decision with rationale and optional alternatives
+- Reusable translation review records
 
-## The 9 Council Members
-🔧 The Pragmatist - Practical, results-oriented thinking focused on feasibility
-🌟 The Visionary - Big-picture, transformative potential
-🔗 The Systems Thinker - Interconnections and cascading effects
-😊 The Optimist - Positive opportunities and potential
-😈 The Devil's Advocate - Challenges assumptions and explores alternatives
-🤝 The Mediator - Common ground and consensus building
-👥 The User Advocate - Accessibility, usability, and inclusion
-📜 The Traditionalist - Time-tested approaches and proven methods
-📊 The Analyst - Data-driven, logical, measurement-focused
+## Target Localization Roles
+- Fidelity reviewer
+- Fluency reviewer
+- Terminology reviewer
+- Product context reviewer
+- UX copy reviewer
+- Brand voice reviewer
+- Technical safety reviewer
+- Risk and ambiguity reviewer
+- Chief editor
+- Optional draft translator
 
 ## Available Tools
 
-### Core Debate Workflow (use in sequence)
+### Transitional Debate Workflow (inherited, to be replaced)
 1. **start_council_debate(prompt)** - Initiates a new debate on your topic
    - All 9 members each generate an opinion via LLM sampling
    - Returns formatted text showing ALL individual opinions with member names and perspectives
@@ -70,6 +73,7 @@ To reference past debates:
 2. Call view_debate(debate_id) to see specific debate details
 
 ## Important Notes
+- This is the first rename and cleanup step toward the localization council design in `mydocs/`
 - Only one debate can be active at a time
 - Must complete the full workflow (start → vote → results) before starting a new debate
 - Each complete debate makes ~28 LLM calls (9 opinions + 9 votes + 9 reasoning + 1 synthesis)
@@ -81,10 +85,10 @@ To reference past debates:
 - Results include both democratic voting outcomes and AI synthesis for comprehensive insight
 """
 
-mcp = FastMCP(name="council-of-mine", instructions=INSTRUCTIONS)
+mcp = FastMCP(name="council-of-translation", instructions=INSTRUCTIONS)
 
-from mcp_council_of_mine import tools  # noqa: F401, E402
-from mcp_council_of_mine import prompts  # noqa: F401, E402
+from council_of_translation import tools  # noqa: F401, E402
+from council_of_translation import prompts  # noqa: F401, E402
 
 
 def main():

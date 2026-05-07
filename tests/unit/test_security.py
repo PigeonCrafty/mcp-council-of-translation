@@ -1,21 +1,19 @@
 #!/usr/bin/env python3
 """
-Security test suite for Council of Mine MCP Server
+Security test suite for Council of Translation MCP Server
 Tests all security fixes implemented in the security review
 """
 
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from src.security import (
+from council_of_translation.security import (
     validate_debate_id,
     validate_prompt,
     sanitize_text,
     safe_extract_text,
 )
-from src.council.state import StateManager
+from council_of_translation.council.state import StateManager
 from datetime import datetime
 
 
@@ -44,7 +42,7 @@ def test_path_traversal_prevention():
     for debate_id in valid_ids:
         assert validate_debate_id(debate_id), f"Valid debate_id should pass: {debate_id}"
 
-    print("✓ Path traversal prevention working")
+    print("OK: Path traversal prevention working")
 
 
 def test_prompt_injection_detection():
@@ -74,7 +72,7 @@ def test_prompt_injection_detection():
         is_valid, _ = validate_prompt(prompt)
         assert is_valid, f"Valid prompt should pass: {prompt}"
 
-    print("✓ Prompt injection detection working")
+    print("OK: Prompt injection detection working")
 
 
 def test_input_length_limits():
@@ -94,7 +92,7 @@ def test_input_length_limits():
     is_valid, error_msg = validate_prompt(whitespace_prompt)
     assert not is_valid, "Whitespace-only prompt should be rejected"
 
-    print("✓ Input length limits working")
+    print("OK: Input length limits working")
 
 
 def test_text_sanitization():
@@ -120,7 +118,7 @@ def test_text_sanitization():
     assert "\n" in sanitized, "Newlines should be preserved"
     assert "\t" in sanitized, "Tabs should be preserved"
 
-    print("✓ Text sanitization working")
+    print("OK: Text sanitization working")
 
 
 def test_safe_text_extraction():
@@ -135,42 +133,43 @@ def test_safe_text_extraction():
     extracted = safe_extract_text(normal_text)
     assert extracted == normal_text, "Normal text should pass through"
 
-    print("✓ Safe text extraction working")
+    print("OK: Safe text extraction working")
 
 
 def test_state_manager_validation():
     """Test that StateManager enforces validation"""
     print("Testing StateManager validation...")
 
-    import tempfile
-    with tempfile.TemporaryDirectory() as tmpdir:
-        state = StateManager(debates_dir=tmpdir)
+    temp_root = Path(__file__).resolve().parents[2] / ".tmp"
+    tmpdir = temp_root / "state-manager-validation"
+    tmpdir.mkdir(parents=True, exist_ok=True)
+    state = StateManager(debates_dir=str(tmpdir))
 
-        try:
-            state.load_debate("../../../etc/passwd")
-            assert False, "Should have raised ValueError for path traversal"
-        except ValueError as e:
-            assert "Invalid debate_id" in str(e) or "path traversal" in str(e).lower()
+    try:
+        state.load_debate("../../../etc/passwd")
+        assert False, "Should have raised ValueError for path traversal"
+    except ValueError as e:
+        assert "Invalid debate_id" in str(e) or "path traversal" in str(e).lower()
 
-        try:
-            state.load_debate("invalid_format")
-            assert False, "Should have raised ValueError for invalid format"
-        except ValueError as e:
-            assert "Invalid debate_id" in str(e)
+    try:
+        state.load_debate("invalid_format")
+        assert False, "Should have raised ValueError for invalid format"
+    except ValueError as e:
+        assert "Invalid debate_id" in str(e)
 
-        try:
-            state.load_debate("20251114_123456")
-            assert False, "Should have raised FileNotFoundError"
-        except FileNotFoundError:
-            pass
+    try:
+        state.load_debate("20251114_123456")
+        assert False, "Should have raised FileNotFoundError"
+    except FileNotFoundError:
+        pass
 
-    print("✓ StateManager validation working")
+    print("OK: StateManager validation working")
 
 
 def run_all_tests():
     """Run all security tests"""
     print("=" * 60)
-    print("Running Council of Mine Security Test Suite")
+    print("Running Council of Translation Security Test Suite")
     print("=" * 60)
 
     tests = [
@@ -190,10 +189,10 @@ def run_all_tests():
             test()
             passed += 1
         except AssertionError as e:
-            print(f"✗ {test.__name__} FAILED: {e}")
+            print(f"FAIL: {test.__name__} FAILED: {e}")
             failed += 1
         except Exception as e:
-            print(f"✗ {test.__name__} ERROR: {e}")
+            print(f"FAIL: {test.__name__} ERROR: {e}")
             failed += 1
 
     print("=" * 60)

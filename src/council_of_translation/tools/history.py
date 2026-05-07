@@ -1,6 +1,6 @@
 import logging
-from mcp_council_of_mine.server import mcp
-from mcp_council_of_mine.council.state import get_state_manager
+from council_of_translation.server import mcp
+from council_of_translation.council.state import get_state_manager
 from fastmcp import Context
 
 

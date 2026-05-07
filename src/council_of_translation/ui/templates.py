@@ -125,7 +125,7 @@ def generate_opinions_ui(debate_id: str, prompt: str, opinions: dict) -> list[UI
         </style>
         <div class="container">
             <div class="header">
-                <h1>🏛️ Council of Mine Debate</h1>
+                <h1>🏛️ Council of Translation Debate</h1>
                 <p>Debate ID: {debate_id}</p>
             </div>
 

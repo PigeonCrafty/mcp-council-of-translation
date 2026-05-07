@@ -1,5 +1,5 @@
 """
-Council of Mine MCP Server Tests
+Council of Translation MCP Server Tests
 
 Test organization:
 - unit/: Unit tests for individual components

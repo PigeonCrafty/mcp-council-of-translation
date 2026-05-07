@@ -650,7 +650,7 @@ wheels = [
 ]
 
 [[package]]
-name = "mcp-council-of-mine"
+name = "Council-of-Translation"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

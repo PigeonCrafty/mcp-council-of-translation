@@ -1,9 +1,9 @@
-from mcp_council_of_mine.server import mcp
+from council_of_translation.server import mcp
 
 @mcp.prompt()
 def council_debate(topic: str) -> str:
     """
-    Consult the Council of Mine for a debate on any topic.
+    Consult the Council of Translation for a debate on any topic.
 
     Args:
         topic: The question or topic for the council to debate
@@ -18,12 +18,12 @@ Then call get_results() to see voting, synthesis, and the council's final decisi
 @mcp.prompt()
 def ask_council(question: str) -> str:
     """
-    Ask the Council of Mine for their collective wisdom on a question.
+    Ask the Council of Translation for their collective wisdom on a question.
 
     Args:
         question: Your question for the council
     """
-    return f"""The Council of Mine should debate this question:
+    return f"""The Council of Translation should debate this question:
 
 "{question}"
 
@@ -40,7 +40,7 @@ def council_decision(scenario: str) -> str:
     Args:
         scenario: The scenario requiring a decision
     """
-    return f"""Present this scenario to the Council of Mine for deliberation:
+    return f"""Present this scenario to the Council of Translation for deliberation:
 
 "{scenario}"
 
@@ -59,7 +59,7 @@ def quick_poll(statement: str) -> str:
     Args:
         statement: A statement to evaluate
     """
-    return f"""Poll the Council of Mine on this statement:
+    return f"""Poll the Council of Translation on this statement:
 
 "{statement}"
 
@@ -82,9 +82,9 @@ If there are interesting past debates, we can view them in detail with view_deba
 @mcp.prompt()
 def council_help() -> str:
     """
-    Learn how to use the Council of Mine server.
+    Learn how to use the Council of Translation server.
     """
-    return """The Council of Mine has 9 members with unique personalities:
+    return """The Council of Translation has 9 members with unique personalities:
 
 🔧 The Pragmatist - Practical, results-oriented
 🌟 The Visionary - Big-picture thinker

@@ -1,14 +1,14 @@
 [project]
-name = "mcp-council-of-mine"
+name = "Council-of-Translation"
 version = "0.1.2"
-description = "MCP server with 9 council members voting system"
+description = "MCP server for multi-agent localization translation review"
 requires-python = ">=3.10"
 dependencies = [
     "fastmcp>=2.13.0.2",
 ]
 
 [project.scripts]
-mcp_council_of_mine = "mcp_council_of_mine.server:main"
+council_of_translation = "council_of_translation.server:main"
 
 [build-system]
 requires = ["setuptools>=68", "wheel"]
