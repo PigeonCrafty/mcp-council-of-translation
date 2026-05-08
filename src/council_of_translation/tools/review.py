@@ -14,7 +14,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12000
-DIAGNOSTIC_BUILD = "review-fallback-v2"
+DIAGNOSTIC_BUILD = "sampling-result-extraction-v1"
 
 
 def _installed_version() -> str:

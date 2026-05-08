@@ -10,6 +10,8 @@ from council_of_translation.localization.roles import (
 from council_of_translation.localization.workflow import (
     build_fallback_chief_editor_decision,
     build_unstructured_review_result,
+    extract_first_json_object,
+    extract_text_from_sampling_repr,
     normalize_chief_editor_decision,
     normalize_review_result,
     parse_json_object,
@@ -72,6 +74,26 @@ def test_parse_json_object_from_fenced_output():
         ```"""
     )
     assert parsed["verdict"] == "通过"
+
+
+def test_extract_text_from_goose_sampling_result_repr():
+    response = (
+        "SamplingResult(text='{\"agent_name\":\"fidelity_reviewer\","
+        "\"verdict\":\"有保留通过\",\"issues\":[\"ok\"]}', result='{...}')"
+    )
+
+    extracted = extract_text_from_sampling_repr(response)
+    parsed = parse_json_object(extracted)
+
+    assert parsed["agent_name"] == "fidelity_reviewer"
+    assert parsed["issues"] == ["ok"]
+
+
+def test_parse_first_json_object_ignores_sampling_result_tail():
+    text = "SamplingResult(text='prefix {\"a\": {\"b\": 1}}', result='{...}')"
+    fragment = extract_first_json_object(text)
+
+    assert fragment == '{"a": {"b": 1}}'
 
 
 def test_normalize_review_result_defaults_invalid_values():

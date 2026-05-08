@@ -1,6 +1,7 @@
 import json
 import logging
 import re
+import ast
 from datetime import datetime
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
@@ -46,6 +47,9 @@ def build_unstructured_review_result(
 
 def extract_text_from_response(response: Any) -> str:
     try:
+        if hasattr(response, "text"):
+            return str(response.text)
+
         if hasattr(response, "content") and response.content:
             content_item = response.content[0]
 
@@ -63,10 +67,30 @@ def extract_text_from_response(response: Any) -> str:
                 text = match.group(1)
                 return text.replace("\\n", "\n").replace("\\'", "'").replace('\\"', '"')
 
-        return str(response)
+        return extract_text_from_sampling_repr(str(response))
     except (AttributeError, KeyError, IndexError, TypeError) as e:
         logging.warning(f"Failed to extract text from response: {e}")
         return ""
+
+
+def extract_text_from_sampling_repr(response_text: str) -> str:
+    content_str = safe_extract_text(response_text)
+
+    # Goose may expose MCP sampling as a repr like:
+    # SamplingResult(text='{"agent_name": ...}', result='{...}')
+    match = re.search(
+        r"text=(?P<quoted>'(?:\\.|[^'\\])*'|\"(?:\\.|[^\"\\])*\")\s*,\s*result=",
+        content_str,
+        re.DOTALL,
+    )
+    if match:
+        try:
+            return str(ast.literal_eval(match.group("quoted")))
+        except (SyntaxError, ValueError):
+            quoted = match.group("quoted")
+            return quoted[1:-1].replace("\\n", "\n").replace("\\'", "'").replace('\\"', '"')
+
+    return content_str
 
 
 def _strip_code_fence(text: str) -> str:
@@ -86,16 +110,49 @@ def parse_json_object(text: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         pass
 
-    match = re.search(r"\{.*\}", text, re.DOTALL)
-    if match:
+    json_fragment = extract_first_json_object(text)
+    if json_fragment:
         try:
-            parsed = json.loads(match.group(0))
+            parsed = json.loads(json_fragment)
             if isinstance(parsed, dict):
                 return parsed
         except json.JSONDecodeError:
             pass
 
     raise ValueError("Unable to parse JSON object from sampling response")
+
+
+def extract_first_json_object(text: str) -> str:
+    start = text.find("{")
+    if start == -1:
+        return ""
+
+    depth = 0
+    in_string = False
+    escape = False
+
+    for index in range(start, len(text)):
+        char = text[index]
+
+        if in_string:
+            if escape:
+                escape = False
+            elif char == "\\":
+                escape = True
+            elif char == '"':
+                in_string = False
+            continue
+
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0:
+                return text[start : index + 1]
+
+    return ""
 
 
 def _string_list(value: Any) -> list[str]:
@@ -230,7 +287,7 @@ async def run_translation_review(task: TranslationReviewTask, ctx: "Context") ->
         prompt = build_reviewer_prompt(role, task)
         response_text = ""
         try:
-            response = await ctx.sample(prompt, temperature=0.2, max_tokens=900)
+            response = await ctx.sample(prompt, temperature=0.2, max_tokens=1400)
             response_text = extract_text_from_response(response)
             raw_result = parse_json_object(response_text)
             reviews.append(normalize_review_result(raw_result, role.agent_name, role.role))
@@ -241,7 +298,7 @@ async def run_translation_review(task: TranslationReviewTask, ctx: "Context") ->
     ctx.info("Sampling chief_editor")
     try:
         editor_prompt = build_chief_editor_prompt(task, reviews)
-        response = await ctx.sample(editor_prompt, temperature=0.2, max_tokens=1200)
+        response = await ctx.sample(editor_prompt, temperature=0.2, max_tokens=2400)
         response_text = extract_text_from_response(response)
         raw_decision = parse_json_object(response_text)
         decision = normalize_chief_editor_decision(raw_decision, task)
