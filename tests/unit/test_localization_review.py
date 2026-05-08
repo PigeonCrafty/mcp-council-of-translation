@@ -8,6 +8,8 @@ from council_of_translation.localization.roles import (
     normalize_mode,
 )
 from council_of_translation.localization.workflow import (
+    build_fallback_chief_editor_decision,
+    build_unstructured_review_result,
     normalize_chief_editor_decision,
     normalize_review_result,
     parse_json_object,
@@ -94,4 +96,39 @@ def test_normalize_chief_editor_decision_defaults_to_candidate():
 
     assert decision["publishability"] == "需人工复核"
     assert decision["recommended_translation"] == "保存"
+    assert decision["review_needed"] == "是"
+
+
+def test_unstructured_reviewer_output_is_preserved():
+    result = build_unstructured_review_result(
+        "The translation is accurate, but 'what I need' sounds too literal.",
+        "fluency_reviewer",
+        "自然度润色员",
+    )
+
+    assert result["verdict"] == "有保留通过"
+    assert "what I need" in result["rationale"]
+    assert "what I need" in result["suggestions"][0]
+
+
+def test_fallback_chief_editor_uses_reviewer_text():
+    task = {"candidate_translation": "The original translation"}
+    reviews = [
+        {
+            "agent_name": "fluency_reviewer",
+            "role": "自然度润色员",
+            "verdict": "有保留通过",
+            "issues": ["'what I need' is slightly awkward in aphoristic advice."],
+            "suggestions": ["Prefer 'what you need' or 'your own needs'."],
+            "recommended_translation": "",
+            "confidence": "低",
+            "rationale": "Natural-language fallback.",
+        }
+    ]
+
+    decision = build_fallback_chief_editor_decision(task, reviews, "bad json")
+
+    assert decision["publishability"] == "修改后可发布"
+    assert decision["recommended_translation"] == "The original translation"
+    assert "what I need" in decision["optional_improvements"][0]
     assert decision["review_needed"] == "是"

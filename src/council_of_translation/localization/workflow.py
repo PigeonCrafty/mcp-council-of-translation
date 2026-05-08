@@ -35,6 +35,27 @@ DEFAULT_REVIEW_RESULT: ReviewResult = {
 }
 
 
+def build_unstructured_review_result(
+    response_text: str,
+    agent_name: str,
+    role: str,
+) -> ReviewResult:
+    raw = sanitize_text(response_text, max_length=3000)
+    if not raw:
+        raw = "该评审员未返回可用文本。"
+
+    return {
+        "agent_name": agent_name,
+        "role": role,
+        "verdict": "有保留通过",
+        "issues": ["该评审员未按 JSON schema 输出；以下依据原始评审文本供主审参考。"],
+        "suggestions": [raw],
+        "recommended_translation": "",
+        "confidence": "低",
+        "rationale": raw,
+    }
+
+
 def extract_text_from_response(response: Any) -> str:
     try:
         if hasattr(response, "content") and response.content:
@@ -145,6 +166,52 @@ def normalize_chief_editor_decision(raw: dict[str, Any], task: TranslationReview
     }
 
 
+def build_fallback_chief_editor_decision(
+    task: TranslationReviewTask,
+    reviews: list[ReviewResult],
+    reason: str,
+) -> ChiefEditorDecision:
+    must_fix: list[str] = []
+    optional_improvements: list[str] = []
+    recommended_translation = task.get("candidate_translation", "")
+
+    for review in reviews:
+        if review["verdict"] == "不通过":
+            must_fix.extend(review["issues"])
+            must_fix.extend(review["suggestions"])
+        elif review["verdict"] == "有保留通过":
+            optional_improvements.extend(review["issues"])
+            optional_improvements.extend(review["suggestions"])
+
+        if not recommended_translation and review["recommended_translation"]:
+            recommended_translation = review["recommended_translation"]
+
+    if any(review["verdict"] == "不通过" for review in reviews):
+        publishability = "修改后可发布"
+    elif optional_improvements:
+        publishability = "修改后可发布"
+    else:
+        publishability = "可发布"
+
+    # Keep fallback output compact; raw reviewer text can be long.
+    must_fix = must_fix[:5]
+    optional_improvements = optional_improvements[:8]
+
+    return {
+        "publishability": publishability,
+        "must_fix": must_fix,
+        "optional_improvements": optional_improvements,
+        "recommended_translation": recommended_translation,
+        "alternatives": [],
+        "decision_rationale": sanitize_text(
+            f"chief_editor 未返回可解析 JSON，已根据 reviewer 结构化结果和原始评审文本生成保守裁决。原因：{reason}",
+            max_length=3000,
+        ),
+        "review_needed": "是",
+        "review_reason": "主审输出格式异常；建议外层 Agent 参考 reviewer 意见后人工确认。",
+    }
+
+
 def build_review_id() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -173,19 +240,15 @@ async def run_translation_review(task: TranslationReviewTask, ctx: "Context") ->
     for index, role in enumerate(reviewers, 1):
         ctx.info(f"Sampling {role.agent_name} ({index}/{len(reviewers)})")
         prompt = build_reviewer_prompt(role, task)
+        response_text = ""
         try:
             response = await ctx.sample(prompt, temperature=0.2, max_tokens=900)
             response_text = extract_text_from_response(response)
             raw_result = parse_json_object(response_text)
             reviews.append(normalize_review_result(raw_result, role.agent_name, role.role))
         except Exception as e:
-            logging.error(f"Reviewer {role.agent_name} failed: {e}")
-            fallback = DEFAULT_REVIEW_RESULT.copy()
-            fallback["agent_name"] = role.agent_name
-            fallback["role"] = role.role
-            fallback["issues"] = ["该评审员输出无法解析。"]
-            fallback["suggestions"] = ["建议外层 Agent 结合其他评审意见，并在必要时人工复核。"]
-            reviews.append(fallback)
+            logging.warning(f"Reviewer {role.agent_name} returned unstructured output: {e}")
+            reviews.append(build_unstructured_review_result(response_text, role.agent_name, role.role))
 
     ctx.info("Sampling chief_editor")
     try:
@@ -195,17 +258,8 @@ async def run_translation_review(task: TranslationReviewTask, ctx: "Context") ->
         raw_decision = parse_json_object(response_text)
         decision = normalize_chief_editor_decision(raw_decision, task)
     except Exception as e:
-        logging.error(f"Chief editor failed: {e}")
-        decision = {
-            "publishability": "需人工复核",
-            "must_fix": ["主审输出无法解析。"],
-            "optional_improvements": [],
-            "recommended_translation": task.get("candidate_translation", ""),
-            "alternatives": [],
-            "decision_rationale": "chief_editor sampling 或 JSON 解析失败，不能可靠裁决。",
-            "review_needed": "是",
-            "review_reason": "主审输出无法解析。",
-        }
+        logging.warning(f"Chief editor returned unstructured output: {e}")
+        decision = build_fallback_chief_editor_decision(task, reviews, str(e))
 
     record: ReviewRecord = {
         "review_id": review_id,
