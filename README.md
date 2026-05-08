@@ -29,6 +29,7 @@ Council-of-Translation is review-only. It does not modify files, replace an oute
 ## Main MCP Tools
 
 - `review_translation(...)`: reviews a candidate translation and returns role-specific findings plus `chief_editor_decision.recommended_translation`.
+- `get_server_info()`: returns version and fallback diagnostics; useful for checking whether an MCP host is running a stale cached server.
 - `list_review_records()`: lists saved review records.
 - `view_review_record(review_id)`: returns a full saved review record.
 

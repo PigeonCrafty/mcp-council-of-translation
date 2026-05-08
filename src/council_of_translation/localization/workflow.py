@@ -23,18 +23,6 @@ from council_of_translation.localization.schemas import (
 from council_of_translation.security import safe_extract_text, sanitize_text
 
 
-DEFAULT_REVIEW_RESULT: ReviewResult = {
-    "agent_name": "",
-    "role": "",
-    "verdict": "有保留通过",
-    "issues": [],
-    "suggestions": [],
-    "recommended_translation": "",
-    "confidence": "低",
-    "rationale": "模型输出无法解析，已降级为空评审结果。",
-}
-
-
 def build_unstructured_review_result(
     response_text: str,
     agent_name: str,

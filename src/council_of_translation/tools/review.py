@@ -1,9 +1,11 @@
 import json
 import logging
+from importlib.metadata import PackageNotFoundError, version
 from pathlib import Path
 
 from fastmcp import Context
 
+from council_of_translation import __version__
 from council_of_translation.localization.roles import normalize_mode
 from council_of_translation.localization.schemas import TranslationReviewTask
 from council_of_translation.localization.workflow import run_translation_review
@@ -12,6 +14,14 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12000
+DIAGNOSTIC_BUILD = "review-fallback-v2"
+
+
+def _installed_version() -> str:
+    try:
+        return version("Council-of-Translation")
+    except PackageNotFoundError:
+        return __version__
 
 
 def _clean(value: str | None, max_length: int = MAX_REVIEW_FIELD_LENGTH) -> str:
@@ -53,6 +63,24 @@ def _build_task(
         "reference_translations": _clean(reference_translations),
         "known_exceptions": _clean(known_exceptions),
         "notes": _clean(notes),
+    }
+
+
+@mcp.tool()
+def get_server_info() -> dict:
+    """
+    Return diagnostic information for the running Council of Translation MCP server.
+
+    Use this before review_translation when checking whether the host is running the
+    latest GitHub version or a stale cached process.
+    """
+    return {
+        "name": "Council-of-Translation",
+        "package_version": _installed_version(),
+        "module_version": __version__,
+        "diagnostic_build": DIAGNOSTIC_BUILD,
+        "review_fallback": "preserves unstructured reviewer output",
+        "expected_unstructured_issue": "该评审员未按 JSON schema 输出；以下依据原始评审文本供主审参考。",
     }
 
 
@@ -199,4 +227,3 @@ def view_review_record(review_id: str) -> dict:
             return json.load(f)
     except json.JSONDecodeError:
         return {"error": "Review record is corrupted"}
-
