@@ -2,7 +2,7 @@
 name = "Council-of-Translation"
 version = "0.1.2"
 description = "MCP server for multi-agent localization translation review"
-requires-python = ">=3.10"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "fastmcp>=2.13.0.2",
 ]

@@ -1,82 +1,59 @@
 from council_of_translation.server import mcp
 
 @mcp.prompt()
-def council_debate(topic: str) -> str:
+def review_translation_prompt(
+    source_text: str,
+    candidate_translation: str,
+    target_language: str = "zh-CN",
+    mode: str = "standard",
+) -> str:
     """
-    Consult the Council of Translation for a debate on any topic.
+    Prepare a Council of Translation review for a candidate translation.
 
     Args:
-        topic: The question or topic for the council to debate
+        source_text: Source text.
+        candidate_translation: Candidate translation to review.
+        target_language: Target locale/language.
+        mode: Review depth: lightweight, standard, or strict.
     """
-    return f"""Please use the start_council_debate tool with this topic:
+    return f"""Call review_translation with this candidate translation.
 
-"{topic}"
+source_text:
+{source_text}
 
-Then call get_results() to see voting, synthesis, and the council's final decision."""
+candidate_translation:
+{candidate_translation}
+
+target_language:
+{target_language}
+
+mode:
+{mode}
+
+Before calling the tool, include any relevant TB, SG, project rules, placeholders, do-not-translate items, context, and known exceptions you have for this segment."""
 
 
 @mcp.prompt()
-def ask_council(question: str) -> str:
+def strict_translation_review_prompt(source_text: str, candidate_translation: str) -> str:
     """
-    Ask the Council of Translation for their collective wisdom on a question.
+    Prepare a strict Council review for high-risk or high-visibility localized text.
 
     Args:
-        question: Your question for the council
+        source_text: Source text.
+        candidate_translation: Candidate translation to review.
     """
-    return f"""The Council of Translation should debate this question:
+    return f"""Call review_translation in strict mode for this high-risk or high-visibility text.
 
-"{question}"
+source_text:
+{source_text}
 
-Please:
-1. Call start_council_debate with the question
-2. Call get_results to see voting, synthesis, and the winning perspective"""
+candidate_translation:
+{candidate_translation}
 
+mode:
+strict
 
-@mcp.prompt()
-def council_decision(scenario: str) -> str:
-    """
-    Get a council decision on a scenario or dilemma.
-
-    Args:
-        scenario: The scenario requiring a decision
-    """
-    return f"""Present this scenario to the Council of Translation for deliberation:
-
-"{scenario}"
-
-Execute the debate workflow:
-1. start_council_debate("{scenario}")
-2. get_results()
-
-Return the synthesis and winning opinion."""
-
-
-@mcp.prompt()
-def quick_poll(statement: str) -> str:
-    """
-    Quick council poll: get diverse perspectives on a statement.
-
-    Args:
-        statement: A statement to evaluate
-    """
-    return f"""Poll the Council of Translation on this statement:
-
-"{statement}"
-
-Run through the complete debate process and show me:
-- All 9 member opinions
-- Voting results
-- Final synthesis"""
-
-
-@mcp.prompt()
-def council_wisdom() -> str:
-    """
-    Explore past council debates and wisdom.
-    """
-    return """Show me the council's past debates using list_past_debates().
-
-If there are interesting past debates, we can view them in detail with view_debate(debate_id)."""
+Pass all relevant context, TB/SG/project rules, brand guidelines, technical constraints, reference translations, and known exceptions. The Council should return review findings and a chief editor recommendation only; the caller applies any changes."""
 
 
 @mcp.prompt()
@@ -84,26 +61,31 @@ def council_help() -> str:
     """
     Learn how to use the Council of Translation server.
     """
-    return """The Council of Translation has 9 members with unique personalities:
+    return """Council of Translation is a review-only MCP server for localization QA.
 
-🔧 The Pragmatist - Practical, results-oriented
-🌟 The Visionary - Big-picture thinker
-🔗 The Systems Thinker - Sees interconnections and cascading effects
-😊 The Optimist - Positive and opportunity-focused
-😈 The Devil's Advocate - Challenges assumptions
-🤝 The Mediator - Seeks common ground
-👥 The User Advocate - Champions accessibility and usability
-📜 The Traditionalist - Values proven methods
-📊 The Analyst - Data-driven and logical
+Main tool:
+- review_translation(...)
 
-To start a debate:
-1. start_council_debate("your topic")
-2. conduct_voting()
-3. get_results()
+Required:
+- source_text
+- candidate_translation
 
-Or use prompts like:
-- "council_debate" - Start a formal debate
-- "ask_council" - Ask a question
-- "council_decision" - Get a decision on a scenario
-- "council_wisdom" - View past debates"""
+Recommended context:
+- content_type
+- context
+- audience
+- term_glossary
+- style_guide
+- project_rules
+- brand_guidelines
+- technical_constraints
+- reference_translations
+- known_exceptions
+
+Modes:
+- lightweight: short low-risk strings
+- standard: normal product localization
+- strict: high-risk or high-visibility content
+
+The server returns reviewer findings and chief_editor_decision.recommended_translation. The calling agent remains responsible for applying changes."""
 

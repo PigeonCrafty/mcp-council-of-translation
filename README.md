@@ -2,17 +2,17 @@
 
 Council-of-Translation is an MCP server for multi-agent localization translation review.
 
-The project is being adapted from a general council-style deliberation server into a structured localization workflow. The target design is defined in `mydocs/` and centers on:
+The project is being adapted from a general council-style deliberation server into a structured localization review workflow. The target design is defined in `docs/` and centers on:
 
 - role-based translation review
 - consistent structured inputs and outputs
 - terminology, style, context, placeholder, and risk checks
-- a chief editor agent that makes traceable final translation decisions
+- a chief editor agent that makes traceable review recommendations
 - lightweight, standard, and strict review modes
 
 ## Product Direction
 
-The localization council is designed to review or generate translations through specialized roles:
+The localization council is designed to review candidate translations through specialized roles:
 
 - fidelity reviewer
 - fluency reviewer
@@ -23,9 +23,24 @@ The localization council is designed to review or generate translations through 
 - technical safety reviewer
 - risk and ambiguity reviewer
 - chief editor
-- optional draft translator
 
-The next implementation steps should replace the inherited generic debate and voting workflow with translation-specific tasks, schemas, prompts, and orchestration.
+Council-of-Translation is review-only. It does not modify files, replace an outer translation skill, or own the full TB/SG/project-rule context. The calling agent should pass only the relevant rule packet for the current segment, then decide how to apply the returned recommendations.
+
+## Main MCP Tools
+
+- `review_translation(...)`: reviews a candidate translation and returns role-specific findings plus `chief_editor_decision.recommended_translation`.
+- `list_review_records()`: lists saved review records.
+- `view_review_record(review_id)`: returns a full saved review record.
+
+Typical flow:
+
+```text
+outer translation skill produces candidate translation
+-> outer agent retrieves relevant TB / SG / project rules
+-> review_translation(...)
+-> Council returns structured review report
+-> outer agent applies or ignores recommendations
+```
 
 ## Development
 
@@ -63,5 +78,5 @@ PYTHONPATH=src uv run pytest tests/
 
 The active product and role design lives in:
 
-- `mydocs/localization-council-role-system-design.zh-CN.txt`
-- `mydocs/localization-council-prompt-agent-spec.zh-CN.txt`
+- `docs/localization-council-role-system-design.zh-CN.txt`
+- `docs/localization-council-prompt-agent-spec.zh-CN.txt`
