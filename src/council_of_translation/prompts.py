@@ -87,6 +87,11 @@ Modes:
 - standard: normal product localization
 - strict: high-risk or high-visibility content
 
+Output modes:
+- review_only: default; final review advice only, no full rewritten translation
+- with_snippets: includes limited local examples
+- full_rewrite: only when explicitly requested
+
 The server returns reviewer findings, chief_editor_decision.recommended_translation, and server_info. The calling agent remains responsible for applying changes.
 
 Diagnostic note:

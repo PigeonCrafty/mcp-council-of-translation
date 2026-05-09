@@ -14,7 +14,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12000
-DIAGNOSTIC_BUILD = "review-result-self-identifying-v1"
+DIAGNOSTIC_BUILD = "review-only-conflict-review-v1"
 
 
 def _installed_version() -> str:
@@ -32,6 +32,8 @@ def _server_info() -> dict:
         "diagnostic_build": DIAGNOSTIC_BUILD,
         "review_fallback": "preserves unstructured reviewer output",
         "sampling_result_parsing": "extracts Goose SamplingResult.text",
+        "default_output_mode": "review_only",
+        "conflict_review": "targeted auto conflict review",
     }
 
 
@@ -48,6 +50,10 @@ def _build_task(
     context: str,
     audience: str,
     mode: str,
+    output_mode: str,
+    enable_conflict_review: str,
+    max_examples: int,
+    max_conflicts: int,
     term_glossary: str,
     style_guide: str,
     project_rules: str,
@@ -66,6 +72,10 @@ def _build_task(
         "context": _clean(context),
         "audience": _clean(audience),
         "mode": normalize_mode(mode),
+        "output_mode": _clean(output_mode or "review_only", max_length=50),
+        "enable_conflict_review": _clean(enable_conflict_review or "auto", max_length=50),
+        "max_examples": max_examples,
+        "max_conflicts": max_conflicts,
         "term_glossary": _clean(term_glossary),
         "style_guide": _clean(style_guide),
         "project_rules": _clean(project_rules),
@@ -100,6 +110,10 @@ async def review_translation(
     context: str = "",
     audience: str = "",
     mode: str = "standard",
+    output_mode: str = "review_only",
+    enable_conflict_review: str = "auto",
+    max_examples: int = 5,
+    max_conflicts: int = 2,
     term_glossary: str = "",
     style_guide: str = "",
     project_rules: str = "",
@@ -125,6 +139,10 @@ async def review_translation(
         context: Product/page/component context and neighboring meaning.
         audience: Target user group.
         mode: Review depth: lightweight, standard, or strict. Defaults to standard.
+        output_mode: review_only, with_snippets, or full_rewrite. Defaults to review_only.
+        enable_conflict_review: off, auto, or always. Defaults to auto.
+        max_examples: Maximum local revision examples when output_mode allows snippets.
+        max_conflicts: Maximum targeted conflicts to review in auto/always mode.
         term_glossary: Relevant TB entries for this segment, not necessarily the full TB.
         style_guide: Relevant SG rules for this segment.
         project_rules: Project-specific rules, forbidden wording, punctuation, naming, etc.
@@ -152,6 +170,10 @@ async def review_translation(
         context=context,
         audience=audience,
         mode=mode,
+        output_mode=output_mode,
+        enable_conflict_review=enable_conflict_review,
+        max_examples=max_examples,
+        max_conflicts=max_conflicts,
         term_glossary=term_glossary,
         style_guide=style_guide,
         project_rules=project_rules,

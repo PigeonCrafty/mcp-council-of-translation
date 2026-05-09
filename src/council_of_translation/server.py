@@ -41,6 +41,8 @@ Use Council of Translation when you need:
    - Requires source_text and candidate_translation
    - Accepts relevant term_glossary, style_guide, project_rules, brand_guidelines, technical_constraints, reference_translations, known_exceptions, and notes
    - Supports mode: lightweight, standard, strict
+   - Supports output_mode: review_only, with_snippets, full_rewrite. Default is review_only.
+   - Supports enable_conflict_review: off, auto, always. Default is auto.
    - Uses MCP sampling internally to ask reviewer roles and chief_editor
    - Returns structured review report plus server_info diagnostics; the caller decides whether and how to apply recommendations
 
@@ -64,6 +66,7 @@ For a translation review:
 5. The outer agent applies or ignores the recommendation according to project context
 
 Use lightweight mode for low-risk short UI strings, standard mode for normal product localization, and strict mode for high-exposure or risky content.
+Use review_only for long documents or normal review handoff. Use with_snippets only when local examples are useful. Use full_rewrite only when the caller explicitly wants a complete rewritten translation.
 
 ## Important Notes
 - This server depends on MCP sampling support from the host client.
@@ -71,6 +74,7 @@ Use lightweight mode for low-risk short UI strings, standard mode for normal pro
 - Explicit project rules, TB, SG, and known exceptions take priority over generic reviewer preferences.
 - Review records are automatically saved to reviews/.
 - The chief editor returns a recommendation, not a file modification.
+- By default, review_translation does not return a full rewritten translation. The outer agent applies changes.
 """
 
 mcp = FastMCP(name="council-of-translation", instructions=INSTRUCTIONS)

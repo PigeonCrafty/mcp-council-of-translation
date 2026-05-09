@@ -2,6 +2,8 @@ from typing import Literal, TypedDict
 
 
 ReviewMode = Literal["lightweight", "standard", "strict"]
+OutputMode = Literal["review_only", "with_snippets", "full_rewrite"]
+ConflictReviewMode = Literal["off", "auto", "always"]
 ReviewerVerdict = Literal["通过", "有保留通过", "不通过"]
 Publishability = Literal["可发布", "修改后可发布", "需人工复核"]
 Confidence = Literal["高", "中", "低"]
@@ -17,6 +19,10 @@ class TranslationReviewTask(TypedDict, total=False):
     context: str
     audience: str
     mode: ReviewMode
+    output_mode: OutputMode
+    enable_conflict_review: ConflictReviewMode
+    max_examples: int
+    max_conflicts: int
     term_glossary: str
     style_guide: str
     project_rules: str
@@ -49,11 +55,20 @@ class ChiefEditorDecision(TypedDict):
     review_reason: str
 
 
+class ConflictReview(TypedDict):
+    conflict_id: str
+    topic: str
+    involved_agents: list[str]
+    positions: list[str]
+    resolution: str
+    rationale: str
+
+
 class ReviewRecord(TypedDict):
     review_id: str
     task: TranslationReviewTask
     mode: ReviewMode
     status: str
     reviews: list[ReviewResult]
+    conflict_reviews: list[ConflictReview]
     chief_editor_decision: ChiefEditorDecision
-

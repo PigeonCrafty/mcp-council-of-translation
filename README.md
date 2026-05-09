@@ -33,6 +33,8 @@ Council-of-Translation is review-only. It does not modify files, replace an oute
 - `list_review_records()`: lists saved review records.
 - `view_review_record(review_id)`: returns a full saved review record.
 
+`review_translation` defaults to `output_mode=review_only`, so long documents return review advice and action items rather than a full rewritten translation. Use `with_snippets` for limited local examples, and `full_rewrite` only when the caller explicitly wants a complete rewritten translation. Targeted conflict review runs in `auto` mode by default and only reviews a small number of high-value conflicts.
+
 Typical flow:
 
 ```text

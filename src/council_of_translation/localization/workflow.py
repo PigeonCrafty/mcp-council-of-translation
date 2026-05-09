@@ -11,11 +11,13 @@ if TYPE_CHECKING:
 
 from council_of_translation.localization.prompt_builders import (
     build_chief_editor_prompt,
+    build_conflict_review_prompt,
     build_reviewer_prompt,
 )
 from council_of_translation.localization.roles import get_reviewers_for_mode, normalize_mode
 from council_of_translation.localization.schemas import (
     ChiefEditorDecision,
+    ConflictReview,
     ReviewMode,
     ReviewRecord,
     ReviewResult,
@@ -165,6 +167,40 @@ def _string_list(value: Any) -> list[str]:
     return []
 
 
+def normalize_output_mode(output_mode: str | None) -> str:
+    if output_mode in {"review_only", "with_snippets", "full_rewrite"}:
+        return output_mode
+    return "review_only"
+
+
+def normalize_conflict_review_mode(value: str | None) -> str:
+    if value in {"off", "auto", "always"}:
+        return value
+    return "auto"
+
+
+def _int_at_least(value: Any, default: int, minimum: int) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return default
+    return max(parsed, minimum)
+
+
+def effective_output_mode(task: TranslationReviewTask) -> str:
+    requested = normalize_output_mode(task.get("output_mode"))
+    text_size = len(task.get("source_text", "")) + len(task.get("candidate_translation", ""))
+    if requested == "full_rewrite" and text_size > 4000:
+        return "review_only"
+    return requested
+
+
+def enforce_output_mode_on_review(review: ReviewResult, task: TranslationReviewTask) -> ReviewResult:
+    if effective_output_mode(task) != "full_rewrite":
+        review["recommended_translation"] = ""
+    return review
+
+
 def normalize_review_result(raw: dict[str, Any], agent_name: str, role: str) -> ReviewResult:
     verdict = raw.get("verdict", "有保留通过")
     if verdict not in {"通过", "有保留通过", "不通过"}:
@@ -186,6 +222,17 @@ def normalize_review_result(raw: dict[str, Any], agent_name: str, role: str) -> 
     }
 
 
+def normalize_conflict_review(raw: dict[str, Any], conflict: ConflictReview) -> ConflictReview:
+    return {
+        "conflict_id": sanitize_text(str(raw.get("conflict_id") or conflict["conflict_id"]), max_length=100),
+        "topic": sanitize_text(str(raw.get("topic") or conflict["topic"]), max_length=500),
+        "involved_agents": _string_list(raw.get("involved_agents")) or conflict["involved_agents"],
+        "positions": _string_list(raw.get("positions")) or conflict["positions"],
+        "resolution": sanitize_text(str(raw.get("resolution") or ""), max_length=1500),
+        "rationale": sanitize_text(str(raw.get("rationale") or ""), max_length=1500),
+    }
+
+
 def normalize_chief_editor_decision(raw: dict[str, Any], task: TranslationReviewTask) -> ChiefEditorDecision:
     publishability = raw.get("publishability", "需人工复核")
     if publishability not in {"可发布", "修改后可发布", "需人工复核"}:
@@ -195,7 +242,7 @@ def normalize_chief_editor_decision(raw: dict[str, Any], task: TranslationReview
     if review_needed not in {"是", "否"}:
         review_needed = "是"
 
-    candidate = task.get("candidate_translation", "")
+    candidate = task.get("candidate_translation", "") if effective_output_mode(task) == "full_rewrite" else ""
     return {
         "publishability": publishability,
         "must_fix": _string_list(raw.get("must_fix")),
@@ -218,7 +265,7 @@ def build_fallback_chief_editor_decision(
 ) -> ChiefEditorDecision:
     must_fix: list[str] = []
     optional_improvements: list[str] = []
-    recommended_translation = task.get("candidate_translation", "")
+    recommended_translation = task.get("candidate_translation", "") if effective_output_mode(task) == "full_rewrite" else ""
 
     for review in reviews:
         if review["verdict"] == "不通过":
@@ -257,6 +304,105 @@ def build_fallback_chief_editor_decision(
     }
 
 
+def detect_conflicts(task: TranslationReviewTask, reviews: list[ReviewResult]) -> list[ConflictReview]:
+    mode = normalize_conflict_review_mode(task.get("enable_conflict_review"))
+    if mode == "off":
+        return []
+
+    max_conflicts = _int_at_least(task.get("max_conflicts"), default=2, minimum=0)
+    if max_conflicts == 0:
+        return []
+
+    conflicts: list[ConflictReview] = []
+    combined = "\n".join(
+        [
+            f"{review['agent_name']}\n"
+            + "\n".join(review["issues"] + review["suggestions"] + [review["rationale"]])
+            for review in reviews
+        ]
+    )
+
+    def add_conflict(topic: str, agents: list[str], positions: list[str]):
+        if len(conflicts) >= max_conflicts:
+            return
+        conflicts.append(
+            {
+                "conflict_id": f"conflict_{len(conflicts) + 1}",
+                "topic": topic,
+                "involved_agents": agents,
+                "positions": positions,
+                "resolution": "",
+                "rationale": "",
+            }
+        )
+
+    if ("同意" in combined and ("permission" in combined.lower() or "授权" in combined or "许可" in combined)):
+        add_conflict(
+            "permissions/consent 的译法是否应加入“同意”",
+            ["fidelity_reviewer", "risk_ambiguity_reviewer"],
+            [
+                "忠实度视角通常倾向避免超出原文 permissions 的义务等级。",
+                "风险视角可能倾向更稳妥的合规措辞。",
+            ],
+        )
+
+    if ("保留英文" in combined or "英文括注" in combined or "中文化" in combined) and (
+        "human-in-the-loop" in combined or "round-trip" in combined or "source-cited" in combined
+    ):
+        add_conflict(
+            "半固定英文技术术语应保留英文括注还是中文化",
+            ["terminology_reviewer", "fluency_reviewer", "technical_safety_reviewer"],
+            [
+                "术语/技术安全视角倾向保留英文锚点以稳定映射。",
+                "自然度/UX 视角倾向中文可读性和扫读效率。",
+            ],
+        )
+
+    if ("speaker preservation" in combined and ("声音风格" in combined or "说话人特征" in combined)):
+        add_conflict(
+            "speaker preservation 应译为说话人特征保留还是声音风格相关表达",
+            ["fidelity_reviewer", "terminology_reviewer", "risk_ambiguity_reviewer"],
+            [
+                "术语一致性视角倾向固定为“说话人特征保留”。",
+                "风险/产品语境视角关注是否扩大为 voice style preservation。",
+            ],
+        )
+
+    if mode == "always" and not conflicts and reviews:
+        add_conflict(
+            "是否存在需要主审特别裁决的评审分歧",
+            [review["agent_name"] for review in reviews[:3]],
+            ["未检测到明确关键词冲突；请确认是否仅需按优先级汇总。"],
+        )
+
+    return conflicts[:max_conflicts]
+
+
+async def run_conflict_reviews(
+    task: TranslationReviewTask,
+    reviews: list[ReviewResult],
+    ctx: "Context",
+) -> list[ConflictReview]:
+    conflicts = detect_conflicts(task, reviews)
+    resolved: list[ConflictReview] = []
+
+    for conflict in conflicts:
+        ctx.info(f"Sampling targeted conflict review: {conflict['conflict_id']}")
+        try:
+            prompt = build_conflict_review_prompt(task, conflict)
+            response = await ctx.sample(prompt, temperature=0.2, max_tokens=900)
+            response_text = extract_text_from_response(response)
+            raw = parse_json_object(response_text)
+            resolved.append(normalize_conflict_review(raw, conflict))
+        except Exception as e:
+            logging.warning(f"Conflict review failed for {conflict['conflict_id']}: {e}")
+            conflict["resolution"] = "冲突复议未返回可解析结果；请主审按角色优先级裁决。"
+            conflict["rationale"] = str(e)
+            resolved.append(conflict)
+
+    return resolved
+
+
 def build_review_id() -> str:
     return datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -277,6 +423,10 @@ async def run_translation_review(task: TranslationReviewTask, ctx: "Context") ->
     review_id = task.get("task_id") or build_review_id()
     task["task_id"] = review_id
     task["mode"] = mode
+    task["output_mode"] = effective_output_mode(task)  # type: ignore[typeddict-item]
+    task["enable_conflict_review"] = normalize_conflict_review_mode(task.get("enable_conflict_review"))  # type: ignore[typeddict-item]
+    task["max_examples"] = _int_at_least(task.get("max_examples"), default=5, minimum=0)  # type: ignore[typeddict-item]
+    task["max_conflicts"] = _int_at_least(task.get("max_conflicts"), default=2, minimum=0)  # type: ignore[typeddict-item]
 
     reviewers = get_reviewers_for_mode(mode)
     reviews: list[ReviewResult] = []
@@ -290,14 +440,15 @@ async def run_translation_review(task: TranslationReviewTask, ctx: "Context") ->
             response = await ctx.sample(prompt, temperature=0.2, max_tokens=1400)
             response_text = extract_text_from_response(response)
             raw_result = parse_json_object(response_text)
-            reviews.append(normalize_review_result(raw_result, role.agent_name, role.role))
+            reviews.append(enforce_output_mode_on_review(normalize_review_result(raw_result, role.agent_name, role.role), task))
         except Exception as e:
             logging.warning(f"Reviewer {role.agent_name} returned unstructured output: {e}")
-            reviews.append(build_unstructured_review_result(response_text, role.agent_name, role.role))
+            reviews.append(enforce_output_mode_on_review(build_unstructured_review_result(response_text, role.agent_name, role.role), task))
 
+    conflict_reviews = await run_conflict_reviews(task, reviews, ctx)
     ctx.info("Sampling chief_editor")
     try:
-        editor_prompt = build_chief_editor_prompt(task, reviews)
+        editor_prompt = build_chief_editor_prompt(task, reviews, conflict_reviews)
         response = await ctx.sample(editor_prompt, temperature=0.2, max_tokens=2400)
         response_text = extract_text_from_response(response)
         raw_decision = parse_json_object(response_text)
@@ -312,6 +463,7 @@ async def run_translation_review(task: TranslationReviewTask, ctx: "Context") ->
         "mode": mode,
         "status": "completed",
         "reviews": reviews,
+        "conflict_reviews": conflict_reviews,
         "chief_editor_decision": decision,
     }
 

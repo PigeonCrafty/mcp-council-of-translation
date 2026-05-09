@@ -10,9 +10,15 @@ from council_of_translation.localization.roles import (
 from council_of_translation.localization.workflow import (
     build_fallback_chief_editor_decision,
     build_unstructured_review_result,
+    detect_conflicts,
+    effective_output_mode,
+    enforce_output_mode_on_review,
     extract_first_json_object,
     extract_text_from_sampling_repr,
     normalize_chief_editor_decision,
+    normalize_conflict_review,
+    normalize_conflict_review_mode,
+    normalize_output_mode,
     normalize_review_result,
     parse_json_object,
 )
@@ -40,6 +46,8 @@ def test_reviewer_prompt_contains_rule_packet_and_priority():
         "source_text": "Delete {count} selected files?",
         "candidate_translation": "删除选中的文件吗？",
         "target_language": "zh-CN",
+        "output_mode": "review_only",
+        "max_examples": 3,
         "term_glossary": "selected = 已选",
         "style_guide": "保留占位符。",
         "technical_constraints": "placeholders={count}",
@@ -51,6 +59,7 @@ def test_reviewer_prompt_contains_rule_packet_and_priority():
     assert "selected = 已选" in prompt
     assert "placeholders={count}" in prompt
     assert ROLE_PRIORITY_RULES in prompt
+    assert "recommended_translation 必须为空字符串" in prompt
     assert "只输出 JSON" in prompt
 
 
@@ -59,11 +68,13 @@ def test_chief_editor_prompt_is_recommendation_only():
         "source_text": "Save",
         "candidate_translation": "保存",
         "target_language": "zh-CN",
+        "output_mode": "review_only",
     }
     prompt = build_chief_editor_prompt(task, [])
 
     assert "你不直接修改文件" in prompt
     assert "recommended_translation" in prompt
+    assert "review_only/with_snippets 时必须为空字符串" in prompt
     assert "只输出 JSON" in prompt
 
 
@@ -117,7 +128,7 @@ def test_normalize_chief_editor_decision_defaults_to_candidate():
     decision = normalize_chief_editor_decision({"publishability": "bad"}, task)
 
     assert decision["publishability"] == "需人工复核"
-    assert decision["recommended_translation"] == "保存"
+    assert decision["recommended_translation"] == ""
     assert decision["review_needed"] == "是"
 
 
@@ -134,7 +145,7 @@ def test_unstructured_reviewer_output_is_preserved():
 
 
 def test_fallback_chief_editor_uses_reviewer_text():
-    task = {"candidate_translation": "The original translation"}
+    task = {"candidate_translation": "The original translation", "output_mode": "full_rewrite"}
     reviews = [
         {
             "agent_name": "fluency_reviewer",
@@ -154,3 +165,70 @@ def test_fallback_chief_editor_uses_reviewer_text():
     assert decision["recommended_translation"] == "The original translation"
     assert "what I need" in decision["optional_improvements"][0]
     assert decision["review_needed"] == "是"
+
+
+def test_output_mode_defaults_and_long_text_protection():
+    assert normalize_output_mode("bad") == "review_only"
+    assert normalize_conflict_review_mode("bad") == "auto"
+    assert effective_output_mode({"output_mode": "full_rewrite", "source_text": "a" * 3000, "candidate_translation": "b" * 2000}) == "review_only"
+
+
+def test_review_only_clears_recommended_translation():
+    review = {
+        "agent_name": "fluency_reviewer",
+        "role": "自然度润色员",
+        "verdict": "有保留通过",
+        "issues": [],
+        "suggestions": [],
+        "recommended_translation": "full rewrite",
+        "confidence": "高",
+        "rationale": "",
+    }
+    cleaned = enforce_output_mode_on_review(review, {"output_mode": "review_only"})
+
+    assert cleaned["recommended_translation"] == ""
+
+
+def test_detects_targeted_conflicts():
+    reviews = [
+        {
+            "agent_name": "fidelity_reviewer",
+            "role": "忠实度审校员",
+            "verdict": "有保留通过",
+            "issues": ["permissions 不应加入同意。"],
+            "suggestions": ["保留授权/许可。"],
+            "recommended_translation": "",
+            "confidence": "高",
+            "rationale": "",
+        },
+        {
+            "agent_name": "risk_ambiguity_reviewer",
+            "role": "风险与歧义审校员",
+            "verdict": "有保留通过",
+            "issues": ["合规语境下授权与同意更稳妥。"],
+            "suggestions": [],
+            "recommended_translation": "",
+            "confidence": "高",
+            "rationale": "",
+        },
+    ]
+
+    conflicts = detect_conflicts({"enable_conflict_review": "auto", "max_conflicts": 2}, reviews)
+
+    assert conflicts
+    assert conflicts[0]["conflict_id"] == "conflict_1"
+
+
+def test_normalize_conflict_review_defaults_to_detected_conflict():
+    conflict = {
+        "conflict_id": "conflict_1",
+        "topic": "topic",
+        "involved_agents": ["a"],
+        "positions": ["p"],
+        "resolution": "",
+        "rationale": "",
+    }
+    normalized = normalize_conflict_review({"resolution": "use A"}, conflict)
+
+    assert normalized["conflict_id"] == "conflict_1"
+    assert normalized["resolution"] == "use A"
