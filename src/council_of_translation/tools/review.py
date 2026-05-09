@@ -14,7 +14,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12000
-DIAGNOSTIC_BUILD = "review-only-conflict-review-v1"
+DIAGNOSTIC_BUILD = "role-feedback-findings-v1"
 
 
 def _installed_version() -> str:
@@ -33,6 +33,7 @@ def _server_info() -> dict:
         "review_fallback": "preserves unstructured reviewer output",
         "sampling_result_parsing": "extracts Goose SamplingResult.text",
         "default_output_mode": "review_only",
+        "review_output": "role_feedback plus lightweight findings; no recommended_translation in review_only",
         "conflict_review": "targeted auto conflict review",
     }
 
@@ -126,8 +127,8 @@ async def review_translation(
     """
     Review a candidate localization translation with role-specific reviewers and a chief editor.
 
-    This tool is review-only: it returns structured findings and a recommended translation
-    for the calling agent to apply. It does not modify files and does not replace the
+    This tool is review-only by default: it returns role_feedback, lightweight findings,
+    and a chief editor execution checklist for the calling agent to apply. It does not modify files and does not replace the
     caller's translation skill, TB, SG, or project-rule retrieval.
 
     Args:

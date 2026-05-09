@@ -17,6 +17,8 @@ from council_of_translation.localization.prompt_builders import (
 from council_of_translation.localization.roles import get_reviewers_for_mode, normalize_mode
 from council_of_translation.localization.schemas import (
     ChiefEditorDecision,
+    ExampleRevision,
+    Finding,
     ConflictReview,
     ReviewMode,
     ReviewRecord,
@@ -39,9 +41,21 @@ def build_unstructured_review_result(
         "agent_name": agent_name,
         "role": role,
         "verdict": "有保留通过",
+        "role_feedback": raw,
+        "findings": [
+            {
+                "span": "",
+                "issue_type": "other",
+                "severity": "minor",
+                "role_perspective": role,
+                "problem": "该评审员未按 JSON schema 输出。",
+                "evidence": raw,
+                "action": "请主审结合原始评审文本保守裁决。",
+            }
+        ],
         "issues": ["该评审员未按 JSON schema 输出；以下依据原始评审文本供主审参考。"],
         "suggestions": [raw],
-        "recommended_translation": "",
+        "example_revisions": [],
         "confidence": "低",
         "rationale": raw,
     }
@@ -167,6 +181,68 @@ def _string_list(value: Any) -> list[str]:
     return []
 
 
+def _normalize_issue_type(value: Any) -> str:
+    if value in {"accuracy", "fluency", "style", "terminology", "context", "risk", "technical", "ux", "other"}:
+        return str(value)
+    return "other"
+
+
+def _normalize_severity(value: Any) -> str:
+    if value in {"critical", "major", "minor", "preference"}:
+        return str(value)
+    return "minor"
+
+
+def _normalize_findings(value: Any, role: str) -> list[Finding]:
+    if not isinstance(value, list):
+        return []
+
+    findings: list[Finding] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        problem = sanitize_text(str(item.get("problem") or ""), max_length=1000)
+        action = sanitize_text(str(item.get("action") or ""), max_length=1000)
+        if not problem and not action:
+            continue
+        findings.append(
+            {
+                "span": sanitize_text(str(item.get("span") or ""), max_length=500),
+                "issue_type": _normalize_issue_type(item.get("issue_type")),  # type: ignore[typeddict-item]
+                "severity": _normalize_severity(item.get("severity")),  # type: ignore[typeddict-item]
+                "role_perspective": sanitize_text(str(item.get("role_perspective") or role), max_length=200),
+                "problem": problem,
+                "evidence": sanitize_text(str(item.get("evidence") or ""), max_length=1000),
+                "action": action,
+            }
+        )
+    return findings
+
+
+def _normalize_example_revisions(value: Any, max_examples: int) -> list[ExampleRevision]:
+    if not isinstance(value, list) or max_examples <= 0:
+        return []
+
+    examples: list[ExampleRevision] = []
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        suggested = sanitize_text(str(item.get("suggested") or ""), max_length=500)
+        if not suggested:
+            continue
+        examples.append(
+            {
+                "span": sanitize_text(str(item.get("span") or ""), max_length=300),
+                "current": sanitize_text(str(item.get("current") or ""), max_length=500),
+                "suggested": suggested,
+                "reason": sanitize_text(str(item.get("reason") or ""), max_length=500),
+            }
+        )
+        if len(examples) >= max_examples:
+            break
+    return examples
+
+
 def normalize_output_mode(output_mode: str | None) -> str:
     if output_mode in {"review_only", "with_snippets", "full_rewrite"}:
         return output_mode
@@ -196,8 +272,13 @@ def effective_output_mode(task: TranslationReviewTask) -> str:
 
 
 def enforce_output_mode_on_review(review: ReviewResult, task: TranslationReviewTask) -> ReviewResult:
-    if effective_output_mode(task) != "full_rewrite":
-        review["recommended_translation"] = ""
+    if effective_output_mode(task) == "review_only":
+        review["example_revisions"] = []
+    else:
+        max_examples = _int_at_least(task.get("max_examples"), default=5, minimum=0)
+        review["example_revisions"] = review.get("example_revisions", [])[:max_examples]
+    if effective_output_mode(task) != "full_rewrite" and "recommended_translation" in review:
+        del review["recommended_translation"]  # type: ignore[typeddict-item]
     return review
 
 
@@ -210,13 +291,17 @@ def normalize_review_result(raw: dict[str, Any], agent_name: str, role: str) -> 
     if confidence not in {"高", "中", "低"}:
         confidence = "低"
 
+    role_feedback = sanitize_text(str(raw.get("role_feedback") or raw.get("rationale") or ""), max_length=2000)
+    findings = _normalize_findings(raw.get("findings"), role)
     return {
         "agent_name": sanitize_text(str(raw.get("agent_name") or agent_name), max_length=100),
         "role": sanitize_text(str(raw.get("role") or role), max_length=100),
         "verdict": verdict,
+        "role_feedback": role_feedback,
+        "findings": findings,
         "issues": _string_list(raw.get("issues")),
         "suggestions": _string_list(raw.get("suggestions")),
-        "recommended_translation": sanitize_text(str(raw.get("recommended_translation") or ""), max_length=3000),
+        "example_revisions": _normalize_example_revisions(raw.get("example_revisions"), 5),
         "confidence": confidence,
         "rationale": sanitize_text(str(raw.get("rationale") or ""), max_length=2000),
     }
@@ -242,20 +327,26 @@ def normalize_chief_editor_decision(raw: dict[str, Any], task: TranslationReview
     if review_needed not in {"是", "否"}:
         review_needed = "是"
 
-    candidate = task.get("candidate_translation", "") if effective_output_mode(task) == "full_rewrite" else ""
-    return {
+    decision: ChiefEditorDecision = {
         "publishability": publishability,
         "must_fix": _string_list(raw.get("must_fix")),
+        "should_fix": _string_list(raw.get("should_fix")),
         "optional_improvements": _string_list(raw.get("optional_improvements")),
-        "recommended_translation": sanitize_text(
-            str(raw.get("recommended_translation") or candidate),
-            max_length=3000,
+        "example_revisions": _normalize_example_revisions(
+            raw.get("example_revisions"),
+            0 if effective_output_mode(task) == "review_only" else _int_at_least(task.get("max_examples"), default=5, minimum=0),
         ),
-        "alternatives": _string_list(raw.get("alternatives")),
+        "terminology_decisions": _string_list(raw.get("terminology_decisions")),
+        "conflict_resolutions": _string_list(raw.get("conflict_resolutions")),
+        "execution_order": _string_list(raw.get("execution_order")),
         "decision_rationale": sanitize_text(str(raw.get("decision_rationale") or ""), max_length=3000),
         "review_needed": review_needed,
         "review_reason": sanitize_text(str(raw.get("review_reason") or ""), max_length=2000),
     }
+    if effective_output_mode(task) == "full_rewrite":
+        suggested = raw.get("suggested_translation") or raw.get("recommended_translation") or task.get("candidate_translation", "")
+        decision["suggested_translation"] = sanitize_text(str(suggested), max_length=12000)  # type: ignore[typeddict-unknown-key]
+    return decision
 
 
 def build_fallback_chief_editor_decision(
@@ -264,37 +355,49 @@ def build_fallback_chief_editor_decision(
     reason: str,
 ) -> ChiefEditorDecision:
     must_fix: list[str] = []
+    should_fix: list[str] = []
     optional_improvements: list[str] = []
-    recommended_translation = task.get("candidate_translation", "") if effective_output_mode(task) == "full_rewrite" else ""
 
     for review in reviews:
+        critical_or_major = [
+            f"{finding['span']}: {finding['problem']} -> {finding['action']}".strip(": ")
+            for finding in review.get("findings", [])
+            if finding["severity"] in {"critical", "major"}
+        ]
+        minor_or_pref = [
+            f"{finding['span']}: {finding['problem']} -> {finding['action']}".strip(": ")
+            for finding in review.get("findings", [])
+            if finding["severity"] in {"minor", "preference"}
+        ]
         if review["verdict"] == "不通过":
-            must_fix.extend(review["issues"])
-            must_fix.extend(review["suggestions"])
+            must_fix.extend(critical_or_major or review["issues"])
+            should_fix.extend(review["suggestions"])
         elif review["verdict"] == "有保留通过":
-            optional_improvements.extend(review["issues"])
+            should_fix.extend(critical_or_major)
+            optional_improvements.extend(minor_or_pref or review["issues"])
             optional_improvements.extend(review["suggestions"])
-
-        if not recommended_translation and review["recommended_translation"]:
-            recommended_translation = review["recommended_translation"]
 
     if any(review["verdict"] == "不通过" for review in reviews):
         publishability = "修改后可发布"
-    elif optional_improvements:
+    elif should_fix or optional_improvements:
         publishability = "修改后可发布"
     else:
         publishability = "可发布"
 
     # Keep fallback output compact; raw reviewer text can be long.
     must_fix = must_fix[:5]
+    should_fix = should_fix[:8]
     optional_improvements = optional_improvements[:8]
 
-    return {
+    decision: ChiefEditorDecision = {
         "publishability": publishability,
         "must_fix": must_fix,
+        "should_fix": should_fix,
         "optional_improvements": optional_improvements,
-        "recommended_translation": recommended_translation,
-        "alternatives": [],
+        "example_revisions": [],
+        "terminology_decisions": [],
+        "conflict_resolutions": [],
+        "execution_order": (must_fix + should_fix + optional_improvements)[:8],
         "decision_rationale": sanitize_text(
             f"chief_editor 未返回可解析 JSON，已根据 reviewer 结构化结果和原始评审文本生成保守裁决。原因：{reason}",
             max_length=3000,
@@ -302,6 +405,9 @@ def build_fallback_chief_editor_decision(
         "review_needed": "是",
         "review_reason": "主审输出格式异常；建议外层 Agent 参考 reviewer 意见后人工确认。",
     }
+    if effective_output_mode(task) == "full_rewrite":
+        decision["suggested_translation"] = task.get("candidate_translation", "")  # type: ignore[typeddict-unknown-key]
+    return decision
 
 
 def detect_conflicts(task: TranslationReviewTask, reviews: list[ReviewResult]) -> list[ConflictReview]:
@@ -317,7 +423,15 @@ def detect_conflicts(task: TranslationReviewTask, reviews: list[ReviewResult]) -
     combined = "\n".join(
         [
             f"{review['agent_name']}\n"
-            + "\n".join(review["issues"] + review["suggestions"] + [review["rationale"]])
+            + "\n".join(
+                review["issues"]
+                + review["suggestions"]
+                + [review.get("role_feedback", ""), review["rationale"]]
+                + [
+                    f"{finding['span']} {finding['issue_type']} {finding['severity']} {finding['problem']} {finding['action']}"
+                    for finding in review.get("findings", [])
+                ]
+            )
             for review in reviews
         ]
     )
@@ -334,6 +448,32 @@ def detect_conflicts(task: TranslationReviewTask, reviews: list[ReviewResult]) -
                 "resolution": "",
                 "rationale": "",
             }
+        )
+
+    findings_by_span: dict[str, list[tuple[str, Finding]]] = {}
+    for review in reviews:
+        for finding in review.get("findings", []):
+            span = finding.get("span", "").strip()
+            if not span:
+                continue
+            findings_by_span.setdefault(span.lower(), []).append((review["agent_name"], finding))
+
+    for span, span_findings in findings_by_span.items():
+        if len(span_findings) < 2:
+            continue
+        severities = {finding["severity"] for _, finding in span_findings}
+        issue_types = {finding["issue_type"] for _, finding in span_findings}
+        actions = {finding["action"] for _, finding in span_findings if finding["action"]}
+        has_meaningful_difference = len(severities) > 1 or len(issue_types) > 1 or len(actions) > 1
+        if not has_meaningful_difference:
+            continue
+        add_conflict(
+            f"同一片段的评审意见需要裁决：{span}",
+            [agent for agent, _ in span_findings],
+            [
+                f"{agent}: {finding['severity']}/{finding['issue_type']} - {finding['problem']} -> {finding['action']}"
+                for agent, finding in span_findings
+            ],
         )
 
     if ("同意" in combined and ("permission" in combined.lower() or "授权" in combined or "许可" in combined)):

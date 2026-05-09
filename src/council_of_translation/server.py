@@ -3,14 +3,14 @@ from fastmcp import FastMCP
 INSTRUCTIONS = """
 Council of Translation is an MCP server for multi-agent localization translation review.
 
-This server is review-only. It does not translate files, modify project content, or replace the caller's translation skill. A calling agent should provide the source text, candidate translation, and the relevant TB/SG/project-rule packet for the current segment. The server returns structured reviewer findings and a chief editor recommendation for the caller to apply.
+This server is review-only. It does not translate files, modify project content, or replace the caller's translation skill. A calling agent should provide the source text, candidate translation, and the relevant TB/SG/project-rule packet for the current segment. The server returns role-specific feedback, lightweight structured findings, and a chief editor execution recommendation for the caller to apply.
 
 ## What it does
 The workflow:
 1. Accepts source text, candidate translation, content type, context, audience, terminology, style rules, project rules, and technical constraints
 2. Routes the task through specialized localization reviewers
-3. Produces structured review findings
-4. Produces a chief editor decision with must-fix items, optional improvements, recommended_translation, rationale, and human-review guidance
+3. Produces role-specific feedback plus lightweight structured findings
+4. Produces a chief editor decision with must-fix items, should-fix items, optional improvements, conflict resolutions, execution order, rationale, and human-review guidance
 
 **Key Feature**: Translation review decisions are traceable to role-specific findings rather than a generic self-check.
 
@@ -18,7 +18,7 @@ The workflow:
 Use Council of Translation when you need:
 - Multi-role review of localized product copy
 - Checks for fidelity, fluency, terminology, product context, UX, brand voice, placeholders, and risk
-- A chief editor recommendation with rationale and optional alternatives
+- A chief editor recommendation with rationale, conflict decisions, optional local examples, and execution order
 - Reusable translation review records that the caller can apply outside this MCP server
 
 ## Localization Roles

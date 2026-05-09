@@ -7,6 +7,18 @@ ConflictReviewMode = Literal["off", "auto", "always"]
 ReviewerVerdict = Literal["通过", "有保留通过", "不通过"]
 Publishability = Literal["可发布", "修改后可发布", "需人工复核"]
 Confidence = Literal["高", "中", "低"]
+Severity = Literal["critical", "major", "minor", "preference"]
+IssueType = Literal[
+    "accuracy",
+    "fluency",
+    "style",
+    "terminology",
+    "context",
+    "risk",
+    "technical",
+    "ux",
+    "other",
+]
 
 
 class TranslationReviewTask(TypedDict, total=False):
@@ -33,13 +45,32 @@ class TranslationReviewTask(TypedDict, total=False):
     notes: str
 
 
+class Finding(TypedDict):
+    span: str
+    issue_type: IssueType
+    severity: Severity
+    role_perspective: str
+    problem: str
+    evidence: str
+    action: str
+
+
+class ExampleRevision(TypedDict):
+    span: str
+    current: str
+    suggested: str
+    reason: str
+
+
 class ReviewResult(TypedDict):
     agent_name: str
     role: str
     verdict: ReviewerVerdict
+    role_feedback: str
+    findings: list[Finding]
     issues: list[str]
     suggestions: list[str]
-    recommended_translation: str
+    example_revisions: list[ExampleRevision]
     confidence: Confidence
     rationale: str
 
@@ -47,9 +78,12 @@ class ReviewResult(TypedDict):
 class ChiefEditorDecision(TypedDict):
     publishability: Publishability
     must_fix: list[str]
+    should_fix: list[str]
     optional_improvements: list[str]
-    recommended_translation: str
-    alternatives: list[str]
+    example_revisions: list[ExampleRevision]
+    terminology_decisions: list[str]
+    conflict_resolutions: list[str]
+    execution_order: list[str]
     decision_rationale: str
     review_needed: Literal["是", "否"]
     review_reason: str
