@@ -87,5 +87,8 @@ Modes:
 - standard: normal product localization
 - strict: high-risk or high-visibility content
 
-The server returns reviewer findings and chief_editor_decision.recommended_translation. The calling agent remains responsible for applying changes."""
+The server returns reviewer findings, chief_editor_decision.recommended_translation, and server_info. The calling agent remains responsible for applying changes.
+
+Diagnostic note:
+- get_server_info() is only for cache/version debugging. Do not call it before ordinary reviews; review_translation already includes server_info."""
 

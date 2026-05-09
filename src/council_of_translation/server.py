@@ -37,16 +37,21 @@ Use Council of Translation when you need:
 ### Translation Review Workflow
 1. **review_translation(...)**
    - Main review-only tool
+   - Default tool for translation quality review; call this directly for normal use
    - Requires source_text and candidate_translation
    - Accepts relevant term_glossary, style_guide, project_rules, brand_guidelines, technical_constraints, reference_translations, known_exceptions, and notes
    - Supports mode: lightweight, standard, strict
    - Uses MCP sampling internally to ask reviewer roles and chief_editor
-   - Returns structured review report; the caller decides whether and how to apply recommendations
+   - Returns structured review report plus server_info diagnostics; the caller decides whether and how to apply recommendations
 
-2. **list_review_records()**
+2. **get_server_info()**
+   - Diagnostic-only tool for cache/version checks
+   - Do not call before normal reviews; review_translation already includes server_info
+
+3. **list_review_records()**
    - Lists saved localization review records from reviews/
 
-3. **view_review_record(review_id)**
+4. **view_review_record(review_id)**
    - Retrieves a complete saved review record by ID
 
 ## Typical Usage Pattern
@@ -55,7 +60,7 @@ For a translation review:
 1. The outer translation agent generates or receives a candidate translation
 2. The outer agent retrieves only the relevant TB/SG/project rules for the current segment
 3. Call review_translation(...)
-4. Read reviews and chief_editor_decision
+4. Read reviews, chief_editor_decision, and optional server_info
 5. The outer agent applies or ignores the recommendation according to project context
 
 Use lightweight mode for low-risk short UI strings, standard mode for normal product localization, and strict mode for high-exposure or risky content.

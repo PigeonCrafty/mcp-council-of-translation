@@ -14,7 +14,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12000
-DIAGNOSTIC_BUILD = "sampling-result-extraction-v1"
+DIAGNOSTIC_BUILD = "review-result-self-identifying-v1"
 
 
 def _installed_version() -> str:
@@ -22,6 +22,17 @@ def _installed_version() -> str:
         return version("Council-of-Translation")
     except PackageNotFoundError:
         return __version__
+
+
+def _server_info() -> dict:
+    return {
+        "name": "Council-of-Translation",
+        "package_version": _installed_version(),
+        "module_version": __version__,
+        "diagnostic_build": DIAGNOSTIC_BUILD,
+        "review_fallback": "preserves unstructured reviewer output",
+        "sampling_result_parsing": "extracts Goose SamplingResult.text",
+    }
 
 
 def _clean(value: str | None, max_length: int = MAX_REVIEW_FIELD_LENGTH) -> str:
@@ -71,17 +82,11 @@ def get_server_info() -> dict:
     """
     Return diagnostic information for the running Council of Translation MCP server.
 
-    Use this before review_translation when checking whether the host is running the
-    latest GitHub version or a stale cached process.
+    Diagnostic-only tool. Do not call this for ordinary translation reviews; call
+    review_translation directly. Use get_server_info only when checking whether the
+    host is running a stale cached server.
     """
-    return {
-        "name": "Council-of-Translation",
-        "package_version": _installed_version(),
-        "module_version": __version__,
-        "diagnostic_build": DIAGNOSTIC_BUILD,
-        "review_fallback": "preserves unstructured reviewer output",
-        "expected_unstructured_issue": "该评审员未按 JSON schema 输出；以下依据原始评审文本供主审参考。",
-    }
+    return _server_info()
 
 
 @mcp.tool()
@@ -130,7 +135,8 @@ async def review_translation(
         notes: Additional caller notes.
 
     Returns:
-        Structured review report with reviewer outputs and chief editor decision.
+        Structured review report with reviewer outputs, chief editor decision, and
+        server_info diagnostics. This is the default tool for translation review.
     """
     if not _clean(source_text, max_length=1_000_000):
         return {"error": "source_text is required"}
@@ -156,7 +162,9 @@ async def review_translation(
         notes=notes,
     )
 
-    return await run_translation_review(task, ctx)
+    record = await run_translation_review(task, ctx)
+    record["server_info"] = _server_info()
+    return record
 
 
 @mcp.tool()
