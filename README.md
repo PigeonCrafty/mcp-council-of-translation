@@ -1,5 +1,7 @@
 # Council-of-Translation
 
+[![CI](https://github.com/PigeonCrafty/mcp-council-of-translation/actions/workflows/ci.yml/badge.svg)](https://github.com/PigeonCrafty/mcp-council-of-translation/actions/workflows/ci.yml)
+
 Council-of-Translation is an MCP server for multi-agent localization translation review.
 
 The project is being adapted from a general council-style deliberation server into a structured localization review workflow. The target design is defined in `docs/` and centers on:
@@ -50,7 +52,7 @@ outer translation skill produces candidate translation
 Install dependencies:
 
 ```bash
-uv sync
+uv sync --locked --group dev
 ```
 
 Run the MCP server:
@@ -68,13 +70,13 @@ uv run mcp_council_of_translation
 Run directly from GitHub:
 
 ```bash
-uvx --from git+https://github.com/PigeonCrafty/Council-of-Translation mcp_council_of_translation
+uvx --from git+https://github.com/PigeonCrafty/mcp-council-of-translation mcp_council_of_translation
 ```
 
 Run tests:
 
 ```bash
-PYTHONPATH=src uv run pytest tests/
+uv run --frozen pytest tests/
 ```
 
 ## Design Docs

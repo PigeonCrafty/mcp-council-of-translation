@@ -1,0 +1,13 @@
+* text=auto
+
+.gitattributes text eol=lf
+.python-version text eol=lf
+CODEOWNERS text eol=lf
+uv.lock text eol=lf
+*.md text eol=lf
+*.py text eol=lf
+*.sh text eol=lf
+*.toml text eol=lf
+*.txt text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
