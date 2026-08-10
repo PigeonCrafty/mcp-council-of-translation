@@ -1,6 +1,7 @@
 * text=auto
 
 .gitattributes text eol=lf
+.gitignore text eol=lf
 .python-version text eol=lf
 CODEOWNERS text eol=lf
 uv.lock text eol=lf
