@@ -5,8 +5,7 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Literal, Mapping
 
-from council_of_translation.localization.models import CouncilPlan, RoleDefinition
-from council_of_translation.localization.schemas import ReviewMode
+from council_of_translation.localization.models import CouncilPlan, ReviewMode, RoleDefinition
 
 
 ContentType = Literal["unspecified", "ui", "marketing", "technical_documentation", "legal_risk"]

@@ -122,10 +122,13 @@ def run_preflight(
 ) -> PreflightResult:
     """Run only deterministic checks over caller-supplied inputs.
 
-    `hard_constraints` may promote numeric or Markdown parity only when the
-    caller explicitly names `numeric_parity` or `markdown_parity`.
+    `hard_constraints` may promote numeric or Markdown parity, require an exact
+    candidate literal with ``required_literal:<text>``, or prohibit one with
+    ``forbidden_literal:<text>``. Other free-form entries remain reviewer
+    context and cannot become deterministic blockers.
     """
-    hard = set(hard_constraints)
+    constraint_values = [str(item) for item in hard_constraints]
+    hard = set(constraint_values)
     checks = [
         _parity_check("braced-placeholder-parity", "placeholder_parity", _counter(_BRACED, source_text), _counter(_BRACED, candidate_translation)),
         _parity_check("printf-placeholder-parity", "printf_placeholder_parity", _counter(_PRINTF, source_text), _counter(_PRINTF, candidate_translation)),
@@ -150,6 +153,25 @@ def run_preflight(
         )
     )
 
+    for index, constraint in enumerate(constraint_values, start=1):
+        prefix, separator, literal = str(constraint).partition(":")
+        if not separator or not literal or prefix not in {"required_literal", "forbidden_literal"}:
+            continue
+        present = literal in candidate_translation
+        violation = not present if prefix == "required_literal" else present
+        checks.append(
+            PreflightCheck(
+                check_id=f"explicit-{prefix.replace('_', '-')}-{index}",
+                kind="explicit_hard_constraint",
+                status="fail" if violation else "pass",
+                severity="critical" if violation else "minor",
+                source_evidence=[str(constraint)],
+                candidate_evidence=[literal] if present else [],
+                blocking=violation,
+                message="explicit caller hard constraint violated" if violation else "explicit caller hard constraint satisfied",
+            )
+        )
+
     numeric_hard = "numeric_parity" in hard
     checks.append(
         _parity_check(
@@ -173,4 +195,3 @@ def run_preflight(
         )
     )
     return PreflightResult(checks=checks)
-

@@ -21,13 +21,14 @@ def _issue(issue_id="issue_1", **updates):
     data = {
         "issue_id": issue_id,
         "topic": "button wording",
+        "category": "language_choice",
         "participant_role_ids": ["terminology_reviewer", "fluency_reviewer"],
         "candidate_actions": ["继续", "下一步"],
         "positions": [
             RolePosition(role_id="terminology_reviewer", stance="accept", option_id="a", evidence=["TB"], confidence=0.9),
             RolePosition(role_id="fluency_reviewer", stance="accept", option_id="b", evidence=["usage"], confidence=0.9),
         ],
-        "severity": "major",
+        "severity": "minor",
         "consensus_status": "disputed",
         "needs_user_input": True,
     }
@@ -73,6 +74,11 @@ def test_at_most_three_meaningful_decision_points():
     points = build_decision_points([_issue(f"issue_{index}") for index in range(5)])
     assert len(points) == 3
     assert all(len(point.options) >= 2 for point in points)
+
+
+def test_semantic_or_material_issues_are_not_user_preference_points():
+    assert build_decision_points([_issue(category="correctness")]) == []
+    assert build_decision_points([_issue(severity="major")]) == []
 
 
 def test_user_choice_is_decisive_only_when_valid():
