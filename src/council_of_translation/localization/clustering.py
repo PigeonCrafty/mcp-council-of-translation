@@ -174,4 +174,3 @@ def cluster_findings(
     if preflight is not None:
         clusters = [*_preflight_clusters(preflight), *clusters]
     return sorted(clusters, key=lambda cluster: (not cluster.blocking, cluster.issue_id))
-

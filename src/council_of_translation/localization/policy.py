@@ -137,4 +137,3 @@ def build_chief_decision(
         review_reason="存在阻断项或无法区分的有效方案。" if human_needed else "",
     )
     return chief, DecisionTrace(entries=entries)
-
