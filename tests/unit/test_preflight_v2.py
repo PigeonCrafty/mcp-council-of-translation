@@ -60,6 +60,18 @@ def test_explicit_project_constraint_can_promote_numeric_parity():
     assert check.blocking is True
 
 
+def test_explicit_literal_hard_constraints_are_deterministic():
+    result = run_preflight(
+        "Click Acme",
+        "点击示例公司 beta",
+        hard_constraints=["required_literal:Acme", "forbidden_literal:beta", "free-form advice"],
+    )
+    hard_checks = [item for item in result.checks if item.kind == "explicit_hard_constraint"]
+    assert len(hard_checks) == 2
+    assert all(item.blocking for item in hard_checks)
+    assert "free-form advice" not in {evidence for item in hard_checks for evidence in item.source_evidence}
+
+
 def test_equal_duplicate_placeholders_pass():
     result = run_preflight("{name}: {count} / {count}", "{name}：{count} / {count}")
     check = next(item for item in result.checks if item.kind == "placeholder_parity")

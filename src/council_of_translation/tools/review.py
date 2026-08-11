@@ -1,20 +1,33 @@
-import json
-import logging
+"""Frozen five-tool MCP surface for Council of Translation V0.4."""
+
+from __future__ import annotations
+
 from importlib.metadata import PackageNotFoundError, version
-from pathlib import Path
+from typing import Any
 
 from fastmcp import Context
 
 from council_of_translation import __version__
+from council_of_translation.localization.compatibility import ReviewRecordV1
+from council_of_translation.localization.models import InputDiagnostics, ReviewRecordV2, ReviewTaskV2
+from council_of_translation.localization.orchestration import (
+    compact_review_response,
+    continue_structured_review,
+    run_structured_review,
+)
+from council_of_translation.localization.persistence import ReviewPersistenceError, ReviewStore
+from council_of_translation.localization.runtime import (
+    FastMCPModelExecutor,
+    FastMCPUserInteractionGateway,
+    RuntimeTelemetry,
+)
 from council_of_translation.localization.roles import normalize_mode
-from council_of_translation.localization.schemas import TranslationReviewTask
-from council_of_translation.localization.workflow import run_translation_review
-from council_of_translation.security import sanitize_text, validate_debate_id
+from council_of_translation.security import sanitize_text
 from council_of_translation.server import mcp
 
 
-MAX_REVIEW_FIELD_LENGTH = 12000
-DIAGNOSTIC_BUILD = "role-feedback-findings-v1"
+MAX_REVIEW_FIELD_LENGTH = 12_000
+DIAGNOSTIC_BUILD = "structured-deliberation-v2"
 
 
 def _installed_version() -> str:
@@ -24,17 +37,29 @@ def _installed_version() -> str:
         return __version__
 
 
-def _server_info() -> dict:
+def _server_info() -> dict[str, Any]:
     return {
         "name": "Council-of-Translation",
         "package_version": _installed_version(),
         "module_version": __version__,
         "diagnostic_build": DIAGNOSTIC_BUILD,
-        "review_fallback": "preserves unstructured reviewer output",
-        "sampling_result_parsing": "extracts Goose SamplingResult.text",
+        "schema_version": "2.0",
         "default_output_mode": "review_only",
-        "review_output": "role_feedback plus lightweight findings; no recommended_translation in review_only",
-        "conflict_review": "targeted auto conflict review",
+        "default_interactive_mode": "auto",
+        "default_trace_level": "summary",
+        "default_history_mode": "full",
+        "user_authority": "decisive_within_valid_options",
+        "decision_fallback": "council_adjudication",
+        "review_only": True,
+        "sample_budgets": {"lightweight": 6, "standard": 10, "strict": 14},
+        "max_decision_points": 3,
+        "normal_tools": [
+            "review_translation",
+            "continue_review",
+            "view_review_record",
+            "list_review_records",
+            "get_server_info",
+        ],
     }
 
 
@@ -42,7 +67,12 @@ def _clean(value: str | None, max_length: int = MAX_REVIEW_FIELD_LENGTH) -> str:
     return sanitize_text(value or "", max_length=max_length)
 
 
-def _build_task(
+def _clean_list(values: list[str] | None, *, maximum: int = 100) -> list[str]:
+    return [_clean(str(value), max_length=500) for value in (values or [])[:maximum] if str(value).strip()]
+
+
+def _task_and_diagnostics(
+    *,
     source_text: str,
     candidate_translation: str,
     source_language: str,
@@ -52,51 +82,70 @@ def _build_task(
     audience: str,
     mode: str,
     output_mode: str,
-    enable_conflict_review: str,
-    max_examples: int,
-    max_conflicts: int,
+    interactive_mode: str,
+    decision_fallback: str,
+    trace_level: str,
+    history_mode: str,
     term_glossary: str,
     style_guide: str,
     project_rules: str,
     brand_guidelines: str,
     technical_constraints: str,
+    do_not_translate_literals: list[str] | None,
+    hard_constraints: list[str] | None,
     reference_translations: str,
     known_exceptions: str,
     notes: str,
-) -> TranslationReviewTask:
-    return {
-        "source_text": _clean(source_text),
-        "candidate_translation": _clean(candidate_translation),
-        "source_language": _clean(source_language or "auto", max_length=100),
-        "target_language": _clean(target_language or "zh-CN", max_length=100),
-        "content_type": _clean(content_type or "unspecified", max_length=200),
-        "context": _clean(context),
-        "audience": _clean(audience),
-        "mode": normalize_mode(mode),
-        "output_mode": _clean(output_mode or "review_only", max_length=50),
-        "enable_conflict_review": _clean(enable_conflict_review or "auto", max_length=50),
-        "max_examples": max_examples,
-        "max_conflicts": max_conflicts,
-        "term_glossary": _clean(term_glossary),
-        "style_guide": _clean(style_guide),
-        "project_rules": _clean(project_rules),
-        "brand_guidelines": _clean(brand_guidelines),
-        "technical_constraints": _clean(technical_constraints),
-        "reference_translations": _clean(reference_translations),
-        "known_exceptions": _clean(known_exceptions),
-        "notes": _clean(notes),
-    }
+) -> tuple[ReviewTaskV2, InputDiagnostics]:
+    if decision_fallback == "return_pending" and history_mode != "full":
+        raise ValueError("decision_fallback=return_pending requires history_mode=full")
+    clean_source = _clean(source_text)
+    clean_candidate = _clean(candidate_translation)
+    diagnostics = InputDiagnostics(
+        source_original_length=len(source_text),
+        source_reviewed_length=len(clean_source),
+        source_truncated=len(source_text) > MAX_REVIEW_FIELD_LENGTH,
+        candidate_original_length=len(candidate_translation),
+        candidate_reviewed_length=len(clean_candidate),
+        candidate_truncated=len(candidate_translation) > MAX_REVIEW_FIELD_LENGTH,
+    )
+    task = ReviewTaskV2.model_validate(
+        {
+            "source_text": clean_source,
+            "candidate_translation": clean_candidate,
+            "source_language": _clean(source_language or "auto", 100),
+            "target_language": _clean(target_language or "zh-CN", 100),
+            "content_type": _clean(content_type or "unspecified", 200),
+            "context": _clean(context),
+            "audience": _clean(audience),
+            "mode": normalize_mode(mode),
+            "output_mode": output_mode if output_mode in {"review_only", "with_snippets", "full_rewrite"} else "review_only",
+            "interactive_mode": interactive_mode if interactive_mode in {"auto", "off", "required"} else "auto",
+            "decision_fallback": decision_fallback if decision_fallback in {"council_adjudication", "return_pending"} else "council_adjudication",
+            "trace_level": trace_level if trace_level in {"summary", "full"} else "summary",
+            "history_mode": history_mode if history_mode in {"off", "metadata", "full"} else "full",
+            "term_glossary": _clean(term_glossary),
+            "style_guide": _clean(style_guide),
+            "project_rules": _clean(project_rules),
+            "brand_guidelines": _clean(brand_guidelines),
+            "technical_constraints": _clean(technical_constraints),
+            "do_not_translate_literals": _clean_list(do_not_translate_literals),
+            "hard_constraints": _clean_list(hard_constraints, maximum=20),
+            "reference_translations": _clean(reference_translations),
+            "known_exceptions": _clean(known_exceptions),
+            "notes": _clean(notes),
+        }
+    )
+    return task, diagnostics
+
+
+def _error(exc: Exception) -> dict[str, str]:
+    return {"error": str(exc), "error_type": type(exc).__name__}
 
 
 @mcp.tool()
-def get_server_info() -> dict:
-    """
-    Return diagnostic information for the running Council of Translation MCP server.
-
-    Diagnostic-only tool. Do not call this for ordinary translation reviews; call
-    review_translation directly. Use get_server_info only when checking whether the
-    host is running a stale cached server.
-    """
+def get_server_info() -> dict[str, Any]:
+    """Return V0.4 version, capability, budget, and frozen-tool diagnostics."""
     return _server_info()
 
 
@@ -112,149 +161,149 @@ async def review_translation(
     audience: str = "",
     mode: str = "standard",
     output_mode: str = "review_only",
-    enable_conflict_review: str = "auto",
-    max_examples: int = 5,
-    max_conflicts: int = 2,
+    interactive_mode: str = "auto",
+    decision_fallback: str = "council_adjudication",
+    trace_level: str = "summary",
+    history_mode: str = "full",
     term_glossary: str = "",
     style_guide: str = "",
     project_rules: str = "",
     brand_guidelines: str = "",
     technical_constraints: str = "",
+    do_not_translate_literals: list[str] | None = None,
+    hard_constraints: list[str] | None = None,
     reference_translations: str = "",
     known_exceptions: str = "",
     notes: str = "",
-) -> dict:
+) -> dict[str, Any]:
+    """Review an existing translation through bounded structured deliberation.
+
+    This is review-only: it never edits translation files. The default response
+    is compact; full structured evidence is retrieved with view_review_record.
+    A full suggested translation is permitted only when output_mode is explicitly
+    full_rewrite, and is never emitted by the default review_only path.
     """
-    Review a candidate localization translation with role-specific reviewers and a chief editor.
-
-    This tool is review-only by default: it returns role_feedback, lightweight findings,
-    and a chief editor execution checklist for the calling agent to apply. It does not modify files and does not replace the
-    caller's translation skill, TB, SG, or project-rule retrieval.
-
-    Args:
-        source_text: Source text to review against.
-        candidate_translation: Existing candidate translation to review.
-        source_language: Source language code or name, e.g. en.
-        target_language: Target locale/language, e.g. zh-CN.
-        content_type: Content type such as ui, help, marketing, error, technical, legal-lite.
-        context: Product/page/component context and neighboring meaning.
-        audience: Target user group.
-        mode: Review depth: lightweight, standard, or strict. Defaults to standard.
-        output_mode: review_only, with_snippets, or full_rewrite. Defaults to review_only.
-        enable_conflict_review: off, auto, or always. Defaults to auto.
-        max_examples: Maximum local revision examples when output_mode allows snippets.
-        max_conflicts: Maximum targeted conflicts to review in auto/always mode.
-        term_glossary: Relevant TB entries for this segment, not necessarily the full TB.
-        style_guide: Relevant SG rules for this segment.
-        project_rules: Project-specific rules, forbidden wording, punctuation, naming, etc.
-        brand_guidelines: Relevant brand voice rules.
-        technical_constraints: Placeholders, markup, do-not-translate items, length limits, etc.
-        reference_translations: Historical or neighboring translations relevant to this segment.
-        known_exceptions: Known exceptions that should override normal reviewer preferences.
-        notes: Additional caller notes.
-
-    Returns:
-        Structured review report with reviewer outputs, chief editor decision, and
-        server_info diagnostics. This is the default tool for translation review.
-    """
-    if not _clean(source_text, max_length=1_000_000):
+    if not source_text.strip():
         return {"error": "source_text is required"}
-    if not _clean(candidate_translation, max_length=1_000_000):
+    if not candidate_translation.strip():
         return {"error": "candidate_translation is required"}
-
-    task = _build_task(
-        source_text=source_text,
-        candidate_translation=candidate_translation,
-        source_language=source_language,
-        target_language=target_language,
-        content_type=content_type,
-        context=context,
-        audience=audience,
-        mode=mode,
-        output_mode=output_mode,
-        enable_conflict_review=enable_conflict_review,
-        max_examples=max_examples,
-        max_conflicts=max_conflicts,
-        term_glossary=term_glossary,
-        style_guide=style_guide,
-        project_rules=project_rules,
-        brand_guidelines=brand_guidelines,
-        technical_constraints=technical_constraints,
-        reference_translations=reference_translations,
-        known_exceptions=known_exceptions,
-        notes=notes,
-    )
-
-    record = await run_translation_review(task, ctx)
-    record["server_info"] = _server_info()
-    return record
+    try:
+        task, diagnostics = _task_and_diagnostics(
+            source_text=source_text,
+            candidate_translation=candidate_translation,
+            source_language=source_language,
+            target_language=target_language,
+            content_type=content_type,
+            context=context,
+            audience=audience,
+            mode=mode,
+            output_mode=output_mode,
+            interactive_mode=interactive_mode,
+            decision_fallback=decision_fallback,
+            trace_level=trace_level,
+            history_mode=history_mode,
+            term_glossary=term_glossary,
+            style_guide=style_guide,
+            project_rules=project_rules,
+            brand_guidelines=brand_guidelines,
+            technical_constraints=technical_constraints,
+            do_not_translate_literals=do_not_translate_literals,
+            hard_constraints=hard_constraints,
+            reference_translations=reference_translations,
+            known_exceptions=known_exceptions,
+            notes=notes,
+        )
+        budget = {"lightweight": 6, "standard": 10, "strict": 14}[task.mode]
+        telemetry = RuntimeTelemetry(sample_budget=budget)
+        record = await run_structured_review(
+            task,
+            FastMCPModelExecutor(ctx, telemetry),
+            FastMCPUserInteractionGateway(ctx, telemetry),
+            input_diagnostics=diagnostics,
+        )
+        response = record.model_dump(mode="json", exclude_none=True) if task.trace_level == "full" else compact_review_response(record)
+        response["server_info"] = _server_info()
+        return response
+    except (ValueError, ReviewPersistenceError) as exc:
+        return _error(exc)
 
 
 @mcp.tool()
-def list_review_records() -> dict:
+async def continue_review(
+    review_id: str,
+    user_decisions: list[dict[str, Any]],
+    ctx: Context,
+) -> dict[str, Any]:
+    """Create an immutable linked revision using decisions for active DecisionPoints.
+
+    Only roles affected by those decisions are reconsidered. Independent review
+    and unaffected roles are not rerun.
     """
-    List saved localization review records.
-
-    Returns:
-        Review IDs and summary metadata for records saved in the reviews directory.
-    """
-    reviews_dir = Path("reviews")
-    if not reviews_dir.exists():
-        return {"total_reviews": 0, "reviews": []}
-
-    reviews = []
-    for file_path in sorted(reviews_dir.glob("*.json"), reverse=True):
-        try:
-            with open(file_path, "r", encoding="utf-8") as f:
-                record = json.load(f)
-            task = record.get("task", {})
-            decision = record.get("chief_editor_decision", {})
-            reviews.append(
-                {
-                    "review_id": record.get("review_id"),
-                    "mode": record.get("mode"),
-                    "source_text": task.get("source_text", "")[:120],
-                    "candidate_translation": task.get("candidate_translation", "")[:120],
-                    "publishability": decision.get("publishability"),
-                    "review_needed": decision.get("review_needed"),
-                }
-            )
-        except (json.JSONDecodeError, OSError) as e:
-            logging.warning(f"Skipping invalid review record {file_path}: {e}")
-
-    return {"total_reviews": len(reviews), "reviews": reviews}
+    store = ReviewStore()
+    try:
+        parent = store.load(review_id)
+        if not isinstance(parent, ReviewRecordV2):
+            return {"error": "continue_review requires a V2 review record"}
+        telemetry = RuntimeTelemetry(sample_budget=parent.council_plan.sample_budget)
+        child = await continue_structured_review(
+            parent,
+            user_decisions,
+            FastMCPModelExecutor(ctx, telemetry),
+            store=store,
+        )
+        response = compact_review_response(child)
+        response["server_info"] = _server_info()
+        return response
+    except (ValueError, ReviewPersistenceError) as exc:
+        return _error(exc)
 
 
 @mcp.tool()
-def view_review_record(review_id: str) -> dict:
-    """
-    View a saved localization review record by ID.
-
-    Args:
-        review_id: Review ID in YYYYMMDD_HHMMSS format.
-
-    Returns:
-        Complete review record including task input, reviewer findings, and chief editor decision.
-    """
-    if not validate_debate_id(review_id):
-        return {"error": "Invalid review_id format. Expected: YYYYMMDD_HHMMSS"}
-
-    reviews_dir = Path("reviews")
-    file_path = reviews_dir / f"{review_id}.json"
-
+def view_review_record(review_id: str, detail_level: str = "full") -> dict[str, Any]:
+    """Read a V1 or V2 record; use summary for a compact V2 projection."""
     try:
-        resolved_path = file_path.resolve()
-        reviews_dir_resolved = reviews_dir.resolve()
-        if not resolved_path.is_relative_to(reviews_dir_resolved):
-            return {"error": "Invalid review_id: path traversal detected"}
-    except (ValueError, OSError):
-        return {"error": "Invalid review_id"}
+        record = ReviewStore().load(review_id)
+        if isinstance(record, ReviewRecordV2) and detail_level == "summary":
+            return compact_review_response(record)
+        if detail_level not in {"full", "summary"}:
+            return {"error": "detail_level must be full or summary"}
+        return record.model_dump(mode="json")
+    except ReviewPersistenceError as exc:
+        return _error(exc)
 
-    if not file_path.exists():
-        return {"error": f"Review {review_id} not found"}
 
+@mcp.tool()
+def list_review_records(limit: int = 50) -> dict[str, Any]:
+    """List privacy-safe V1/V2 review metadata from new and legacy storage."""
+    records: list[dict[str, Any]] = []
     try:
-        with open(file_path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except json.JSONDecodeError:
-        return {"error": "Review record is corrupted"}
+        for record in ReviewStore().iter_records():
+            if isinstance(record, ReviewRecordV2):
+                records.append(
+                    {
+                        "schema_version": "2.0",
+                        "review_id": record.review_id,
+                        "parent_review_id": record.parent_review_id,
+                        "created_at": record.created_at.isoformat(),
+                        "mode": record.task.mode,
+                        "status": record.status,
+                        "publishability": record.chief_editor_decision.publishability,
+                        "review_needed": record.chief_editor_decision.review_needed,
+                    }
+                )
+            elif isinstance(record, ReviewRecordV1):
+                records.append(
+                    {
+                        "schema_version": "1.0",
+                        "review_id": record.review_id,
+                        "mode": record.mode,
+                        "status": record.status,
+                        "publishability": record.chief_editor_decision.get("publishability"),
+                        "review_needed": record.chief_editor_decision.get("review_needed"),
+                    }
+                )
+            if len(records) >= max(0, min(limit, 200)):
+                break
+        return {"total_reviews": len(records), "reviews": records}
+    except ReviewPersistenceError as exc:
+        return _error(exc)

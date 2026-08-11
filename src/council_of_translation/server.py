@@ -1,81 +1,35 @@
 from fastmcp import FastMCP
 
+
 INSTRUCTIONS = """
-Council of Translation is an MCP server for multi-agent localization translation review.
+Council of Translation V0.4 is a review-only MCP server for structured
+localization translation QA. It never edits translation files and does not own
+translation memory, terminology/style-guide retrieval, project context, or final
+edit application; the calling agent supplies the relevant packet and applies the
+chief-editor checklist.
 
-This server is review-only. It does not translate files, modify project content, or replace the caller's translation skill. A calling agent should provide the source text, candidate translation, and the relevant TB/SG/project-rule packet for the current segment. The server returns role-specific feedback, lightweight structured findings, and a chief editor execution recommendation for the caller to apply.
+The default workflow performs deterministic technical preflight, role-routed
+independent review, issue-centric clustering, at most one targeted discussion
+round, one batched user interaction for at most three meaningful valid choices,
+affected-role reconsideration, a Policy Gate, and evidence-weighted chief-editor
+adjudication. User choices are decisive only among valid options. Technical
+integrity, semantic correctness, explicit hard rules, and critical blockers are
+not overridden by preference. Fallback adjudication uses a Position Matrix, not
+literal majority voting.
 
-## What it does
-The workflow:
-1. Accepts source text, candidate translation, content type, context, audience, terminology, style rules, project rules, and technical constraints
-2. Routes the task through specialized localization reviewers
-3. Produces role-specific feedback plus lightweight structured findings
-4. Produces a chief editor decision with must-fix items, should-fix items, optional improvements, conflict resolutions, execution order, rationale, and human-review guidance
+Normal responses are compact and default to output_mode=review_only,
+interactive_mode=auto, trace_level=summary, and history_mode=full. Full structured
+records contain claims, evidence, positions, decisions, and changes—not hidden
+reasoning—and are available through view_review_record.
 
-**Key Feature**: Translation review decisions are traceable to role-specific findings rather than a generic self-check.
-
-## When to use this server
-Use Council of Translation when you need:
-- Multi-role review of localized product copy
-- Checks for fidelity, fluency, terminology, product context, UX, brand voice, placeholders, and risk
-- A chief editor recommendation with rationale, conflict decisions, optional local examples, and execution order
-- Reusable translation review records that the caller can apply outside this MCP server
-
-## Localization Roles
-- Fidelity reviewer
-- Fluency reviewer
-- Terminology reviewer
-- Product context reviewer
-- UX copy reviewer
-- Brand voice reviewer
-- Technical safety reviewer
-- Risk and ambiguity reviewer
-- Chief editor
-
-## Available Tools
-
-### Translation Review Workflow
-1. **review_translation(...)**
-   - Main review-only tool
-   - Default tool for translation quality review; call this directly for normal use
-   - Requires source_text and candidate_translation
-   - Accepts relevant term_glossary, style_guide, project_rules, brand_guidelines, technical_constraints, reference_translations, known_exceptions, and notes
-   - Supports mode: lightweight, standard, strict
-   - Supports output_mode: review_only, with_snippets, full_rewrite. Default is review_only.
-   - Supports enable_conflict_review: off, auto, always. Default is auto.
-   - Uses MCP sampling internally to ask reviewer roles and chief_editor
-   - Returns structured review report plus server_info diagnostics; the caller decides whether and how to apply recommendations
-
-2. **get_server_info()**
-   - Diagnostic-only tool for cache/version checks
-   - Do not call before normal reviews; review_translation already includes server_info
-
-3. **list_review_records()**
-   - Lists saved localization review records from reviews/
-
-4. **view_review_record(review_id)**
-   - Retrieves a complete saved review record by ID
-
-## Typical Usage Pattern
-
-For a translation review:
-1. The outer translation agent generates or receives a candidate translation
-2. The outer agent retrieves only the relevant TB/SG/project rules for the current segment
-3. Call review_translation(...)
-4. Read reviews, chief_editor_decision, and optional server_info
-5. The outer agent applies or ignores the recommendation according to project context
-
-Use lightweight mode for low-risk short UI strings, standard mode for normal product localization, and strict mode for high-exposure or risky content.
-Use review_only for long documents or normal review handoff. Use with_snippets only when local examples are useful. Use full_rewrite only when the caller explicitly wants a complete rewritten translation.
-
-## Important Notes
-- This server depends on MCP sampling support from the host client.
-- The server does not own full TB/SG context. The caller should pass the relevant rule packet.
-- Explicit project rules, TB, SG, and known exceptions take priority over generic reviewer preferences.
-- Review records are automatically saved to reviews/.
-- The chief editor returns a recommendation, not a file modification.
-- By default, review_translation does not return a full rewritten translation. The outer agent applies changes.
+The public tool surface is frozen to exactly:
+1. review_translation — run a new review.
+2. continue_review — create a linked immutable revision from user decisions.
+3. view_review_record — retrieve V1/V2 full or summary history.
+4. list_review_records — list privacy-safe metadata.
+5. get_server_info — diagnose version, capabilities, and budgets.
 """
+
 
 mcp = FastMCP(name="council-of-translation", instructions=INSTRUCTIONS)
 
@@ -83,8 +37,9 @@ from council_of_translation import tools  # noqa: F401, E402
 from council_of_translation import prompts  # noqa: F401, E402
 
 
-def main():
+def main() -> None:
     mcp.run()
+
 
 if __name__ == "__main__":
     main()

@@ -279,6 +279,8 @@ class ReviewTaskV2(DomainModel):
     project_rules: str = ""
     brand_guidelines: str = ""
     technical_constraints: str = ""
+    do_not_translate_literals: list[str] = Field(default_factory=list)
+    hard_constraints: list[str] = Field(default_factory=list)
     reference_translations: str = ""
     known_exceptions: str = ""
     notes: str = ""
@@ -332,4 +334,3 @@ class ReviewRecordV2(DomainModel):
     @classmethod
     def cap_decision_points(cls, value: list[DecisionPoint]) -> list[DecisionPoint]:
         return value[:3]
-

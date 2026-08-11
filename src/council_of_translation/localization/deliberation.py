@@ -104,7 +104,13 @@ def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) ->
     points: list[DecisionPoint] = []
     for cluster in clusters:
         actions = list(dict.fromkeys(action for action in cluster.candidate_actions if action))
-        if cluster.blocking or not cluster.needs_user_input or len(actions) < 2:
+        if (
+            cluster.blocking
+            or cluster.category != "language_choice"
+            or cluster.severity in {"critical", "major"}
+            or not cluster.needs_user_input
+            or len(actions) < 2
+        ):
             continue
         options = [
             DecisionOption(option_id=_option_id(cluster.issue_id, action), label=action, description=action)
@@ -124,4 +130,3 @@ def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) ->
         if len(points) >= min(maximum, 3):
             break
     return points
-
