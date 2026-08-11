@@ -1,87 +1,53 @@
-# Council-of-Translation
+# Council of Translation
 
-[![CI](https://github.com/PigeonCrafty/mcp-council-of-translation/actions/workflows/ci.yml/badge.svg)](https://github.com/PigeonCrafty/mcp-council-of-translation/actions/workflows/ci.yml)
+Council of Translation V0.4 is a Goose-first, review-only MCP server for structured localization QA. It reviews a source/candidate pair, returns a compact chief-editor decision, and stores a retrievable structured trace. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
 
-Council-of-Translation is an MCP server for multi-agent localization translation review.
+## Public MCP tools
 
-The project is being adapted from a general council-style deliberation server into a structured localization review workflow. The target design is defined in `docs/` and centers on:
+The normal tool surface is frozen to exactly five tools:
 
-- role-based translation review
-- consistent structured inputs and outputs
-- terminology, style, context, placeholder, and risk checks
-- a chief editor agent that makes traceable review recommendations
-- lightweight, standard, and strict review modes
+- `review_translation(...)` starts a V2 review.
+- `continue_review(review_id, user_decisions, ...)` creates a linked immutable revision and reconsiders only affected roles.
+- `view_review_record(review_id, detail_level="full")` reads V2 records and legacy V1 records.
+- `list_review_records(...)` returns bounded, privacy-safe record metadata.
+- `get_server_info()` reports version, defaults, budgets, and build diagnostics.
 
-## Product Direction
+The defaults are `output_mode="review_only"`, `interactive_mode="auto"`, `decision_fallback="council_adjudication"`, `trace_level="summary"`, and `history_mode="full"`. Only explicit `output_mode="full_rewrite"` permits a full suggested translation.
 
-The localization council is designed to review candidate translations through specialized roles:
-
-- fidelity reviewer
-- fluency reviewer
-- terminology reviewer
-- product context reviewer
-- UX copy reviewer
-- brand voice reviewer
-- technical safety reviewer
-- risk and ambiguity reviewer
-- chief editor
-
-Council-of-Translation is review-only. It does not modify files, replace an outer translation skill, or own the full TB/SG/project-rule context. The calling agent should pass only the relevant rule packet for the current segment, then decide how to apply the returned recommendations.
-
-## Main MCP Tools
-
-- `review_translation(...)`: reviews a candidate translation and returns role-specific feedback, lightweight findings, and a chief editor execution checklist.
-- `get_server_info()`: returns version and fallback diagnostics; useful for checking whether an MCP host is running a stale cached server.
-- `list_review_records()`: lists saved review records.
-- `view_review_record(review_id)`: returns a full saved review record.
-
-`review_translation` defaults to `output_mode=review_only`, so long documents return review advice and action items rather than a full rewritten translation. Default outputs do not include `recommended_translation`. Use `with_snippets` for limited local examples, and `full_rewrite` only when the caller explicitly wants a complete rewritten translation. Targeted conflict review runs in `auto` mode by default and only reviews a small number of high-value conflicts.
-
-Typical flow:
+## Review flow
 
 ```text
-outer translation skill produces candidate translation
--> outer agent retrieves relevant TB / SG / project rules
--> review_translation(...)
--> Council returns structured review report
--> outer agent applies or ignores recommendations
+deterministic preflight
+  -> role-routed independent reviews
+  -> issue clustering
+  -> optional single bounded discussion round
+  -> optional one-form user decision (maximum three points)
+  -> affected-role reconsideration
+  -> Policy Gate
+  -> evidence-weighted chief-editor adjudication
 ```
+
+User choices are decisive only among valid options. They cannot override placeholder or markup integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Unsupported, declined, cancelled, malformed, and non-interactive elicitation paths terminate through explicit fallback or `RETURNED_PENDING`; they do not hang. `return_pending` requires `history_mode="full"`, and the compact pending response contains its DecisionPoints. Fallback uses an evidence-weighted Position Matrix, never raw vote counts.
+
+Maximum sampling budgets are 6 calls for `lightweight`, 10 for `standard`, and 14 for `strict`. Clean input does not manufacture discussion or DecisionPoints.
+
+## Persistence and privacy
+
+Records use stable sortable V2 IDs and atomic writes under the platform data directory (or `COUNCIL_REVIEWS_DIR` when explicitly configured). `history_mode` supports:
+
+- `full`: complete structured trace;
+- `metadata`: allowlisted metadata only—no source, candidate, TB/SG packets, model text, or user free text;
+- `off`: no write.
+
+Readers check V2 storage first and can read legacy V1 JSON records. Missing `schema_version` is interpreted as V1.
 
 ## Development
 
-Install dependencies:
-
-```bash
+```powershell
 uv sync --locked --group dev
-```
-
-Run the MCP server:
-
-```bash
 uv run council_of_translation
+python -m compileall src tests
+$env:PYTHONPATH='src'; python -m pytest -q
 ```
 
-The package also provides the MCP-style command alias:
-
-```bash
-uv run mcp_council_of_translation
-```
-
-Run directly from GitHub:
-
-```bash
-uvx --from git+https://github.com/PigeonCrafty/mcp-council-of-translation mcp_council_of_translation
-```
-
-Run tests:
-
-```bash
-uv run --frozen pytest tests/
-```
-
-## Design Docs
-
-The active product and role design lives in:
-
-- `docs/localization-council-role-system-design.zh-CN.txt`
-- `docs/localization-council-prompt-agent-spec.zh-CN.txt`
+The package also exposes the `mcp_council_of_translation` command alias. See [V0.4 architecture](docs/v0.4-architecture.md) and [tool and data contract](docs/v0.4-tool-contract.md).

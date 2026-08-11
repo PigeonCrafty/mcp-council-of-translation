@@ -92,8 +92,17 @@ Output modes:
 - with_snippets: includes limited local examples
 - full_rewrite: only when explicitly requested
 
-The server returns role_feedback, lightweight findings, chief_editor_decision, and server_info. In default review_only mode it does not return a full recommended translation. The calling agent remains responsible for applying changes.
+The default path performs deterministic preflight, independent role review, issue clustering, at most one bounded discussion round, optional one-form user decisions, affected-role reconsideration, a Policy Gate, and evidence-weighted chief adjudication. It never uses raw majority voting.
+
+Defaults:
+- interactive_mode: auto
+- decision_fallback: council_adjudication
+- trace_level: summary
+- history_mode: full
+
+Normal output is compact. Use view_review_record for the full structured trace, or continue_review to submit valid decisions against a linked immutable revision. In default review_only mode the server does not return a full recommended translation. The calling agent remains responsible for applying changes.
 
 Diagnostic note:
-- get_server_info() is only for cache/version debugging. Do not call it before ordinary reviews; review_translation already includes server_info."""
+- get_server_info() is only for cache/version debugging. Do not call it before ordinary reviews; review_translation already includes server_info.
+- Normal tools are exactly review_translation, continue_review, view_review_record, list_review_records, and get_server_info."""
 

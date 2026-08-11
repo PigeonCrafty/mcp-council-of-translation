@@ -7,32 +7,41 @@ Council-of-Translation is a review-only MCP server for localization translation 
 ## Current Workflow
 
 - Main tool: `review_translation(...)`
+- Continuation tool: `continue_review(...)`
+- History tools: `view_review_record(...)`, `list_review_records(...)`
 - Diagnostic tool: `get_server_info()`
 - Default output mode: `review_only`
-- Default conflict review mode: `auto`
-- Current expected diagnostic build: `role-feedback-findings-v1`
-- Current version: `0.3.0`
+- Default interactive mode: `auto`
+- Default decision fallback: `council_adjudication`
+- Default trace level: `summary`
+- Default history mode: `full`
+- Current expected diagnostic build: `structured-deliberation-v2`
+- Current version: `0.4.0`
 
 Normal callers should call `review_translation` directly. `get_server_info` is only for cache/version checks; `review_translation` already returns `server_info`.
 
 ## Review Output Contract
 
-Reviewer output is intentionally two-layered:
+Independent reviewer output is intentionally two-layered:
 
 - `role_feedback`: natural feedback from the reviewer role's real localization perspective.
 - `findings`: lightweight MQM-like annotations for machine aggregation and outer-agent execution.
 
 Each finding should include:
 
-- `span`
+- `source_span`
+- `candidate_span`
 - `issue_type`
 - `severity`
 - `role_perspective`
 - `problem`
 - `evidence`
+- `evidence_type`
 - `action`
 
-Default `review_only` output must not include a full recommended translation. The chief editor should return an execution checklist such as:
+Findings are clustered by issue, optionally discussed once, and adjudicated through a Policy Gate and evidence-weighted Position Matrix. User choices are decisive only among valid options and cannot override technical integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Use `hard_constraints` values `numeric_parity`, `markdown_parity`, `required_literal:<text>`, or `forbidden_literal:<text>` for machine-enforced caller rules; other rule packets remain authoritative reviewer context but do not become deterministic blockers by model assertion alone.
+
+Default `review_only` output must not include a full recommended translation. The chief editor returns an execution checklist such as:
 
 - `must_fix`
 - `should_fix`
@@ -63,8 +72,8 @@ Run the lightweight unit/security test harness when pytest is unavailable:
 
 ```powershell
 $env:PYTHONPATH='src'; @'
-from tests.unit import test_localization_review, test_security
-for module in (test_localization_review, test_security):
+from tests.unit import test_security
+for module in (test_security,):
     for name in dir(module):
         if name.startswith('test_'):
             getattr(module, name)()
@@ -77,14 +86,14 @@ print('OK')
 Use a pinned commit when testing a fresh version in Goose:
 
 ```powershell
-uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translation@70d8162 mcp_council_of_translation
+uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translation@<approved-commit> mcp_council_of_translation
 ```
 
 If Goose appears stale, call `get_server_info()` and verify:
 
-- `package_version`: `0.3.0`
-- `module_version`: `0.3.0`
-- `diagnostic_build`: `role-feedback-findings-v1`
+- `package_version`: `0.4.0`
+- `module_version`: `0.4.0`
+- `diagnostic_build`: `structured-deliberation-v2`
 
 ## Repository Hygiene
 
