@@ -40,4 +40,3 @@ def parse_review_record(value: Any) -> ReviewRecordV1 | ReviewRecordV2:
 
 def record_schema_version(value: Any) -> str:
     return parse_review_record(value).schema_version
-
