@@ -8,6 +8,7 @@ constraints or deterministic blockers.
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -19,6 +20,13 @@ TraceLevel = Literal["summary", "full"]
 ConstraintTier = Literal["hard", "contextual", "preference", "advisory"]
 Severity = Literal["critical", "major", "minor", "preference"]
 EvidenceOrigin = Literal["caller", "preflight", "model", "user", "system"]
+
+
+def option_id_for_action(issue_id: str, action: str) -> str:
+    """Return the single authoritative identity for an issue/action option."""
+    normalized_action = str(action).strip()
+    digest = hashlib.sha256(f"{issue_id}\x1f{normalized_action}".encode("utf-8")).hexdigest()[:12]
+    return f"option_{digest}"
 
 
 class DomainModel(BaseModel):
@@ -136,6 +144,9 @@ class RolePosition(DomainModel):
     option_id: str = ""
     claim: str = ""
     evidence: list[str] = Field(default_factory=list)
+    evidence_origin: EvidenceOrigin = "model"
+    constraint_tier: ConstraintTier = "advisory"
+    rule_refs: list[str] = Field(default_factory=list)
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     blocking: bool = False
     conditions: list[str] = Field(default_factory=list)
@@ -149,6 +160,14 @@ class RolePosition(DomainModel):
         if data.get("stance") not in {"accept", "accept_with_conditions", "reject", "not_applicable"}:
             data["stance"] = "not_applicable"
             data["blocking"] = False
+        if data.get("evidence_origin") not in {"caller", "preflight", "model", "user", "system"}:
+            data["evidence_origin"] = "model"
+        if data.get("constraint_tier") not in {"hard", "contextual", "preference", "advisory"}:
+            data["constraint_tier"] = "advisory"
+        if data.get("evidence_origin", "model") == "model":
+            data["blocking"] = False
+            if data.get("constraint_tier") == "hard":
+                data["constraint_tier"] = "advisory"
         return data
 
 
@@ -240,6 +259,8 @@ class Reconsideration(DomainModel):
 class DecisionTraceEntry(DomainModel):
     issue_id: str
     decision: str
+    selected_option_id: str = ""
+    outcome: Literal["valid_user_choice", "council_fallback", "human_review"] = "human_review"
     basis: list[str] = Field(default_factory=list)
     rejected_options: list[dict[str, str]] = Field(default_factory=list)
 

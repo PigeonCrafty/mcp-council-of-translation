@@ -82,6 +82,24 @@ def test_fastmcp_adapters_normalize_malformed_error_and_unsupported():
     assert run(gateway.elicit("x", response_type=FormData)).action == "unsupported"
 
 
+def test_sampling_accepts_raw_json_and_rejects_reasoning_only_or_empty_content():
+    class RawJson:
+        async def sample(self, *args, **kwargs):
+            return '{"role_feedback":"ok","findings":[]}'
+
+    class ReasoningOnly:
+        async def sample(self, *args, **kwargs):
+            return type("Response", (), {"reasoning": "private analysis"})()
+
+    class EmptyText:
+        async def sample(self, *args, **kwargs):
+            return type("Response", (), {"text": "   "})()
+
+    assert run(FastMCPModelExecutor(RawJson()).sample("x")).status == "success"
+    assert run(FastMCPModelExecutor(ReasoningOnly()).sample("x")).status == "malformed"
+    assert run(FastMCPModelExecutor(EmptyText()).sample("x")).status == "malformed"
+
+
 def test_scripted_model_covers_success_malformed_error_and_exhaustion():
     executor = ScriptedModelExecutor(
         ["valid", "", RuntimeError("boom"), ModelExecutionResult(status="malformed")]

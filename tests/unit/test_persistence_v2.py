@@ -16,6 +16,7 @@ from council_of_translation.localization.persistence import (
     InvalidReviewIdError,
     MalformedReviewRecordError,
     ReviewRecordNotFoundError,
+    ReviewPersistenceError,
     ReviewStore,
     build_review_id,
     default_reviews_dir,
@@ -142,6 +143,47 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.task.source_text == ""
     assert loaded.independent_reviews == []
     assert loaded.user_decisions == []
+
+
+def test_metadata_round_trip_preserves_safe_disposition_and_redacts_chief_prose(tmp_path):
+    store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
+    record = _record(build_review_id(), history_mode="metadata")
+    record.status = "COMPLETED"
+    record.chief_editor_decision = ChiefEditorDecisionV2(
+        publishability="可发布",
+        review_needed="否",
+        decision_rationale="SECRET CHIEF RATIONALE",
+        conflict_resolutions=["SECRET CHIEF PROSE"],
+    )
+    path = store.save(record, history_mode="metadata")
+
+    serialized = path.read_text(encoding="utf-8")
+    assert "SECRET" not in serialized
+    loaded = store.load(record.review_id)
+    assert loaded.status == "COMPLETED"
+    assert loaded.chief_editor_decision.publishability == "可发布"
+    assert loaded.chief_editor_decision.review_needed == "否"
+    assert loaded.chief_editor_decision.decision_rationale == ""
+    listed = list(store.iter_records())
+    assert [(item.status, item.chief_editor_decision.publishability, item.chief_editor_decision.review_needed) for item in listed] == [
+        ("COMPLETED", "可发布", "否")
+    ]
+
+
+def test_atomic_write_failure_is_normalized_without_host_path(monkeypatch, tmp_path):
+    from council_of_translation.localization import persistence
+
+    raw_path = str(tmp_path / "PRIVATE" / "record.json")
+
+    def fail_replace(source, destination):
+        raise OSError(f"cannot replace {raw_path}")
+
+    monkeypatch.setattr(persistence.os, "replace", fail_replace)
+    store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
+    with pytest.raises(ReviewPersistenceError, match="review record write failed") as caught:
+        store.save(_record(build_review_id()))
+    assert raw_path not in str(caught.value)
+    assert list((tmp_path / "new").glob("*.tmp")) == []
 
 
 def test_off_mode_creates_no_directory_or_file(tmp_path):

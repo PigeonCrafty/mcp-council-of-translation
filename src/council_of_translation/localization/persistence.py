@@ -109,6 +109,10 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "max_discussion_rounds": record.council_plan.max_discussion_rounds,
             "max_decision_points": record.council_plan.max_decision_points,
         },
+        "chief_editor_decision": {
+            "publishability": record.chief_editor_decision.publishability,
+            "review_needed": record.chief_editor_decision.review_needed,
+        },
         "status": record.status,
         "version_metadata": {
             "package_version": "0.4.0",
@@ -119,9 +123,9 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
 
 
 def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
     try:
+        path.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(
             mode="w",
             encoding="utf-8",
@@ -137,9 +141,14 @@ def _atomic_write_json(path: Path, payload: dict[str, Any]) -> None:
             os.fsync(stream.fileno())
         os.replace(temporary_path, path)
         temporary_path = None
+    except (OSError, TypeError, ValueError) as exc:
+        raise ReviewPersistenceError("review record write failed") from exc
     finally:
         if temporary_path is not None:
-            temporary_path.unlink(missing_ok=True)
+            try:
+                temporary_path.unlink(missing_ok=True)
+            except OSError:
+                pass
 
 
 class ReviewStore:
@@ -197,12 +206,15 @@ class ReviewStore:
         if not is_supported_review_id(review_id):
             raise InvalidReviewIdError(f"unsupported review ID: {review_id!r}")
         current = self.storage_dir / f"{review_id}.json"
-        if current.is_file():
-            return current
-        if self.include_legacy:
-            legacy = self.legacy_dir / f"{review_id}.json"
-            if legacy.is_file():
-                return legacy
+        try:
+            if current.is_file():
+                return current
+            if self.include_legacy:
+                legacy = self.legacy_dir / f"{review_id}.json"
+                if legacy.is_file():
+                    return legacy
+        except OSError as exc:
+            raise ReviewPersistenceError("review history lookup failed") from exc
         raise ReviewRecordNotFoundError(f"review record not found: {review_id}")
 
     def iter_records(self) -> Iterable[ReviewRecordV1 | ReviewRecordV2]:
@@ -211,9 +223,11 @@ class ReviewStore:
         if self.include_legacy and self.legacy_dir != self.storage_dir:
             directories.append(self.legacy_dir)
         for directory in directories:
-            if not directory.is_dir():
-                continue
-            for path in sorted(directory.glob("*.json"), reverse=True):
+            try:
+                paths = sorted(directory.glob("*.json"), reverse=True) if directory.is_dir() else []
+            except OSError as exc:
+                raise ReviewPersistenceError("review history listing failed") from exc
+            for path in paths:
                 review_id = path.stem
                 if review_id in seen or not is_supported_review_id(review_id):
                     continue

@@ -27,7 +27,7 @@ deterministic preflight
   -> evidence-weighted chief-editor adjudication
 ```
 
-User choices are decisive only among valid options. They cannot override placeholder or markup integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Unsupported, declined, cancelled, malformed, and non-interactive elicitation paths terminate through explicit fallback or `RETURNED_PENDING`; they do not hang. `return_pending` requires `history_mode="full"`, and the compact pending response contains its DecisionPoints. Fallback uses an evidence-weighted Position Matrix, never raw vote counts.
+User choices are decisive only among valid options. The single form describes each question and restricts every field to its valid option IDs while the message maps IDs to readable actions. Choices cannot override placeholder or markup integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Unsupported, declined, cancelled, malformed, and non-interactive paths terminate through explicit fallback or `RETURNED_PENDING`; they do not hang. A non-tied fallback selects a valid action through the evidence-weighted Position Matrix, while a real tie or insufficient evidence requests human review. `return_pending` requires `history_mode="full"`, and the compact pending response contains its DecisionPoints. Raw vote counts are never authoritative.
 
 Maximum sampling budgets are 6 calls for `lightweight`, 10 for `standard`, and 14 for `strict`. Clean input does not manufacture discussion or DecisionPoints.
 
@@ -36,7 +36,7 @@ Maximum sampling budgets are 6 calls for `lightweight`, 10 for `standard`, and 1
 Records use stable sortable V2 IDs and atomic writes under the platform data directory (or `COUNCIL_REVIEWS_DIR` when explicitly configured). `history_mode` supports:
 
 - `full`: complete structured trace;
-- `metadata`: allowlisted metadata only—no source, candidate, TB/SG packets, model text, or user free text;
+- `metadata`: allowlisted metadata only—no source, candidate, TB/SG packets, model/user/chief prose, or free text; safe status, publishability, and review-needed disposition are retained;
 - `off`: no write.
 
 Readers check V2 storage first and can read legacy V1 JSON records. Missing `schema_version` is interpreted as V1.

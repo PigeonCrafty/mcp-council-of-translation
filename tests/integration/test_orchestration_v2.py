@@ -99,10 +99,12 @@ def test_full_mocked_interactive_workflow_is_bounded_compact_and_persisted(tmp_p
     assert record.status == "COMPLETED"
     assert record.runtime_metadata.sampling_calls == 9
     assert record.runtime_metadata.elicitation_calls == 1
+    assert record.runtime_metadata.sample_budget == 10
     assert len(record.discussion_rounds) == 1
     assert len(record.decision_points) == 1
     assert {item.role_id for item in record.reconsiderations} == {"terminology_reviewer", "fluency_reviewer"}
     assert record.chief_editor_decision.review_needed == "否"
+    assert record.decision_trace.entries[0].outcome == "valid_user_choice"
     assert store.load(record.review_id).review_id == record.review_id
 
     compact = compact_review_response(record)
@@ -124,11 +126,15 @@ def test_unsupported_interaction_falls_back_explicitly_without_hanging(tmp_path)
             store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),
         )
     )
-    assert record.status == "NEEDS_HUMAN_REVIEW"
+    assert record.status == "COMPLETED_WITH_FALLBACK"
     assert record.fallback_reason == "user_interaction_unsupported"
     assert record.runtime_metadata.sampling_calls == 7
     assert record.runtime_metadata.elicitation_calls == 0
     assert record.reconsiderations == []
+    assert record.decision_trace.entries[0].outcome == "council_fallback"
+    assert record.decision_trace.entries[0].selected_option_id in {
+        option.option_id for option in record.decision_points[0].options
+    }
 
 
 def test_clean_translation_skips_conflict_discussion_and_interaction(tmp_path):
@@ -149,6 +155,7 @@ def test_clean_translation_skips_conflict_discussion_and_interaction(tmp_path):
     assert record.decision_points == []
     assert gateway.requests == []
     assert record.runtime_metadata.sampling_calls == 6
+    assert record.runtime_metadata.elicitation_calls == 0
 
 
 def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path):
@@ -168,6 +175,9 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
         )
     )
     assert parent.status == "RETURNED_PENDING"
+    assert parent.runtime_metadata.sampling_calls == 7
+    assert parent.runtime_metadata.elicitation_calls == 0
+    assert parent.runtime_metadata.sample_budget == 10
     assert compact_review_response(parent)["decision_points"] == [
         point.model_dump(mode="json") for point in parent.decision_points
     ]
@@ -192,6 +202,8 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     assert child.review_id != parent.review_id
     assert child.status == "COMPLETED"
     assert child.runtime_metadata.sampling_calls == 2
+    assert child.runtime_metadata.elicitation_calls == 0
+    assert child.runtime_metadata.sample_budget == 10
     assert {item.role_id for item in child.reconsiderations} == {"terminology_reviewer", "fluency_reviewer"}
     assert parent_path.read_bytes() == parent_bytes
 
