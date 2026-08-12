@@ -24,6 +24,7 @@ from council_of_translation.localization.models import (
     InputDiagnostics,
     IssueCluster,
     Reconsideration,
+    ReconsiderationProvenance,
     ReviewRecordV2,
     ReviewTaskV2,
     RolePosition,
@@ -246,7 +247,7 @@ async def _reconsider(
     executor: ModelExecutor,
     telemetry: RuntimeTelemetry,
     budget: SampleBudget,
-) -> list[Reconsideration]:
+) -> tuple[list[Reconsideration], ReconsiderationProvenance, list[str]]:
     points_by_issue = {f"decision_{cluster.issue_id.removeprefix('issue_')}": cluster for cluster in clusters}
     accepted = [decision for decision in decisions if decision.elicitation_action == "accept"]
     affected: dict[str, list[tuple[IssueCluster, UserDecision]]] = {}
@@ -254,13 +255,69 @@ async def _reconsider(
         cluster = points_by_issue.get(decision.decision_id)
         if cluster is None:
             continue
-        for role_id in cluster.participant_role_ids:
-            affected.setdefault(role_id, []).append((cluster, decision))
+        for position in cluster.positions:
+            if (
+                position.role_id in cluster.participant_role_ids
+                and position.option_id
+                and position.option_id != decision.selected_option_id
+            ):
+                affected.setdefault(position.role_id, []).append((cluster, decision))
+
+    origin_rank = {"preflight": 5, "caller": 4, "user": 3, "system": 2, "model": 1}
+    tier_rank = {"hard": 4, "contextual": 3, "preference": 2, "advisory": 1}
+
+    def role_rank(role_id: str) -> tuple[int, int, int, int, str]:
+        positions = [
+            position
+            for issue, _ in affected[role_id]
+            for position in issue.positions
+            if position.role_id == role_id
+        ]
+        return (
+            -max((int(position.blocking) for position in positions), default=0),
+            -max((tier_rank[position.constraint_tier] for position in positions), default=0),
+            -max((origin_rank[position.evidence_origin] for position in positions), default=0),
+            ROLE_REGISTRY.get(role_id, ROLE_REGISTRY["chief_editor"]).priority,
+            role_id,
+        )
+
+    requested_role_ids = sorted(affected, key=role_rank)
+    provenance = ReconsiderationProvenance(requested_role_ids=requested_role_ids)
+    warnings: list[str] = []
 
     reconsiderations: list[Reconsideration] = []
-    for role_id, packets in affected.items():
+    for index, role_id in enumerate(requested_role_ids):
+        packets = affected[role_id]
+        if index >= 3:
+            provenance.skipped_role_ids.append(role_id)
+            warnings.append(f"reconsideration_skipped_limit:{role_id}")
+            for issue, decision in packets:
+                previous = next((position for position in issue.positions if position.role_id == role_id), None)
+                reconsiderations.append(Reconsideration(
+                    issue_id=issue.issue_id,
+                    role_id=role_id,
+                    trigger_decision_id=decision.decision_id,
+                    previous_position=previous,
+                    revised_position=previous,
+                    status="skipped",
+                    reason_code="affected_role_limit",
+                ))
+            continue
         if budget.remaining <= 0 or role_id not in ROLE_REGISTRY:
             telemetry.record(RuntimeEvent("fallback", "reconsideration_budget_unavailable", detail=role_id))
+            provenance.skipped_role_ids.append(role_id)
+            warnings.append(f"reconsideration_skipped_budget:{role_id}")
+            for issue, decision in packets:
+                previous = next((position for position in issue.positions if position.role_id == role_id), None)
+                reconsiderations.append(Reconsideration(
+                    issue_id=issue.issue_id,
+                    role_id=role_id,
+                    trigger_decision_id=decision.decision_id,
+                    previous_position=previous,
+                    revised_position=previous,
+                    status="skipped",
+                    reason_code="budget_unavailable",
+                ))
             continue
         issues = [packet[0] for packet in packets]
         role_decisions = [packet[1] for packet in packets]
@@ -271,30 +328,38 @@ async def _reconsider(
             build_reconsideration_prompt(task, ROLE_REGISTRY[role_id], issues, role_decisions),
             max_tokens=1_200,
         )
-        raw_positions = raw.get("positions", []) if raw else []
+        raw_positions = raw.get("positions", []) if raw and isinstance(raw.get("positions", []), list) else []
         by_issue = {
             str(item.get("issue_id", "")): item
             for item in raw_positions
             if isinstance(item, dict)
         }
+        role_results: list[Reconsideration] = []
+        role_failed = raw is None
         for issue, decision in packets:
             previous = next((position for position in issue.positions if position.role_id == role_id), None)
             item = by_issue.get(issue.issue_id)
             revised = None
             valid_ids = {option_id_for_action(issue.issue_id, action) for action in issue.candidate_actions}
             if item is not None and previous is not None and str(item.get("option_id", "")) in valid_ids:
-                revised = RolePosition.model_validate(
-                    {
-                        **item,
-                        "role_id": role_id,
-                        "evidence_origin": "model",
-                        "constraint_tier": "advisory",
-                        "rule_refs": [],
-                        "blocking": False,
-                    }
-                )
-                issue.positions = [position for position in issue.positions if position.role_id != role_id] + [revised]
-            reconsiderations.append(
+                try:
+                    revised = RolePosition.model_validate(
+                        {
+                            **item,
+                            "role_id": role_id,
+                            "evidence_origin": "model",
+                            "constraint_tier": "advisory",
+                            "rule_refs": [],
+                            "blocking": False,
+                        }
+                    )
+                except (ValidationError, TypeError, ValueError):
+                    revised = None
+                if revised is not None:
+                    issue.positions = [position for position in issue.positions if position.role_id != role_id] + [revised]
+            if revised is None:
+                role_failed = True
+            role_results.append(
                 Reconsideration(
                     issue_id=issue.issue_id,
                     role_id=role_id,
@@ -302,9 +367,23 @@ async def _reconsider(
                     previous_position=previous,
                     revised_position=revised or previous,
                     changed=bool(revised and revised != previous),
+                    status="completed" if revised is not None else "failed",
+                    reason_code="" if revised is not None else "invalid_or_missing_reconsideration",
                 )
             )
-    return reconsiderations
+        reconsiderations.extend(role_results)
+        if role_failed:
+            provenance.failed_role_ids.append(role_id)
+            warnings.append(f"reconsideration_failed:{role_id}")
+            telemetry.record(RuntimeEvent("fallback", "reconsideration_failed", detail=role_id))
+        else:
+            provenance.completed_role_ids.append(role_id)
+    return reconsiderations, ReconsiderationProvenance(
+        requested_role_ids=provenance.requested_role_ids,
+        completed_role_ids=provenance.completed_role_ids,
+        skipped_role_ids=provenance.skipped_role_ids,
+        failed_role_ids=provenance.failed_role_ids,
+    ), warnings
 
 
 async def run_structured_review(
@@ -415,9 +494,20 @@ async def run_structured_review(
             fallback_reason = "user_delegated_to_council"
             telemetry.record(RuntimeEvent("fallback", fallback_reason))
 
-    reconsiderations = [] if returned_pending else await _reconsider(
-        task, clusters, user_decisions, executor, telemetry, budget
+    if returned_pending:
+        reconsiderations = []
+        reconsideration_provenance = ReconsiderationProvenance()
+        reconsideration_warnings: list[str] = []
+    else:
+        reconsiderations, reconsideration_provenance, reconsideration_warnings = await _reconsider(
+            task, clusters, user_decisions, executor, telemetry, budget
+        )
+    degraded = bool(
+        reconsideration_provenance.skipped_role_ids
+        or reconsideration_provenance.failed_role_ids
     )
+    if degraded:
+        fallback_reason = ";".join(filter(None, (fallback_reason, "reconsideration_degraded")))
     gate_result = policy_gate(decision_points, clusters)
     chief, trace = build_chief_decision(clusters, decision_points, user_decisions)
     if reviewer_coverage != "full":
@@ -475,11 +565,14 @@ async def run_structured_review(
         decision_points=decision_points,
         user_decisions=user_decisions,
         reconsiderations=reconsiderations,
+        reconsideration_provenance=reconsideration_provenance,
         policy_gate_result=gate_result,
         chief_editor_decision=chief,
         decision_trace=trace,
         status=status,
         fallback_reason=fallback_reason,
+        degraded=degraded,
+        warnings=reconsideration_warnings,
     )
     (store or ReviewStore()).save(record, history_mode=task.history_mode)
     return record
@@ -531,7 +624,9 @@ async def continue_structured_review(
     telemetry.sample_budget = plan.sample_budget
     budget = SampleBudget(task.mode)
     clusters = [cluster.model_copy(deep=True) for cluster in parent.issue_clusters]
-    reconsiderations = await _reconsider(task, clusters, decisions, executor, telemetry, budget)
+    reconsiderations, reconsideration_provenance, reconsideration_warnings = await _reconsider(
+        task, clusters, decisions, executor, telemetry, budget
+    )
     chief, trace = build_chief_decision(clusters, parent.decision_points, decisions)
     reviewer_coverage = parent.runtime_metadata.reviewer_coverage
     if reviewer_coverage in {"partial", "none"}:
@@ -546,7 +641,17 @@ async def continue_structured_review(
             f"{chief.decision_rationale} 延续父记录的独立评审覆盖率；"
             "未将后续用户决定视为缺失评审证据的替代。"
         ).strip()
-    status = "NEEDS_HUMAN_REVIEW" if chief.review_needed == "是" else "COMPLETED"
+    degraded = bool(
+        reconsideration_provenance.skipped_role_ids
+        or reconsideration_provenance.failed_role_ids
+    )
+    status = (
+        "NEEDS_HUMAN_REVIEW"
+        if chief.review_needed == "是"
+        else "COMPLETED_WITH_FALLBACK"
+        if degraded
+        else "COMPLETED"
+    )
     record = parent.model_copy(deep=True)
     record.review_id = build_review_id()
     record.parent_review_id = parent.review_id
@@ -554,6 +659,7 @@ async def continue_structured_review(
     record.completed_at = datetime.now(timezone.utc)
     record.user_decisions = decisions
     record.reconsiderations = reconsiderations
+    record.reconsideration_provenance = reconsideration_provenance
     record.issue_clusters = clusters
     record.policy_gate_result = policy_gate(parent.decision_points, clusters)
     record.chief_editor_decision = chief
@@ -566,11 +672,14 @@ async def continue_structured_review(
         }
     )
     record.status = status
-    record.fallback_reason = (
+    record.degraded = degraded
+    record.warnings = reconsideration_warnings
+    record.fallback_reason = ";".join(filter(None, (
         f"reviewer_coverage_{reviewer_coverage}"
         if reviewer_coverage in {"partial", "none"}
-        else ""
-    )
+        else "",
+        "reconsideration_degraded" if degraded else "",
+    )))
     (store or ReviewStore()).save(record, history_mode=task.history_mode)
     return record
 

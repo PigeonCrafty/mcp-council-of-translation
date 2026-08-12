@@ -177,4 +177,4 @@ def test_continuation_preserves_partial_parent_coverage_and_cannot_clear_human_r
     assert child.runtime_metadata.reviewer_coverage == "partial"
     assert child.runtime_metadata.reviewer_samples_successful == 5
     assert child.runtime_metadata.reviewer_samples_unavailable == 1
-    assert child.runtime_metadata.sampling_calls == 2
+    assert child.runtime_metadata.sampling_calls == 1
