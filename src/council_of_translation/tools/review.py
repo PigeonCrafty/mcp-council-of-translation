@@ -1,4 +1,4 @@
-"""Frozen five-tool MCP surface for Council of Translation V0.4."""
+"""Frozen five-tool MCP surface for Council of Translation V0.5."""
 
 from __future__ import annotations
 
@@ -27,14 +27,18 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12_000
-DIAGNOSTIC_BUILD = "structured-deliberation-v2"
+DIAGNOSTIC_BUILD = "outcome-first-decision-v3"
 
 
 def _installed_version() -> str:
     try:
-        return version("Council-of-Translation")
+        installed = version("Council-of-Translation")
     except PackageNotFoundError:
         return __version__
+    # Source/editable environments can retain ignored egg-info from a prior
+    # build. The executing module is authoritative for server diagnostics;
+    # fresh wheel smoke separately verifies installed distribution metadata.
+    return __version__ if installed != __version__ else installed
 
 
 def _server_info() -> dict[str, Any]:
@@ -43,7 +47,7 @@ def _server_info() -> dict[str, Any]:
         "package_version": _installed_version(),
         "module_version": __version__,
         "diagnostic_build": DIAGNOSTIC_BUILD,
-        "schema_version": "2.0",
+        "schema_version": "2.1",
         "default_output_mode": "review_only",
         "default_interactive_mode": "auto",
         "default_trace_level": "summary",
@@ -145,7 +149,7 @@ def _error(exc: Exception) -> dict[str, str]:
 
 @mcp.tool()
 def get_server_info() -> dict[str, Any]:
-    """Return V0.4 version, capability, budget, and frozen-tool diagnostics."""
+    """Return V0.5 version, capability, budget, and frozen-tool diagnostics."""
     return _server_info()
 
 
@@ -281,7 +285,7 @@ def list_review_records(limit: int = 50) -> dict[str, Any]:
             if isinstance(record, ReviewRecordV2):
                 records.append(
                     {
-                        "schema_version": "2.0",
+                        "schema_version": record.schema_version,
                         "review_id": record.review_id,
                         "parent_review_id": record.parent_review_id,
                         "created_at": record.created_at.isoformat(),

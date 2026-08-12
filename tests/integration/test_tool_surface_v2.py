@@ -36,9 +36,10 @@ def test_exact_frozen_public_tool_surface():
 
 def test_server_info_and_versioned_defaults():
     info = _server_info()
-    assert info["package_version"] == "0.4.0"
-    assert info["module_version"] == "0.4.0"
-    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "structured-deliberation-v2"
+    assert info["package_version"] == "0.5.0"
+    assert info["module_version"] == "0.5.0"
+    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "outcome-first-decision-v3"
+    assert info["schema_version"] == "2.1"
     assert info["default_interactive_mode"] == "auto"
     assert info["default_history_mode"] == "full"
     assert info["sample_budgets"] == {"lightweight": 6, "standard": 10, "strict": 14}

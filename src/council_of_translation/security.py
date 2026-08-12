@@ -1,4 +1,4 @@
-"""Input normalization shared by the V0.4 public tool boundary."""
+"""Input normalization shared by the V0.5 public tool boundary."""
 
 from __future__ import annotations
 

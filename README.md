@@ -1,6 +1,6 @@
 # Council of Translation
 
-Council of Translation V0.4 is a Goose-first, review-only MCP server for structured localization QA. It reviews a source/candidate pair, returns a compact chief-editor decision, and stores a retrievable structured trace. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
+Council of Translation V0.5 is a Goose-first, review-only MCP server for structured localization QA. It reviews a source/candidate pair, returns a compact chief-editor decision, and stores a retrievable structured trace. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
 
 ## Public MCP tools
 
@@ -27,9 +27,11 @@ deterministic preflight
   -> evidence-weighted chief-editor adjudication
 ```
 
-User choices are decisive only among valid options. The single form describes each question and restricts every field to its valid option IDs while the message maps IDs to readable actions. Choices cannot override placeholder or markup integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Unsupported, declined, cancelled, malformed, and non-interactive paths terminate through explicit fallback or `RETURNED_PENDING`; they do not hang. A non-tied fallback selects a valid action through the evidence-weighted Position Matrix, while a real tie or insufficient evidence requests human review. `return_pending` requires `history_mode="full"`, and the compact pending response contains its DecisionPoints. Raw vote counts are never authoritative.
+User choices are decisive only among valid outcomes. Reviewers classify findings as issues, concrete choices, or affirmations; action prose remains advice and is never used as a selectable value. A DecisionPoint appears only when the current candidate and at least one materially distinct valid proposal remain. The single standard Goose form batches at most three questions and normally has one submit button for the entire batch. Each field describes at most four readable choices (current candidate first, alternatives next, and “暂不决定，由 Council 裁决” last) while its enum uses safe opaque values that map back to exact internal options. Internal option IDs are not displayed as labels.
 
-Within an issue, duplicate findings from one reviewer are retained in the full trace but do not multiply that reviewer's Position Matrix influence. One fixed role influence is normalized across its distinct valid actions. Reviewer sampling coverage is explicit and semantic, not merely syntactic JSON decoding: success requires string `role_feedback`, list `findings`, and safely validated finding objects. Zero findings count only with non-blank feedback. Any invalid entry makes the sample unavailable and discards its findings. Partial or zero coverage conservatively returns `NEEDS_HUMAN_REVIEW` with bounded schema/coverage provenance in `fallback_reason` and runtime metadata. This policy adds no retries or model calls.
+Explicit Council delegation is a valid choice, not an interaction failure: the existing evidence-weighted Position Matrix adjudicates that point. Unsupported, declined, cancelled, malformed, stale, and non-interactive paths remain distinct and terminate through explicit fallback or `RETURNED_PENDING`; they do not hang. Choices cannot override placeholder or markup integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. `return_pending` requires `history_mode="full"`, and the compact pending response contains its DecisionPoints. Raw vote counts are never authoritative.
+
+Within an issue, duplicate or synonymous proposals collapse to one outcome, and repeated findings do not multiply a reviewer's Position Matrix influence. Only roles contrary to the selected outcome (or materially affected by it) are reconsidered; supporting roles are not sampled merely for agreeing. Requested, completed, skipped, and failed roles are recorded separately. Missing budget or a reconsideration failure sets `degraded=true`, emits bounded warnings, and returns a non-clean status. Reviewer sampling coverage is explicit and semantic, not merely syntactic JSON decoding: success requires string `role_feedback`, list `findings`, and safely validated finding objects. Valid clean/affirming reviewers count as coverage without manufacturing issues or checklist work. Partial or zero coverage conservatively returns `NEEDS_HUMAN_REVIEW`.
 
 Maximum sampling budgets are 6 calls for `lightweight`, 10 for `standard`, and 14 for `strict`. Clean input does not manufacture discussion or DecisionPoints.
 
@@ -41,7 +43,9 @@ Records use stable sortable V2 IDs and atomic writes under the platform data dir
 - `metadata`: allowlisted metadata only—no source, candidate, TB/SG packets, model/user/chief prose, or free text; safe status, publishability, and review-needed disposition are retained;
 - `off`: no write.
 
-Readers check V2 storage first and can read legacy V1 JSON records. Missing `schema_version` is interpreted as V1.
+New records use schema `2.1`. Readers also accept V2.0 and legacy V1 JSON records; missing `schema_version` is interpreted as V1.
+
+The compact response includes `effective_task`, `deliberation_summary`, `degraded`, `warnings`, the review ID, and a retrieval hint. Use `view_review_record(review_id, detail_level="full")` to inspect full structured evidence when `history_mode="full"`; no hidden chain-of-thought is requested or stored.
 
 ## Development
 
@@ -52,4 +56,12 @@ python -m compileall src tests
 $env:PYTHONPATH='src'; python -m pytest -q
 ```
 
-The package also exposes the `mcp_council_of_translation` command alias. See [V0.4 architecture](docs/v0.4-architecture.md) and [tool and data contract](docs/v0.4-tool-contract.md).
+The package also exposes the `mcp_council_of_translation` command alias. See the [architecture](docs/v0.4-architecture.md) and [tool and data contract](docs/v0.4-tool-contract.md).
+
+For a fresh Goose test, pin the reviewed local commit so cached installs cannot mask the build under test:
+
+```powershell
+uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translation@<reviewed-commit> mcp_council_of_translation
+```
+
+Call `get_server_info()` and verify version `0.5.0`, schema `2.1`, and diagnostic build `outcome-first-decision-v3` before interpreting the result.

@@ -22,6 +22,16 @@ from council_of_translation.localization.models import HistoryMode, ReviewRecord
 
 _NEW_REVIEW_ID = re.compile(r"^[0-9]{8}T[0-9]{12}Z_[0-9a-f]{8,32}$")
 _LEGACY_REVIEW_ID = re.compile(r"^[0-9]{8}_[0-9]{6}$")
+_SAFE_ROLE_IDS = {
+    "technical_safety_reviewer",
+    "fidelity_reviewer",
+    "terminology_reviewer",
+    "product_context_reviewer",
+    "ux_copy_reviewer",
+    "brand_voice_reviewer",
+    "risk_ambiguity_reviewer",
+    "fluency_reviewer",
+}
 
 
 class ReviewPersistenceError(RuntimeError):
@@ -101,8 +111,8 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "reviewer_samples_successful": record.runtime_metadata.reviewer_samples_successful,
             "reviewer_samples_unavailable": record.runtime_metadata.reviewer_samples_unavailable,
             "reviewer_coverage": record.runtime_metadata.reviewer_coverage,
-            "package_version": "0.4.0",
-            "diagnostic_build": "structured-deliberation-v2",
+            "package_version": "0.5.0",
+            "diagnostic_build": "outcome-first-decision-v3",
         },
         "council_plan": {
             "mode": record.council_plan.mode,
@@ -119,14 +129,26 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         "status": record.status,
         "degraded": record.degraded,
         "reconsideration_provenance": {
-            "requested_role_ids": [],
-            "completed_role_ids": [],
-            "skipped_role_ids": [],
-            "failed_role_ids": [],
+            "requested_role_ids": [
+                role_id for role_id in record.reconsideration_provenance.requested_role_ids
+                if role_id in _SAFE_ROLE_IDS
+            ],
+            "completed_role_ids": [
+                role_id for role_id in record.reconsideration_provenance.completed_role_ids
+                if role_id in _SAFE_ROLE_IDS
+            ],
+            "skipped_role_ids": [
+                role_id for role_id in record.reconsideration_provenance.skipped_role_ids
+                if role_id in _SAFE_ROLE_IDS
+            ],
+            "failed_role_ids": [
+                role_id for role_id in record.reconsideration_provenance.failed_role_ids
+                if role_id in _SAFE_ROLE_IDS
+            ],
         },
         "version_metadata": {
-            "package_version": "0.4.0",
-            "diagnostic_build": "structured-deliberation-v2",
+            "package_version": "0.5.0",
+            "diagnostic_build": "outcome-first-decision-v3",
             "record_schema": "2.1",
         },
     }
