@@ -883,15 +883,23 @@ async def continue_structured_review(
 
 
 def compact_review_response(record: ReviewRecordV2) -> dict[str, Any]:
-    disputed = [cluster.topic for cluster in record.issue_clusters if cluster.consensus_status == "disputed"]
-    consensus = [cluster.topic for cluster in record.issue_clusters if cluster.consensus_status == "consensus"]
+    disputed = [
+        cluster.topic[:240]
+        for cluster in record.issue_clusters
+        if cluster.consensus_status == "disputed"
+    ][:8]
+    consensus = [
+        cluster.topic[:240]
+        for cluster in record.issue_clusters
+        if cluster.consensus_status == "consensus"
+    ][:8]
     response = {
         "schema_version": record.schema_version,
         "review_id": record.review_id,
         "parent_review_id": record.parent_review_id,
         "status": record.status,
         "chief_editor": record.chief_editor_decision.model_dump(mode="json", exclude_none=True),
-        "blind_spots": [cluster.topic for cluster in record.issue_clusters],
+        "blind_spots": [cluster.topic[:240] for cluster in record.issue_clusters[:8]],
         "consensus": consensus,
         "material_disagreements": disputed,
         "user_decisions": [decision.model_dump(mode="json") for decision in record.user_decisions],

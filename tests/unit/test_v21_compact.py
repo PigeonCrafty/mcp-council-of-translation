@@ -115,3 +115,24 @@ def test_compact_response_surfaces_decision_digest_degradation_and_retrieval_hin
     assert compact["review_id"] in compact["retrieval_hint"] or "review_id" in compact["retrieval_hint"]
     assert "suggested_translation" not in compact["chief_editor"]
     assert "reasoning" not in json.dumps(compact)
+
+
+def test_hostile_model_topic_and_chief_lists_are_bounded_in_compact_output():
+    clusters = [
+        _cluster(f"i{index}", "恶" * 10_000)
+        for index in range(20)
+    ]
+    chief, trace = build_chief_decision(clusters, [], [])
+    record = ReviewRecordV2(
+        review_id="20260812T010203000004Z_ab12cd34",
+        task=ReviewTaskV2(),
+        issue_clusters=clusters,
+        chief_editor_decision=chief,
+        decision_trace=trace,
+    )
+    compact = compact_review_response(record)
+    assert len(compact["blind_spots"]) == 8
+    assert all(len(item) <= 240 for item in compact["blind_spots"])
+    for name in ("must_fix", "should_fix", "optional_improvements", "execution_order"):
+        assert len(compact["chief_editor"][name]) <= 12
+        assert all(len(item) <= 240 for item in compact["chief_editor"][name])
