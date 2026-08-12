@@ -15,6 +15,7 @@ from council_of_translation.localization.models import (
     RolePosition,
     option_id_for_action,
 )
+from council_of_translation.localization.clustering import outcome_key
 
 
 MODE_SAMPLE_BUDGETS: dict[ReviewMode, int] = {"lightweight": 6, "standard": 10, "strict": 14}
@@ -145,7 +146,7 @@ def apply_discussion_updates(clusters: Iterable[IssueCluster], round_: Discussio
 def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) -> list[DecisionPoint]:
     points: list[DecisionPoint] = []
     for cluster in clusters:
-        actions = list(dict.fromkeys(action for action in cluster.candidate_actions if action))
+        actions = list(dict.fromkeys(outcome_key(action) for action in cluster.candidate_actions if action))
         if (
             cluster.blocking
             or cluster.category != "language_choice"
@@ -154,22 +155,39 @@ def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) ->
             or len(actions) < 2
         ):
             continue
-        options = [
+        outcome_options = [
             DecisionOption(
                 option_id=option_id_for_action(cluster.issue_id, action),
+                outcome_value=action,
                 label=action,
-                description=f"对“{cluster.topic}”采用：{action}",
+                description="保留当前候选译文" if index == 0 else f"采用候选结果：{action}",
+                support_role_ids=list(dict.fromkeys(
+                    position.role_id
+                    for position in cluster.positions
+                    if position.option_id == option_id_for_action(cluster.issue_id, action)
+                )),
+                support_rationale="；".join(dict.fromkeys(
+                    evidence
+                    for position in cluster.positions
+                    if position.option_id == option_id_for_action(cluster.issue_id, action)
+                    for evidence in position.evidence
+                )),
+                policy_basis=["policy_gate_valid"],
+                is_current_candidate=index == 0,
             )
-            for action in actions
+            for index, action in enumerate(actions[:3])
         ]
+        # Delegation is an interaction action, not a candidate outcome. PKG-013
+        # appends it to the standard form without polluting the Position Matrix.
+        options = [*outcome_options]
         points.append(
             DecisionPoint(
                 decision_id=f"decision_{cluster.issue_id.removeprefix('issue_')}",
                 issue_id=cluster.issue_id,
                 question=f"请选择“{cluster.topic}”的有效处理方式",
                 options=options,
-                recommended_option_id=options[0].option_id,
-                fallback_option_id=options[0].option_id,
+                recommended_option_id=outcome_options[0].option_id,
+                fallback_option_id=outcome_options[0].option_id,
                 reason_user_input_useful="多个方案均满足当前硬约束，选择取决于上下文或偏好。",
             )
         )
