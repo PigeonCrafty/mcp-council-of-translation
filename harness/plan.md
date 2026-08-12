@@ -1,14 +1,14 @@
-# Council of Translation V0.7 Harness Plan
+# Council of Translation V0.7.1 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-004-r2` (`ACCEPTED / CLOSED`)
-- Accepted implementation: `3779a78a9788018082470408fdd4d87a042985dc`
-- Product target: `0.7.0`
-- Diagnostic build target: `concise-council-display-v5`
+- Active Campaign: `CAMPAIGN-005-r1` (`ACCEPTED / PUBLICATION_PENDING`)
+- Source baseline: `2bf090ac368c7b8af24b51ff534a145f88752ad0`
+- Product target: `0.7.1`
+- Diagnostic build target: `concise-council-display-v5.1`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
@@ -736,6 +736,88 @@ primary report, exact five-tool diagnostics and preserved FastMCP 2.13/3.4.7 evi
 
 Q-009 remains a separate live Goose usability gate. Repository acceptance does not
 claim that Goose has already rendered the new primary Council text correctly.
+
+## Campaign 005: Natural Primary Council Microcopy
+
+### Live counterexample and scope
+
+Published V0.7 live record `20260812T131614836886Z_e815e1cbf65f` proves that the
+first normal Goose answer now exposes the Council process directly in four concise
+Chinese sections with all six roles, truthful positive consensus and the verdict last.
+The remaining defect is presentation polish, not review logic: the chief section still
+shows procedural decision counters, while clean affirmative lenses attach repetitive
+evidence containing implementation vocabulary and several mid-clause ellipses.
+
+The sanitized evidence and independent correction of Goose's erroneous
+`sampling_calls=0` summary are in
+`harness/evaluations/CAMPAIGN-004-q009-live-review.md`. The persisted truth is six
+successful samples within the 13-call standard budget.
+
+### Frozen presentation rules
+
+1. The primary report must omit the canonical procedural chief rationale containing
+   Policy Gate/Council-fallback/user-choice/human-review counters. The complete
+   `editor_synthesis`, chief decision and trace remain unchanged in structured content.
+2. A clean affirmation or clean no-finding role lens shows one role-specific perspective
+   without an evidence suffix. Evidence remains structured and retrievable.
+3. Primary evidence remains visible when it is material to a blocker, major issue,
+   concrete outcome choice, minority condition or coverage/unavailability warning.
+4. Optional evidence is included only when it forms a complete bounded clause. If it
+   cannot fit safely, omit the optional suffix rather than render a mid-token or
+   mid-clause ellipsis.
+5. Map established implementation vocabulary such as `Preflight`,
+   `placeholder_parity`, `tag_integrity`, `Effective Brief`, standalone `Context`,
+   `Policy Gate` and `Position Matrix` to natural Chinese when it reaches primary text.
+   Internal IDs and hidden reasoning remain prohibited.
+6. Keep the current adaptive section order, clean 1,800 target, absolute 3,200 cap, six
+   role ownership, truthful consensus, material-risk visibility and verdict-last rule.
+7. Do not change Council planning, reviewer prompts, sampling, elicitation,
+   reconsideration, Policy Gate, user authority, persistence schema or structured
+   evidence.
+
+### Patch identity and package graph
+
+- Package/module target: `0.7.1`.
+- Diagnostic build target: `concise-council-display-v5.1`.
+- Schema remains `2.2`; public tools remain five; budgets remain 6/13/18.
+- `PKG-030`: primary microcopy filtering, conditional evidence and natural terminology.
+- `PKG-031`: V0.7.1 identifiers, live-shaped regression, docs, fresh build and pinned
+  Goose revalidation recipe.
+
+### Acceptance gates
+
+1. The exact live-shaped clean fixture contains no procedural decision counts,
+   `Council fallback`, `Preflight`, `placeholder_parity`, `tag_integrity`,
+   `Effective Brief` or standalone `Context` in primary text.
+2. Its six roles each appear once, positive consensus and final disposition remain, no
+   interaction section is invented, and clean output stays below 1,800 code points.
+3. A disputed/blocking fixture preserves actionable evidence, minority condition,
+   degradation/human-review meaning and the final disposition.
+4. No optional evidence ends with a truncation ellipsis caused by the presentation
+   budget; long optional evidence is omitted as a unit.
+5. Structured compact/full content, including chief rationale and original role
+   evidence, is byte-for-byte semantically preserved apart from version metadata.
+6. Sampling stays unchanged, exact five tools/schema/defaults/budgets pass, all prior
+   regressions remain green, and fresh 0.7.1 artifacts smoke successfully.
+
+### Non-goals
+
+- New tools, arguments, display modes, widgets or Goose-specific UI.
+- Changing role prompts, evidence generation, adjudication or sampling budgets.
+- Removing evidence from structured content or rewriting historical records.
+- Broad copy editing outside the primary deterministic renderer.
+
+### Campaign 005 acceptance
+
+`CAMPAIGN-005-r1` is accepted by
+`harness/evaluations/CAMPAIGN-005-r1-review.md` at
+`c8616eb66b49de4be00672e6439ad6b1ea468967`. F-028 and F-029 are accepted.
+Independent evidence includes 203 full passes, 42 focused passes, compile and scope
+checks, a 539-code-point live-shaped clean report, unchanged structured chief/role
+evidence, fresh 0.7.1 artifacts and an isolated FastMCP 3.4.7 registered-tool smoke.
+
+Q-009 remains a separate post-publication Goose gate. Repository acceptance does not
+claim that the published build has already passed the normal-user live revalidation.
 
 ### V0.7 non-goals
 

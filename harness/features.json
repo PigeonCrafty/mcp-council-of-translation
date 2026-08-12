@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.7.0",
-  "active_campaign": "CAMPAIGN-004-r2",
+  "target_version": "0.7.1",
+  "active_campaign": "CAMPAIGN-005-r1",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "3779a78a9788018082470408fdd4d87a042985dc",
+  "source_baseline": "2bf090ac368c7b8af24b51ff534a145f88752ad0",
   "features": [
     {
       "id": "F-001",
@@ -306,6 +306,28 @@
         "Package/module 0.7.0 and diagnostic build concise-council-display-v5 preserve schema 2.2, five tools and 6/13/18 budgets",
         "FastMCP 2.13 and current resolved FastMCP compatibility prove primary text plus structured content on installed wheels",
         "Fresh artifacts, full regressions and a normal-user Goose recipe are delivered for Q-009 revalidation"
+      ]
+    },
+    {
+      "id": "F-028",
+      "name": "Natural primary Council microcopy",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-005-r1",
+      "criteria": [
+        "Primary chief-editor text omits procedural decision counters and internal adjudication jargon while structured evidence remains unchanged",
+        "Clean affirmative role lenses omit redundant evidence; material blocker, choice, minority and unavailable-coverage evidence remains visible",
+        "Known implementation labels render as natural Chinese and optional evidence is never cut mid-token or mid-clause"
+      ]
+    },
+    {
+      "id": "F-029",
+      "name": "V0.7.1 presentation polish migration",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-005-r1",
+      "criteria": [
+        "Package/module 0.7.1 and diagnostic build concise-council-display-v5.1 preserve schema 2.2, five tools and 6/13/18 budgets",
+        "The accepted live-shaped clean fixture produces concise natural Chinese with no procedural counters or implementation-heavy evidence",
+        "Fresh artifacts, full regressions and a pinned normal-user Goose Q-009 revalidation recipe are delivered"
       ]
     }
   ],
