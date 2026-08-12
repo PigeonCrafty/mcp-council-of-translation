@@ -109,7 +109,8 @@ The Worker may create only the active Campaign ledger and report under `harness/
 - F-023 through F-027: accepted by `CAMPAIGN-004-r2`
 - Independent r2 evidence: four authorized files, all protected hashes exact, compile pass, `27 passed` focused, `198 passed` full, real metadata/privacy probe, standalone-ID adversarial probe and exact FastMCP five-tool diagnostics
 - Accepted Campaign 004 implementation: `3779a78a9788018082470408fdd4d87a042985dc`
-- Archive state: Campaign contracts, Worker evidence, Foreman reviews and acceptance state are closed and ready for the Foreman archival commit.
+- Publication mapping: protected-main PR #6 rebased the accepted implementation to equivalent commit `1e0d93af2462995274514a521f5286bfd978469f`; its tree is byte-for-byte identical to accepted HEAD `3779a78a9788018082470408fdd4d87a042985dc`.
+- Archive state: Campaign contracts, Worker evidence, Foreman reviews and acceptance state are archived on protected `main` at `d71b23cd4968ad288f7f5d927fbbc76be7872624`; all six required Windows/Linux Python checks passed.
 
 ## Current risks
 
@@ -119,4 +120,4 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Create one Foreman-owned archival commit containing the accepted Campaign 004 contracts, reports, evaluations and state assets without including user `.learnings/**`, `reviews/**` or the audit Markdown. Publish the accepted implementation through the protected-main workflow, then run and independently review the pinned normal-user Goose Q-009 recipe.
+Run and independently review the normal-user Goose Q-009 recipe pinned to protected-main archive commit `d71b23cd4968ad288f7f5d927fbbc76be7872624`. Do not mark Q-009 accepted until the first user-visible answer and persisted record have both been inspected.
