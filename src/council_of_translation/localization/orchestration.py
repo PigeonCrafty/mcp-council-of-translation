@@ -19,11 +19,15 @@ from council_of_translation.localization.deliberation import (
     select_discussion_issues,
 )
 from council_of_translation.localization.models import (
+    BriefingInteraction,
+    ChiefEditorDecisionV2,
     FindingV2,
     DeliberationSummary,
     EffectiveTask,
     InputDiagnostics,
     IssueCluster,
+    PhaseRecord,
+    PhaseTrace,
     Reconsideration,
     ReconsiderationProvenance,
     ReviewRecordV2,
@@ -31,6 +35,16 @@ from council_of_translation.localization.models import (
     RolePosition,
     UserDecision,
     option_id_for_action,
+)
+from council_of_translation.localization.guided import (
+    BRIEF_FIELDS,
+    briefing_fields,
+    briefing_interaction,
+    briefing_message,
+    build_briefing_form,
+    build_effective_brief,
+    normalize_briefing_answers,
+    should_request_briefing,
 )
 from council_of_translation.localization.persistence import ReviewStore, build_review_id
 from council_of_translation.localization.policy import build_chief_decision, policy_gate, valid_options
@@ -669,15 +683,91 @@ async def run_structured_review(
     input_diagnostics: InputDiagnostics | None = None,
 ) -> ReviewRecordV2:
     started = perf_counter()
-    plan = build_council_plan(task.mode, task.content_type, interactive_mode=task.interactive_mode)
-    telemetry = _telemetry_for(executor, gateway, plan.sample_budget)
-    budget = SampleBudget(task.mode)
-    preflight = run_preflight(
-        task.source_text,
-        task.candidate_translation,
-        do_not_translate=task.do_not_translate_literals,
-        hard_constraints=task.hard_constraints,
+    initial_budget = SampleBudget(task.mode)
+    telemetry = _telemetry_for(executor, gateway, initial_budget.limit)
+    fields = list(BRIEF_FIELDS) if task.briefing_mode == "always" else briefing_fields(task)
+    request_brief = should_request_briefing(
+        task, supported=gateway.capabilities().form_elicitation
     )
+    brief_action = "skipped"
+    brief_answers: dict[str, str] = {}
+    if request_brief:
+        elicited_brief = await gateway.elicit(
+            briefing_message(fields),
+            response_type=build_briefing_form(fields),
+        )
+        brief_action = elicited_brief.action
+        telemetry.record_phase_elicitation("briefing", brief_action)
+        if brief_action == "accept":
+            normalized_answers = normalize_briefing_answers(fields, elicited_brief.data)
+            if normalized_answers is None:
+                brief_action = "malformed"
+            else:
+                brief_answers = normalized_answers
+    brief_interaction = briefing_interaction(
+        fields=fields,
+        action=brief_action,
+        answers=brief_answers,
+        requested=request_brief,
+    )
+    effective_brief, effective_task = build_effective_brief(
+        task,
+        accepted_answers=brief_answers if brief_action == "accept" else None,
+    )
+    plan = build_council_plan(
+        effective_task.mode,
+        effective_brief.content_type,
+        interactive_mode=effective_task.interactive_mode,
+    )
+    telemetry.sample_budget = plan.sample_budget
+    budget = SampleBudget(effective_task.mode)
+    preflight = run_preflight(
+        effective_task.source_text,
+        effective_task.candidate_translation,
+        do_not_translate=effective_task.do_not_translate_literals,
+        hard_constraints=effective_task.hard_constraints,
+    )
+
+    if effective_task.briefing_mode == "always" and request_brief and brief_action != "accept":
+        telemetry.elapsed_ms = max(telemetry.elapsed_ms, int((perf_counter() - started) * 1_000))
+        record = ReviewRecordV2(
+            review_id=build_review_id(),
+            created_at=datetime.now(timezone.utc),
+            completed_at=datetime.now(timezone.utc),
+            task=effective_task,
+            input_diagnostics=input_diagnostics or InputDiagnostics(
+                source_original_length=len(effective_task.source_text),
+                source_reviewed_length=len(effective_task.source_text),
+                candidate_original_length=len(effective_task.candidate_translation),
+                candidate_reviewed_length=len(effective_task.candidate_translation),
+            ),
+            runtime_metadata=telemetry.snapshot(),
+            council_plan=plan,
+            preflight=preflight,
+            effective_brief=effective_brief,
+            briefing_interaction=brief_interaction,
+            chief_editor_decision=ChiefEditorDecisionV2(
+                publishability="需人工复核",
+                review_needed="是",
+                review_reason="审校尚未开始：必需的背景说明未被接受。",
+                decision_rationale=brief_interaction.retry_hint,
+            ),
+            status="RETURNED_PENDING",
+            fallback_reason=f"briefing_{brief_action}",
+            effective_task=_effective_task(effective_task),
+            degraded=True,
+            warnings=[f"briefing_not_accepted:{brief_action}"],
+            phase_trace=PhaseTrace(phases=[
+                PhaseRecord(
+                    phase="briefing",
+                    disposition=brief_action,
+                    counts={"asked_fields": len(fields), "sampling_calls": 0},
+                    summary="必需背景说明未接受；在独立评审前返回。",
+                )
+            ]),
+        )
+        (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
+        return record
 
     independent_reviews: list[dict[str, Any]] = []
     all_findings: list[FindingV2] = []
@@ -687,7 +777,7 @@ async def run_structured_review(
             executor,
             telemetry,
             budget,
-            build_v2_reviewer_prompt(ROLE_REGISTRY[role_id], task, preflight),
+            build_v2_reviewer_prompt(ROLE_REGISTRY[role_id], effective_task, preflight, effective_brief),
             max_tokens=1_400,
         )
         feedback, findings, sample_error = _review_findings(raw, role_id)
@@ -721,14 +811,14 @@ async def run_structured_review(
         all_findings,
         preflight,
     )
-    discussion_issues = select_discussion_issues(clusters, task.mode) if plan.discussion_enabled else []
+    discussion_issues = select_discussion_issues(clusters, effective_task.mode) if plan.discussion_enabled else []
     discussion_rounds = []
     if discussion_issues and budget.remaining:
         raw = await _sample_json(
             executor,
             telemetry,
             budget,
-            build_discussion_prompt(task, discussion_issues),
+            build_discussion_prompt(effective_task, discussion_issues),
             max_tokens=1_500,
         )
         round_ = normalize_discussion_round(
@@ -740,7 +830,7 @@ async def run_structured_review(
     decision_suppressions: list[dict[str, str]] = []
     decision_points = _validate_outcome_options(
         build_decision_points(clusters, plan.max_decision_points),
-        task,
+        effective_task,
         clusters,
         suppression_provenance=decision_suppressions,
     )
@@ -748,7 +838,7 @@ async def run_structured_review(
     fallback_reason = ""
     returned_pending = False
     if decision_points:
-        if task.interactive_mode == "off" or not gateway.capabilities().form_elicitation:
+        if effective_task.interactive_mode == "off" or not gateway.capabilities().form_elicitation:
             action = "unsupported"
             user_decisions = _fallback_decisions(decision_points, action)
         else:
@@ -756,6 +846,7 @@ async def run_structured_review(
                 _interaction_message(decision_points),
                 response_type=_interaction_form(decision_points),
             )
+            telemetry.record_phase_elicitation("outcome", elicited.action)
             user_decisions = _decisions_from_elicitation(decision_points, elicited)
             action = elicited.action
         failed_actions = [
@@ -767,7 +858,7 @@ async def run_structured_review(
         if failed_actions:
             fallback_reason = f"user_interaction_{action}"
             telemetry.record(RuntimeEvent("fallback", fallback_reason))
-            if task.decision_fallback == "return_pending":
+            if effective_task.decision_fallback == "return_pending":
                 returned_pending = True
         elif delegated:
             fallback_reason = "user_delegated_to_council"
@@ -779,7 +870,7 @@ async def run_structured_review(
         reconsideration_warnings: list[str] = []
     else:
         reconsiderations, reconsideration_provenance, reconsideration_warnings = await _reconsider(
-            task, clusters, user_decisions, executor, telemetry, budget
+            effective_task, clusters, user_decisions, executor, telemetry, budget
         )
     reconsideration_degraded = bool(
         reconsideration_provenance.skipped_role_ids
@@ -834,7 +925,7 @@ async def run_structured_review(
         review_id=build_review_id(),
         created_at=datetime.now(timezone.utc),
         completed_at=datetime.now(timezone.utc),
-        task=task,
+        task=effective_task,
         input_diagnostics=input_diagnostics or InputDiagnostics(
             source_original_length=len(task.source_text),
             source_reviewed_length=len(task.source_text),
@@ -851,19 +942,21 @@ async def run_structured_review(
         user_decisions=user_decisions,
         reconsiderations=reconsiderations,
         reconsideration_provenance=reconsideration_provenance,
+        effective_brief=effective_brief,
+        briefing_interaction=brief_interaction,
         policy_gate_result=gate_result,
         chief_editor_decision=chief,
         decision_trace=trace,
         status=status,
         fallback_reason=fallback_reason,
-        effective_task=_effective_task(task),
+        effective_task=_effective_task(effective_task),
         deliberation_summary=_deliberation_summary(
             clusters, user_decisions, trace, reconsideration_provenance, reconsiderations
         ),
         degraded=degraded,
         warnings=[*reconsideration_warnings, *_suppression_warnings(decision_suppressions)],
     )
-    (store or ReviewStore()).save(record, history_mode=task.history_mode)
+    (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
     return record
 
 

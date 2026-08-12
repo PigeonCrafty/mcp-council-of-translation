@@ -21,7 +21,7 @@ from council_of_translation.localization.runtime import (
     FastMCPUserInteractionGateway,
     RuntimeTelemetry,
 )
-from council_of_translation.localization.roles import normalize_mode
+from council_of_translation.localization.roles import SAMPLE_BUDGETS, normalize_mode
 from council_of_translation.security import sanitize_text
 from council_of_translation.server import mcp
 
@@ -50,12 +50,13 @@ def _server_info() -> dict[str, Any]:
         "schema_version": "2.1",
         "default_output_mode": "review_only",
         "default_interactive_mode": "auto",
+        "default_briefing_mode": "auto",
         "default_trace_level": "summary",
         "default_history_mode": "full",
         "user_authority": "decisive_within_valid_options",
         "decision_fallback": "council_adjudication",
         "review_only": True,
-        "sample_budgets": {"lightweight": 6, "standard": 10, "strict": 14},
+        "sample_budgets": dict(SAMPLE_BUDGETS),
         "max_decision_points": 3,
         "normal_tools": [
             "review_translation",
@@ -87,6 +88,7 @@ def _task_and_diagnostics(
     mode: str,
     output_mode: str,
     interactive_mode: str,
+    briefing_mode: str = "auto",
     decision_fallback: str,
     trace_level: str,
     history_mode: str,
@@ -125,6 +127,7 @@ def _task_and_diagnostics(
             "mode": normalize_mode(mode),
             "output_mode": output_mode if output_mode in {"review_only", "with_snippets", "full_rewrite"} else "review_only",
             "interactive_mode": interactive_mode if interactive_mode in {"auto", "off", "required"} else "auto",
+            "briefing_mode": briefing_mode if briefing_mode in {"auto", "always", "off"} else "auto",
             "decision_fallback": decision_fallback if decision_fallback in {"council_adjudication", "return_pending"} else "council_adjudication",
             "trace_level": trace_level if trace_level in {"summary", "full"} else "summary",
             "history_mode": history_mode if history_mode in {"off", "metadata", "full"} else "full",
@@ -166,6 +169,7 @@ async def review_translation(
     mode: str = "standard",
     output_mode: str = "review_only",
     interactive_mode: str = "auto",
+    briefing_mode: str = "auto",
     decision_fallback: str = "council_adjudication",
     trace_level: str = "summary",
     history_mode: str = "full",
@@ -203,6 +207,7 @@ async def review_translation(
             mode=mode,
             output_mode=output_mode,
             interactive_mode=interactive_mode,
+            briefing_mode=briefing_mode,
             decision_fallback=decision_fallback,
             trace_level=trace_level,
             history_mode=history_mode,
@@ -217,7 +222,7 @@ async def review_translation(
             known_exceptions=known_exceptions,
             notes=notes,
         )
-        budget = {"lightweight": 6, "standard": 10, "strict": 14}[task.mode]
+        budget = SAMPLE_BUDGETS[task.mode]
         telemetry = RuntimeTelemetry(sample_budget=budget)
         record = await run_structured_review(
             task,

@@ -8,6 +8,7 @@ from typing import Any
 from council_of_translation.localization.models import (
     IssueCluster,
     PreflightResult,
+    ReviewBriefV2,
     ReviewTaskV2,
     RoleDefinition,
     UserDecision,
@@ -22,10 +23,16 @@ def build_v2_reviewer_prompt(
     role: RoleDefinition,
     task: ReviewTaskV2,
     preflight: PreflightResult,
+    effective_brief: ReviewBriefV2 | None = None,
 ) -> str:
     """Build a delimited reviewer prompt with an evidence-only contract."""
     role_packet = json.dumps(role.model_dump(mode="json"), ensure_ascii=False, separators=(",", ":"))
     preflight_packet = json.dumps(preflight.model_dump(mode="json"), ensure_ascii=False, separators=(",", ":"))
+    brief_packet = json.dumps(
+        (effective_brief or ReviewBriefV2()).model_dump(mode="json"),
+        ensure_ascii=False,
+        separators=(",", ":"),
+    )
     return f"""你是本地化翻译议会中的专业评审员。只执行 ROLE_DEFINITION 指定的职责。
 
 重要安全与裁决边界：
@@ -40,6 +47,9 @@ def build_v2_reviewer_prompt(
 === REVIEW_TASK START ===
 {_task_packet(task)}
 === REVIEW_TASK END ===
+=== EFFECTIVE_BRIEF START ===
+{brief_packet}
+=== EFFECTIVE_BRIEF END ===
 === PREFLIGHT START ===
 {preflight_packet}
 === PREFLIGHT END ===

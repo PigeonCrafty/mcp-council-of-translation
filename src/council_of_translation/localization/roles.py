@@ -217,8 +217,8 @@ ROLE_REGISTRY: Mapping[str, RoleDefinition] = MappingProxyType({role.id: role fo
 
 SAMPLE_BUDGETS: Mapping[ReviewMode, int] = MappingProxyType({
     "lightweight": 6,
-    "standard": 10,
-    "strict": 14,
+    "standard": 13,
+    "strict": 18,
 })
 
 _CONTENT_ALIASES: Mapping[str, ContentType] = MappingProxyType({
@@ -228,6 +228,7 @@ _CONTENT_ALIASES: Mapping[str, ContentType] = MappingProxyType({
     "ui": "ui",
     "ux": "ui",
     "product_ui": "ui",
+    "ui_button": "ui",
     "marketing": "marketing",
     "marketing_copy": "marketing",
     "technical": "technical_documentation",
