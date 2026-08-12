@@ -51,24 +51,101 @@ def _role_lenses(plan: CouncilPlan, reviews: list[dict[str, Any]]) -> list[RoleL
     for role_id in plan.active_role_ids:
         review = by_role.get(role_id, {})
         findings = review.get("findings", []) if isinstance(review.get("findings", []), list) else []
-        evidence = _dedupe([
-            str(item.get("evidence") or item.get("problem") or "")
-            for item in findings
-            if isinstance(item, dict)
-        ], maximum=4)
+        ranked = sorted(
+            (item for item in findings if isinstance(item, dict)),
+            key=lambda item: (
+                0 if item.get("blocking") or item.get("severity") in {"critical", "major"} else 1,
+                0 if item.get("finding_kind") == "choice" else 1,
+                0 if item.get("finding_kind") == "affirmation" else 1,
+            ),
+        )
+        strongest = ranked[0] if ranked else {}
+        evidence = _dedupe([str(strongest.get("evidence") or "")], maximum=1)
         feedback = str(review.get("role_feedback", "")).strip()
-        if not feedback:
-            feedback = "该角色的结构化评审不可用，未据此推断无问题。"
         status = str(review.get("sample_status", "unavailable"))
+        role = ROLE_REGISTRY.get(role_id)
+        if status != "structured_success":
+            perspective = "结构化评审不可用；该专业范围保留为盲区。"
+        elif strongest.get("blocking") or strongest.get("severity") in {"critical", "major"}:
+            perspective = f"发现高优先级{strongest.get('issue_type', '质量')}问题：{strongest.get('problem', '')}"
+        elif strongest.get("finding_kind") == "choice":
+            proposal = str(strongest.get("proposed_value") or "").strip()
+            perspective = f"提出具体措辞选择{f'“{proposal}”' if proposal else ''}：{strongest.get('problem', '')}"
+        elif strongest.get("finding_kind") == "affirmation":
+            check = role.must_check[0] if role and role.must_check else "职责范围"
+            perspective = f"围绕{check}确认当前译文可接受：{strongest.get('problem') or strongest.get('evidence') or '未发现实质问题'}"
+        elif strongest:
+            perspective = f"发现{strongest.get('issue_type', '质量')}问题：{strongest.get('problem') or feedback}"
+        elif role and role.must_check:
+            perspective = f"未发现职责范围内的实质问题；已检查{role.must_check[0]}。"
+        else:
+            perspective = feedback or "未发现职责范围内的实质问题。"
         lenses.append(RoleLens(
             role_id=role_id,
-            perspective=feedback,
+            perspective=perspective,
             evidence=evidence,
             disposition=(
                 "完成职责内审校" if status == "structured_success" else "采样不可用，保留为盲区"
             ),
         ))
     return lenses
+
+
+def _consensus_lines(
+    plan: CouncilPlan,
+    reviews: list[dict[str, Any]],
+    clusters: list[IssueCluster],
+    reviewer_coverage: str,
+) -> list[str]:
+    clustered = _dedupe([
+        cluster.topic for cluster in clusters if cluster.consensus_status == "consensus"
+    ])
+    if reviewer_coverage != "full":
+        return clustered or ["评审覆盖不足，不能据此形成正向共识。"]
+
+    by_role = {
+        str(review.get("agent_name", "")): review
+        for review in reviews
+        if isinstance(review, dict) and review.get("sample_status") == "structured_success"
+    }
+    if any(role_id not in by_role for role_id in plan.active_role_ids):
+        return clustered or ["评审覆盖不足，不能据此形成正向共识。"]
+
+    outcomes: list[str] = []
+    every_role_affirmed = True
+    has_material_issue = False
+    for role_id in plan.active_role_ids:
+        findings = by_role[role_id].get("findings", [])
+        findings = findings if isinstance(findings, list) else []
+        affirmations = [
+            item for item in findings
+            if isinstance(item, dict) and item.get("finding_kind") == "affirmation"
+        ]
+        every_role_affirmed = every_role_affirmed and bool(affirmations)
+        has_material_issue = has_material_issue or any(
+            isinstance(item, dict)
+            and item.get("finding_kind") != "affirmation"
+            and item.get("severity") in {"critical", "major"}
+            for item in findings
+        )
+        if affirmations:
+            outcome = str(
+                affirmations[0].get("proposed_value")
+                or affirmations[0].get("candidate_span")
+                or ""
+            ).strip()
+            outcomes.append(outcome)
+
+    if every_role_affirmed and not has_material_issue:
+        normalized = {_semantic_key(value) for value in outcomes if _semantic_key(value)}
+        if len(normalized) == 1 and len(outcomes) == len(plan.active_role_ids):
+            outcome = _human_line(outcomes[0], 80)
+            return [
+                f"所有专业视角均未发现阻碍发布的问题；共同支持保留“{outcome}”。"
+            ]
+        return ["所有专业视角均未发现阻碍发布的问题；未据此推断共同措辞建议。"]
+
+    return clustered or ["各角色未发现发布阻断项，但缺少共同的结构化语义主张。"]
 
 
 def build_process_digest(
@@ -85,7 +162,7 @@ def build_process_digest(
     chief: ChiefEditorDecisionV2,
     reviewer_coverage: str,
 ) -> ProcessDigestV2:
-    consensus = _dedupe([cluster.topic for cluster in clusters if cluster.consensus_status == "consensus"])
+    consensus = _consensus_lines(plan, independent_reviews, clusters, reviewer_coverage)
     disagreements = _dedupe([cluster.topic for cluster in clusters if cluster.consensus_status == "disputed"])
     minority_cluster = next(
         (cluster for cluster in clusters if cluster.consensus_status == "disputed"),
@@ -145,7 +222,7 @@ def build_process_digest(
         ]),
         blind_spots=_dedupe(blind_spots),
         role_lenses=_role_lenses(plan, independent_reviews),
-        consensus=consensus or ["未形成需合并的实质共识项。"],
+        consensus=consensus,
         minority_report=MinorityReport(
             dissent=minority_cluster.topic if minority_cluster else "未识别有效少数异议。",
             decisive_condition=(
