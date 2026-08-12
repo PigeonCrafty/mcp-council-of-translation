@@ -5,7 +5,7 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-005-r1` (`ACCEPTED / PUBLICATION_PENDING`)
+- Active Campaign: `CAMPAIGN-005-r1` (`ACCEPTED / PUBLISHED_Q009_PENDING`)
 - Source baseline: `2bf090ac368c7b8af24b51ff534a145f88752ad0`
 - Product target: `0.7.1`
 - Diagnostic build target: `concise-council-display-v5.1`
@@ -818,6 +818,12 @@ evidence, fresh 0.7.1 artifacts and an isolated FastMCP 3.4.7 registered-tool sm
 
 Q-009 remains a separate post-publication Goose gate. Repository acceptance does not
 claim that the published build has already passed the normal-user live revalidation.
+
+Campaign 005 was published through protected-main PR #8 at
+`e2e2ba34dc890591a66d60b86e1373eb0316e80b`. Rebase publication maps the accepted
+local implementation/acceptance tree to remote commits `2580536`, `f34073f` and
+`e2e2ba3`; the published tree is byte-for-byte identical to accepted local commit
+`cf375be`. All six required Windows/Linux Python checks passed.
 
 ### V0.7 non-goals
 
