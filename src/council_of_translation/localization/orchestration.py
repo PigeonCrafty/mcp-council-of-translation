@@ -266,6 +266,7 @@ async def run_structured_review(
 
     independent_reviews: list[dict[str, Any]] = []
     all_findings: list[FindingV2] = []
+    successful_reviewers = 0
     for role_id in plan.active_role_ids:
         raw = await _sample_json(
             executor,
@@ -275,14 +276,27 @@ async def run_structured_review(
             max_tokens=1_400,
         )
         feedback, findings = _review_findings(raw, role_id)
+        sample_status = "structured_success" if raw is not None else "unavailable"
+        successful_reviewers += int(raw is not None)
         all_findings.extend(findings)
         independent_reviews.append(
             {
                 "agent_name": role_id,
+                "sample_status": sample_status,
                 "role_feedback": feedback,
                 "findings": [finding.model_dump(mode="json") for finding in findings],
             }
         )
+
+    unavailable_reviewers = len(plan.active_role_ids) - successful_reviewers
+    if unavailable_reviewers == 0:
+        reviewer_coverage = "full"
+    elif successful_reviewers == 0:
+        reviewer_coverage = "none"
+    else:
+        reviewer_coverage = "partial"
+    if reviewer_coverage != "full":
+        telemetry.record(RuntimeEvent("fallback", f"reviewer_coverage_{reviewer_coverage}"))
 
     clusters = cluster_findings(all_findings, preflight)
     discussion_issues = select_discussion_issues(clusters, task.mode) if plan.discussion_enabled else []
@@ -327,6 +341,19 @@ async def run_structured_review(
     )
     gate_result = policy_gate(decision_points, clusters)
     chief, trace = build_chief_decision(clusters, decision_points, user_decisions)
+    if reviewer_coverage != "full":
+        coverage_reason = f"reviewer_coverage_{reviewer_coverage}"
+        fallback_reason = ";".join(filter(None, (coverage_reason, fallback_reason)))
+        chief.review_needed = "是"
+        chief.publishability = "需人工复核"
+        chief.review_reason = (
+            f"独立评审覆盖率 {successful_reviewers}/{len(plan.active_role_ids)}；"
+            "采样覆盖不完整，需人工复核。"
+        )
+        chief.decision_rationale = (
+            f"{chief.decision_rationale} 独立评审覆盖率 "
+            f"{successful_reviewers}/{len(plan.active_role_ids)}；未将缺失采样视为无问题。"
+        ).strip()
     if returned_pending:
         chief.review_needed = "是"
         chief.review_reason = "等待用户决定。"
@@ -342,6 +369,13 @@ async def run_structured_review(
         status = "COMPLETED"
 
     telemetry.elapsed_ms = max(telemetry.elapsed_ms, int((perf_counter() - started) * 1_000))
+    runtime_metadata = telemetry.snapshot().model_copy(
+        update={
+            "reviewer_samples_successful": successful_reviewers,
+            "reviewer_samples_unavailable": unavailable_reviewers,
+            "reviewer_coverage": reviewer_coverage,
+        }
+    )
     record = ReviewRecordV2(
         review_id=build_review_id(),
         created_at=datetime.now(timezone.utc),
@@ -353,7 +387,7 @@ async def run_structured_review(
             candidate_original_length=len(task.candidate_translation),
             candidate_reviewed_length=len(task.candidate_translation),
         ),
-        runtime_metadata=telemetry.snapshot(),
+        runtime_metadata=runtime_metadata,
         council_plan=plan,
         preflight=preflight,
         independent_reviews=independent_reviews,
@@ -420,6 +454,19 @@ async def continue_structured_review(
     clusters = [cluster.model_copy(deep=True) for cluster in parent.issue_clusters]
     reconsiderations = await _reconsider(task, clusters, decisions, executor, telemetry, budget)
     chief, trace = build_chief_decision(clusters, parent.decision_points, decisions)
+    reviewer_coverage = parent.runtime_metadata.reviewer_coverage
+    if reviewer_coverage in {"partial", "none"}:
+        chief.review_needed = "是"
+        chief.publishability = "需人工复核"
+        chief.review_reason = (
+            f"独立评审覆盖率 {parent.runtime_metadata.reviewer_samples_successful}/"
+            f"{parent.runtime_metadata.reviewer_samples_successful + parent.runtime_metadata.reviewer_samples_unavailable}；"
+            "采样覆盖不完整，需人工复核。"
+        )
+        chief.decision_rationale = (
+            f"{chief.decision_rationale} 延续父记录的独立评审覆盖率；"
+            "未将后续用户决定视为缺失评审证据的替代。"
+        ).strip()
     status = "NEEDS_HUMAN_REVIEW" if chief.review_needed == "是" else "COMPLETED"
     record = parent.model_copy(deep=True)
     record.review_id = build_review_id()
@@ -432,9 +479,19 @@ async def continue_structured_review(
     record.policy_gate_result = policy_gate(parent.decision_points, clusters)
     record.chief_editor_decision = chief
     record.decision_trace = trace
-    record.runtime_metadata = telemetry.snapshot()
+    record.runtime_metadata = telemetry.snapshot().model_copy(
+        update={
+            "reviewer_samples_successful": parent.runtime_metadata.reviewer_samples_successful,
+            "reviewer_samples_unavailable": parent.runtime_metadata.reviewer_samples_unavailable,
+            "reviewer_coverage": reviewer_coverage,
+        }
+    )
     record.status = status
-    record.fallback_reason = ""
+    record.fallback_reason = (
+        f"reviewer_coverage_{reviewer_coverage}"
+        if reviewer_coverage in {"partial", "none"}
+        else ""
+    )
     (store or ReviewStore()).save(record, history_mode=task.history_mode)
     return record
 

@@ -52,8 +52,9 @@ def policy_gate(
     }
 
 
-def _matrix_choice(positions: Iterable[RolePosition], valid_ids: set[str]) -> tuple[str, bool]:
-    scores: dict[str, float] = defaultdict(float)
+def _matrix_scores(positions: Iterable[RolePosition], valid_ids: set[str]) -> dict[str, float]:
+    """Score options with one fixed total influence budget per reviewer role."""
+    role_option_scores: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
     for position in positions:
         if position.option_id not in valid_ids:
             continue
@@ -62,7 +63,7 @@ def _matrix_choice(positions: Iterable[RolePosition], valid_ids: set[str]) -> tu
         tier = _TIER_WEIGHT[position.constraint_tier]
         evidence = 1.0 + min(len(position.evidence), 3) * 0.08 + min(len(position.rule_refs), 2) * 0.12
         blocking = 1.75 if position.blocking else 1.0
-        scores[position.option_id] += (
+        role_option_scores[position.role_id][position.option_id].append(
             relevance
             * position.confidence
             * _STANCE_WEIGHT[position.stance]
@@ -71,6 +72,32 @@ def _matrix_choice(positions: Iterable[RolePosition], valid_ids: set[str]) -> tu
             * evidence
             * blocking
         )
+
+    scores: dict[str, float] = defaultdict(float)
+    for option_groups in role_option_scores.values():
+        collapsed: dict[str, float] = {}
+        for option_id, repeated_scores in option_groups.items():
+            positive = [score for score in repeated_scores if score > 0]
+            negative = [score for score in repeated_scores if score < 0]
+            if positive and negative:
+                collapsed[option_id] = 0.0
+            elif positive:
+                collapsed[option_id] = max(positive)
+            elif negative:
+                collapsed[option_id] = min(negative)
+            else:
+                collapsed[option_id] = 0.0
+        total_magnitude = sum(abs(score) for score in collapsed.values())
+        if not total_magnitude:
+            continue
+        role_budget = max(abs(score) for score in collapsed.values())
+        for option_id, score in collapsed.items():
+            scores[option_id] += role_budget * score / total_magnitude
+    return dict(scores)
+
+
+def _matrix_choice(positions: Iterable[RolePosition], valid_ids: set[str]) -> tuple[str, bool]:
+    scores = _matrix_scores(positions, valid_ids)
     if not scores:
         return "", True
     ranked = sorted(scores, key=lambda option_id: (scores[option_id], option_id), reverse=True)

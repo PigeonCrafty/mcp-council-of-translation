@@ -105,21 +105,26 @@ def _model_cluster(group: list[FindingV2]) -> IssueCluster:
     anchors = sorted({anchor for finding in group for anchor in (finding.source_span, finding.candidate_span) if anchor})
     issue_id = _stable_id("issue", family, *anchors)
     actions = list(dict.fromkeys(finding.action for finding in group if finding.action))
-    positions = [
-        RolePosition(
-            role_id=finding.agent_name,
-            stance="accept" if finding.action else "reject" if finding.problem else "not_applicable",
-            option_id=option_id_for_action(issue_id, finding.action or finding.problem),
-            claim=finding.problem,
-            evidence=[finding.evidence] if finding.evidence else [],
-            evidence_origin=finding.evidence_origin,
-            constraint_tier=finding.constraint_tier,
-            rule_refs=finding.rule_refs,
-            confidence=finding.confidence,
-            blocking=False,
+    position_groups: dict[tuple[str, str], list[FindingV2]] = defaultdict(list)
+    for finding in group:
+        position_groups[(finding.agent_name, finding.action or finding.problem)].append(finding)
+    positions: list[RolePosition] = []
+    for (role_id, action), role_findings in position_groups.items():
+        representative = role_findings[0]
+        positions.append(
+            RolePosition(
+                role_id=role_id,
+                stance="accept" if representative.action else "reject" if representative.problem else "not_applicable",
+                option_id=option_id_for_action(issue_id, action),
+                claim=representative.problem,
+                evidence=list(dict.fromkeys(item.evidence for item in role_findings if item.evidence)),
+                evidence_origin=representative.evidence_origin,
+                constraint_tier=representative.constraint_tier,
+                rule_refs=list(dict.fromkeys(ref for item in role_findings for ref in item.rule_refs)),
+                confidence=max(item.confidence for item in role_findings),
+                blocking=False,
+            )
         )
-        for finding in group
-    ]
     unique_position_ids = {position.option_id for position in positions if position.option_id}
     return IssueCluster(
         issue_id=issue_id,

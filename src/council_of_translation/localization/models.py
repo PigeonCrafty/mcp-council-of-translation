@@ -277,6 +277,9 @@ class RuntimeMetadata(DomainModel):
     fallbacks: list[str] = Field(default_factory=list)
     elapsed_ms: int = Field(default=0, ge=0)
     sample_budget: int = Field(default=10, ge=0, le=14)
+    reviewer_samples_successful: int = Field(default=0, ge=0, le=8)
+    reviewer_samples_unavailable: int = Field(default=0, ge=0, le=8)
+    reviewer_coverage: Literal["full", "partial", "none", "not_applicable"] = "not_applicable"
     package_version: str = "0.4.0"
     diagnostic_build: str = "structured-deliberation-v2"
 
