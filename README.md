@@ -1,6 +1,6 @@
 # Council of Translation
 
-Council of Translation V0.6 is a Goose-first, review-only MCP server for guided localization QA. It reviews a source/candidate pair, returns a process-first compact report, and stores a retrievable structured trace. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
+Council of Translation V0.7 is a Goose-first, review-only MCP server for guided localization QA. It reviews a source/candidate pair, returns a concise Council report as the primary MCP text, and retains the complete existing dictionary as structured content. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
 
 ## Public MCP tools
 
@@ -51,7 +51,9 @@ Records use stable sortable V2 IDs and atomic writes under the platform data dir
 
 New records use schema `2.2`. Readers also accept V2.1, V2.0 and legacy V1 JSON records; missing `schema_version` is interpreted as V1.
 
-The compact response includes `effective_task`, `deliberation_summary`, structured `process_digest`, bounded `display_report`, `degraded`, warnings, the review ID, and a retrieval hint. The digest order is case brief, assumptions/confidence, blind spots, role lenses, consensus, minority report, disagreements, context gaps/answers, user decisions, reconsideration changes, editor synthesis, and execution/final disposition. Use `view_review_record(review_id, detail_level="full")` to inspect full structured evidence when `history_mode="full"`; no hidden chain-of-thought is requested or stored.
+`review_translation`, `continue_review`, and `view_review_record` return two MCP channels. The first text block is an adaptive Chinese report with at most five sections: review background, six concise role lenses, consensus/disagreement/blind spots, an interaction section only when needed, and the final editor disposition last. Clean reference output targets 1,800 Unicode code points or fewer; every primary report is capped at 3,200. Blockers, minority evidence, context or coverage gaps, warnings and degradation remain visible. The complete compact or full dictionary—including `effective_task`, `deliberation_summary`, structured `process_digest`, status, warnings and retrieval metadata—remains in structured content. `list_review_records` and `get_server_info` retain their structured-only responses.
+
+Use `view_review_record(review_id, detail_level="full")` to inspect full structured evidence when `history_mode="full"`; no hidden chain-of-thought is requested or stored. The first normal review response is already suitable for user presentation, so a second history lookup is not required just to obtain the concise Council report.
 
 ## Development
 
@@ -70,4 +72,6 @@ For a fresh Goose test, pin the reviewed local commit so cached installs cannot 
 uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translation@<reviewed-commit> mcp_council_of_translation
 ```
 
-Call `get_server_info()` and verify version `0.6.0`, schema `2.2`, diagnostic build `guided-deliberation-v4`, and budgets 6/13/18 before interpreting the result.
+For a normal-user Goose check, provide only the source and candidate, answer the brief background form when it appears, and ask Goose to show the Council review. The first final answer should directly show the concise process, all six role lenses, truthful consensus or uncertainty, and the verdict last; it should not ask the user to inspect diagnostic fields or make a second `view_review_record` call.
+
+The pinned build reports version `0.7.0`, schema `2.2`, diagnostic build `concise-council-display-v5`, and budgets 6/13/18.

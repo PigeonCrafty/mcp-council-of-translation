@@ -29,7 +29,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12_000
-DIAGNOSTIC_BUILD = "guided-deliberation-v4"
+DIAGNOSTIC_BUILD = "concise-council-display-v5"
 
 
 def _installed_version() -> str:
@@ -154,7 +154,7 @@ def _error(exc: Exception) -> dict[str, str]:
 
 @mcp.tool()
 def get_server_info() -> dict[str, Any]:
-    """Return V0.6 version, capability, budget, and frozen-tool diagnostics."""
+    """Return V0.7 version, capability, budget, and frozen-tool diagnostics."""
     return _server_info()
 
 
