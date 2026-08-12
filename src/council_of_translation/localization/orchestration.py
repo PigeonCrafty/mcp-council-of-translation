@@ -1371,8 +1371,8 @@ async def continue_structured_review(
     record = parent.model_copy(deep=True)
     record.schema_version = "2.2"
     record.version_metadata = {
-        "package_version": "0.7.1",
-        "diagnostic_build": "concise-council-display-v5.1",
+        "package_version": "0.8.0",
+        "diagnostic_build": "context-coherent-council-v6",
         "record_schema": "2.2",
     }
     record.review_id = build_review_id()
