@@ -6,13 +6,14 @@ from datetime import datetime, timezone
 import json
 import re
 from time import perf_counter
-from typing import Any, Iterable
+from typing import Any, Iterable, Literal
 
-from pydantic import create_model
+from pydantic import Field, create_model
 
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.deliberation import (
     SampleBudget,
+    apply_discussion_updates,
     build_decision_points,
     normalize_discussion_round,
     select_discussion_issues,
@@ -26,6 +27,7 @@ from council_of_translation.localization.models import (
     ReviewTaskV2,
     RolePosition,
     UserDecision,
+    option_id_for_action,
 )
 from council_of_translation.localization.persistence import ReviewStore, build_review_id
 from council_of_translation.localization.policy import build_chief_decision, policy_gate, valid_options
@@ -64,6 +66,7 @@ def _telemetry_for(executor: ModelExecutor, gateway: UserInteractionGateway, bud
     executor_telemetry = getattr(executor, "telemetry", None)
     gateway_telemetry = getattr(gateway, "telemetry", None)
     if isinstance(executor_telemetry, RuntimeTelemetry):
+        executor_telemetry.sample_budget = budget
         if gateway_telemetry is not executor_telemetry and hasattr(gateway, "telemetry"):
             setattr(gateway, "telemetry", executor_telemetry)
         return executor_telemetry
@@ -121,8 +124,32 @@ def _review_findings(raw: dict[str, Any] | None, role_id: str) -> tuple[str, lis
 
 
 def _interaction_form(decision_points: list) -> type:
-    fields = {point.decision_id: (str, ...) for point in decision_points}
+    fields: dict[str, tuple[Any, Any]] = {}
+    for point in decision_points:
+        options = valid_options(point)
+        option_type = Literal.__getitem__(tuple(options))
+        mapping = "; ".join(
+            f"{option.option_id} = {option.label}（{option.description or option.label}）"
+            for option in point.options
+            if option.valid
+        )
+        fields[point.decision_id] = (
+            option_type,
+            Field(description=f"{point.question} 可选值：{mapping}"),
+        )
     return create_model("CouncilDecisionForm", **fields)
+
+
+def _interaction_message(decision_points: list) -> str:
+    lines = ["Council 发现以下均满足硬约束的选择，请在一个表单中决定："]
+    for point in decision_points:
+        lines.append(f"- {point.question}")
+        for option in point.options:
+            if option.valid:
+                lines.append(
+                    f"  - {option.option_id}: {option.label} — {option.description or option.label}"
+                )
+    return "\n".join(lines)
 
 
 def _decisions_from_elicitation(decision_points: list, result: ElicitationResult) -> list[UserDecision]:
@@ -192,8 +219,18 @@ async def _reconsider(
             previous = next((position for position in issue.positions if position.role_id == role_id), None)
             item = by_issue.get(issue.issue_id)
             revised = None
-            if item is not None:
-                revised = RolePosition.model_validate({**item, "role_id": role_id, "blocking": False})
+            valid_ids = {option_id_for_action(issue.issue_id, action) for action in issue.candidate_actions}
+            if item is not None and previous is not None and str(item.get("option_id", "")) in valid_ids:
+                revised = RolePosition.model_validate(
+                    {
+                        **item,
+                        "role_id": role_id,
+                        "evidence_origin": "model",
+                        "constraint_tier": "advisory",
+                        "rule_refs": [],
+                        "blocking": False,
+                    }
+                )
                 issue.positions = [position for position in issue.positions if position.role_id != role_id] + [revised]
             reconsiderations.append(
                 Reconsideration(
@@ -258,9 +295,11 @@ async def run_structured_review(
             build_discussion_prompt(task, discussion_issues),
             max_tokens=1_500,
         )
-        discussion_rounds.append(
-            normalize_discussion_round("round_1", discussion_issues, raw.get("turns", []) if raw else [])
+        round_ = normalize_discussion_round(
+            "round_1", discussion_issues, raw.get("turns", []) if raw else []
         )
+        apply_discussion_updates(clusters, round_)
+        discussion_rounds.append(round_)
 
     decision_points = build_decision_points(clusters, plan.max_decision_points)
     user_decisions: list[UserDecision] = []
@@ -272,7 +311,7 @@ async def run_structured_review(
             user_decisions = _fallback_decisions(decision_points, action)
         else:
             elicited = await gateway.elicit(
-                "Council identified valid alternatives that benefit from your decision.",
+                _interaction_message(decision_points),
                 response_type=_interaction_form(decision_points),
             )
             user_decisions = _decisions_from_elicitation(decision_points, elicited)
@@ -371,7 +410,12 @@ async def continue_structured_review(
     decisions = normalize_continuation_decisions(parent, user_decision_values)
     task = parent.task.model_copy(deep=True)
     plan = parent.council_plan.model_copy(deep=True)
-    telemetry = getattr(executor, "telemetry", RuntimeTelemetry(sample_budget=plan.sample_budget))
+    telemetry = getattr(executor, "telemetry", None)
+    if not isinstance(telemetry, RuntimeTelemetry):
+        telemetry = RuntimeTelemetry(sample_budget=plan.sample_budget)
+        if hasattr(executor, "telemetry"):
+            setattr(executor, "telemetry", telemetry)
+    telemetry.sample_budget = plan.sample_budget
     budget = SampleBudget(task.mode)
     clusters = [cluster.model_copy(deep=True) for cluster in parent.issue_clusters]
     reconsiderations = await _reconsider(task, clusters, decisions, executor, telemetry, budget)

@@ -12,6 +12,7 @@ from council_of_translation.localization.models import (
     IssueCluster,
     PreflightResult,
     RolePosition,
+    option_id_for_action,
 )
 
 
@@ -107,10 +108,13 @@ def _model_cluster(group: list[FindingV2]) -> IssueCluster:
     positions = [
         RolePosition(
             role_id=finding.agent_name,
-            stance="reject" if finding.problem else "not_applicable",
-            option_id=_stable_id("option", issue_id, finding.action or finding.problem),
+            stance="accept" if finding.action else "reject" if finding.problem else "not_applicable",
+            option_id=option_id_for_action(issue_id, finding.action or finding.problem),
             claim=finding.problem,
             evidence=[finding.evidence] if finding.evidence else [],
+            evidence_origin=finding.evidence_origin,
+            constraint_tier=finding.constraint_tier,
+            rule_refs=finding.rule_refs,
             confidence=finding.confidence,
             blocking=False,
         )

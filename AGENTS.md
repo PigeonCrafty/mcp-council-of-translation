@@ -39,7 +39,7 @@ Each finding should include:
 - `evidence_type`
 - `action`
 
-Findings are clustered by issue, optionally discussed once, and adjudicated through a Policy Gate and evidence-weighted Position Matrix. User choices are decisive only among valid options and cannot override technical integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Use `hard_constraints` values `numeric_parity`, `markdown_parity`, `required_literal:<text>`, or `forbidden_literal:<text>` for machine-enforced caller rules; other rule packets remain authoritative reviewer context but do not become deterministic blockers by model assertion alone.
+Findings are clustered by issue, optionally discussed once, and adjudicated through a Policy Gate and evidence-weighted Position Matrix. RolePositions and DecisionPoints share one deterministic option identity. Safe discussion changes update only an existing affected matrix row. The one batched form describes every choice and restricts fields to valid IDs; fallback selects a non-tied valid action and leaves genuine ties for human review. User choices are decisive only among valid options and cannot override technical integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Use `hard_constraints` values `numeric_parity`, `markdown_parity`, `required_literal:<text>`, or `forbidden_literal:<text>` for machine-enforced caller rules; other rule packets remain authoritative reviewer context but do not become deterministic blockers by model assertion alone.
 
 Default `review_only` output must not include a full recommended translation. The chief editor returns an execution checklist such as:
 

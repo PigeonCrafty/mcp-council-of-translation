@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-import hashlib
 from typing import Iterable
 
 from council_of_translation.localization.models import (
@@ -14,6 +13,7 @@ from council_of_translation.localization.models import (
     IssueCluster,
     ReviewMode,
     RolePosition,
+    option_id_for_action,
 )
 
 
@@ -70,6 +70,9 @@ def position_matrix(cluster: IssueCluster) -> dict[str, list[dict[str, object]]]
                 "option_id": position.option_id,
                 "claim": position.claim,
                 "evidence": position.evidence,
+                "evidence_origin": position.evidence_origin,
+                "constraint_tier": position.constraint_tier,
+                "rule_refs": position.rule_refs,
                 "confidence": position.confidence,
                 "blocking": position.blocking,
                 "conditions": position.conditions,
@@ -81,23 +84,62 @@ def position_matrix(cluster: IssueCluster) -> dict[str, list[dict[str, object]]]
 
 
 def normalize_discussion_round(round_id: str, clusters: list[IssueCluster], raw_turns: Iterable[dict]) -> DiscussionRound:
-    allowed = {
-        cluster.issue_id: set(cluster.participant_role_ids)
-        for cluster in clusters
-    }
+    packets = {cluster.issue_id: cluster for cluster in clusters}
+    allowed = {issue_id: set(cluster.participant_role_ids) for issue_id, cluster in packets.items()}
     turns: list[DiscussionTurn] = []
     for raw in raw_turns:
         issue_id = str(raw.get("issue_id", ""))
         speaker = str(raw.get("speaker", ""))
         if issue_id not in allowed or speaker not in allowed[issue_id]:
             continue
-        turns.append(DiscussionTurn.model_validate({**raw, "round_id": round_id}))
+        turn = DiscussionTurn.model_validate({**raw, "round_id": round_id})
+        if turn.position_changed:
+            cluster = packets[issue_id]
+            previous = next((item for item in cluster.positions if item.role_id == speaker), None)
+            if (
+                previous is None
+                or previous.blocking
+                or previous.constraint_tier == "hard"
+                or turn.proposed_action not in cluster.candidate_actions
+            ):
+                continue
+        turns.append(turn)
     return DiscussionRound(round_id=round_id, issue_ids=list(allowed), turns=turns)
 
 
-def _option_id(issue_id: str, action: str) -> str:
-    digest = hashlib.sha256(f"{issue_id}\x1f{action}".encode()).hexdigest()[:10]
-    return f"option_{digest}"
+def apply_discussion_updates(clusters: Iterable[IssueCluster], round_: DiscussionRound) -> int:
+    """Apply safe declared discussion changes to their existing matrix rows."""
+    by_issue = {cluster.issue_id: cluster for cluster in clusters}
+    applied = 0
+    for turn in round_.turns:
+        if not turn.position_changed:
+            continue
+        cluster = by_issue.get(turn.issue_id)
+        if (
+            cluster is None
+            or turn.speaker not in cluster.participant_role_ids
+            or turn.proposed_action not in cluster.candidate_actions
+        ):
+            continue
+        previous = next((item for item in cluster.positions if item.role_id == turn.speaker), None)
+        if previous is None or previous.blocking or previous.constraint_tier == "hard":
+            continue
+        revised = previous.model_copy(
+            update={
+                "stance": "accept",
+                "option_id": option_id_for_action(cluster.issue_id, turn.proposed_action),
+                "claim": turn.claim or previous.claim,
+                "evidence": turn.evidence or previous.evidence,
+                "evidence_origin": "model",
+                "constraint_tier": "advisory",
+                "rule_refs": [],
+                "confidence": turn.confidence,
+                "blocking": False,
+            }
+        )
+        cluster.positions = [revised if item.role_id == turn.speaker else item for item in cluster.positions]
+        applied += 1
+    return applied
 
 
 def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) -> list[DecisionPoint]:
@@ -113,7 +155,11 @@ def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) ->
         ):
             continue
         options = [
-            DecisionOption(option_id=_option_id(cluster.issue_id, action), label=action, description=action)
+            DecisionOption(
+                option_id=option_id_for_action(cluster.issue_id, action),
+                label=action,
+                description=f"对“{cluster.topic}”采用：{action}",
+            )
             for action in actions
         ]
         points.append(
