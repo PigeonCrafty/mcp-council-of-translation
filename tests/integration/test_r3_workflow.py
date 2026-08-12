@@ -146,7 +146,7 @@ def test_production_genuine_tie_remains_human_review(tmp_path):
     assert record.runtime_metadata.elicitation_calls == 0
 
 
-@pytest.mark.parametrize(("mode", "calls", "budget"), [("lightweight", 4, 6), ("standard", 6, 10), ("strict", 8, 14)])
+@pytest.mark.parametrize(("mode", "calls", "budget"), [("lightweight", 4, 6), ("standard", 6, 13), ("strict", 8, 18)])
 def test_active_plan_budget_replaces_stale_telemetry_budget(mode, calls, budget, tmp_path):
     telemetry = RuntimeTelemetry(sample_budget=3)
     record = run(run_structured_review(

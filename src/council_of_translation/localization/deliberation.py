@@ -18,7 +18,7 @@ from council_of_translation.localization.models import (
 from council_of_translation.localization.clustering import outcome_key
 
 
-MODE_SAMPLE_BUDGETS: dict[ReviewMode, int] = {"lightweight": 6, "standard": 10, "strict": 14}
+MODE_SAMPLE_BUDGETS: dict[ReviewMode, int] = {"lightweight": 6, "standard": 13, "strict": 18}
 _DISCUSSION_LIMITS: dict[ReviewMode, tuple[int, int]] = {
     "lightweight": (1, 2),
     "standard": (1, 3),
@@ -187,11 +187,16 @@ def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) ->
         # Delegation is an interaction action, not a candidate outcome. PKG-013
         # appends it to the standard form without polluting the Position Matrix.
         options = [*outcome_options]
+        anchor = next((value for value in [*cluster.source_spans, *cluster.candidate_spans] if value), "当前片段")
+        category_label = {
+            "language_choice": "措辞",
+            "integrity": "完整性",
+        }.get(cluster.category, "审校")
         points.append(
             DecisionPoint(
                 decision_id=f"decision_{cluster.issue_id.removeprefix('issue_')}",
                 issue_id=cluster.issue_id,
-                question=f"请选择“{cluster.topic}”的有效处理方式",
+                question=f"“{anchor[:24]}”的{category_label}结果",
                 options=options,
                 recommended_option_id=outcome_options[0].option_id,
                 fallback_option_id=outcome_options[0].option_id,

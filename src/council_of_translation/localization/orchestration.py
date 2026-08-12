@@ -21,12 +21,15 @@ from council_of_translation.localization.deliberation import (
 from council_of_translation.localization.models import (
     BriefingInteraction,
     ChiefEditorDecisionV2,
+    ContextGapInteraction,
+    ContextGapV2,
     FindingV2,
     DeliberationSummary,
     EffectiveTask,
     InputDiagnostics,
     IssueCluster,
     PhaseRecord,
+    PhaseReconsiderationProvenance,
     PhaseTrace,
     Reconsideration,
     ReconsiderationProvenance,
@@ -38,18 +41,25 @@ from council_of_translation.localization.models import (
 )
 from council_of_translation.localization.guided import (
     BRIEF_FIELDS,
+    CONTEXT_ASSUMPTION_VALUE,
     briefing_fields,
     briefing_interaction,
     briefing_message,
     build_briefing_form,
+    build_context_gap_form,
     build_effective_brief,
+    context_gap_message,
     normalize_briefing_answers,
+    normalize_context_answers,
+    parse_context_gaps,
+    select_context_gaps,
     should_request_briefing,
 )
 from council_of_translation.localization.persistence import ReviewStore, build_review_id
 from council_of_translation.localization.policy import build_chief_decision, policy_gate, valid_options
 from council_of_translation.localization.preflight import run_preflight
 from council_of_translation.localization.prompt_builders import (
+    build_context_reconsideration_prompt,
     build_discussion_prompt,
     build_reconsideration_prompt,
     build_v2_reviewer_prompt,
@@ -122,22 +132,22 @@ async def _sample_json(
 def _review_findings(
     raw: dict[str, Any] | None,
     role_id: str,
-) -> tuple[str, list[FindingV2], str]:
-    """Validate one reviewer envelope; any malformed entry invalidates the sample."""
+) -> tuple[str, list[FindingV2], list[ContextGapV2], int, str]:
+    """Validate findings while isolating optional context-gap failures."""
     if raw is None:
-        return "评审采样不可用；未将缺失输出升级为阻断项。", [], "runtime_unavailable"
+        return "评审采样不可用；未将缺失输出升级为阻断项。", [], [], 0, "runtime_unavailable"
     if "role_feedback" not in raw or not isinstance(raw["role_feedback"], str):
-        return "评审响应结构无效；未将其视为完成评审。", [], "invalid_role_feedback"
+        return "评审响应结构无效；未将其视为完成评审。", [], [], 0, "invalid_role_feedback"
     if "findings" not in raw or not isinstance(raw["findings"], list):
-        return "评审响应结构无效；未将其视为完成评审。", [], "invalid_findings_container"
+        return "评审响应结构无效；未将其视为完成评审。", [], [], 0, "invalid_findings_container"
     if len(raw["findings"]) > 5:
-        return "评审响应包含过多 findings；未将其视为完成评审。", [], "too_many_findings"
+        return "评审响应包含过多 findings；未将其视为完成评审。", [], [], 0, "too_many_findings"
 
     role_feedback = raw["role_feedback"][:2_000]
     findings: list[FindingV2] = []
     for item in raw["findings"]:
         if not isinstance(item, dict):
-            return "评审响应包含无效 finding；已丢弃该样本的全部 findings。", [], "invalid_finding_entry"
+            return "评审响应包含无效 finding；已丢弃该样本的全部 findings。", [], [], 0, "invalid_finding_entry"
         try:
             finding = FindingV2.model_validate(
                 {
@@ -150,14 +160,15 @@ def _review_findings(
                 }
             )
         except (ValidationError, TypeError, ValueError):
-            return "评审响应包含无效 finding；已丢弃该样本的全部 findings。", [], "invalid_finding_value"
+            return "评审响应包含无效 finding；已丢弃该样本的全部 findings。", [], [], 0, "invalid_finding_value"
         if not (finding.problem or finding.action or finding.proposed_value):
-            return "评审响应包含空 finding；已丢弃该样本的全部 findings。", [], "inert_finding"
+            return "评审响应包含空 finding；已丢弃该样本的全部 findings。", [], [], 0, "inert_finding"
         findings.append(finding)
 
     if not findings and not role_feedback.strip():
-        return "评审响应缺少有效反馈；未将其视为完成评审。", [], "empty_reviewer_response"
-    return role_feedback, findings, ""
+        return "评审响应缺少有效反馈；未将其视为完成评审。", [], [], 0, "empty_reviewer_response"
+    gaps, invalid_gap_count = parse_context_gaps(raw.get("context_gaps"), role_id)
+    return role_feedback, findings, gaps, invalid_gap_count, ""
 
 
 def _delegate_form_value(decision_id: str) -> str:
@@ -193,19 +204,18 @@ def _form_mapping(point: Any) -> dict[str, Any | None]:
 
 def _interaction_form(decision_points: list) -> type:
     fields: dict[str, tuple[Any, Any]] = {}
-    for point in decision_points[:3]:
+    for index, point in enumerate(decision_points[:3], start=1):
         mapping = _form_mapping(point)
         option_type = Literal.__getitem__(tuple(mapping))
-        mapping = "; ".join(
-            f"{value} = {option.label if option else '暂不决定，由 Council 裁决'}"
-            f"（{option.description if option else '由证据加权 Position Matrix 裁决'}）"
-            for value, option in _form_mapping(point).items()
-        )
-        fields[point.decision_id] = (
+        descriptions = "；".join(
+            option.description if option else "由证据加权 Position Matrix 裁决"
+            for option in _form_mapping(point).values()
+        )[:150]
+        fields[f"review_choice_{index}"] = (
             option_type,
             Field(
-                title=point.question,
-                description=f"{point.question} 可选值：{mapping}",
+                title=point.question[:48],
+                description=f"选择一个满足当前硬约束的结果。{descriptions}"[:160],
             ),
         )
     return create_model("CouncilDecisionForm", **fields)
@@ -227,15 +237,15 @@ def _interaction_message(decision_points: list) -> str:
 def _decisions_from_elicitation(decision_points: list, result: ElicitationResult) -> list[UserDecision]:
     points = decision_points[:3]
     if result.action == "accept":
-        expected = {point.decision_id for point in points}
+        expected = {f"review_choice_{index}" for index in range(1, len(points) + 1)}
         malformed = (
             set(result.data) != expected
             or any(not isinstance(value, str) for value in result.data.values())
         )
         if not malformed:
             malformed = any(
-                result.data[point.decision_id] not in _form_mapping(point)
-                for point in points
+                result.data[f"review_choice_{index}"] not in _form_mapping(point)
+                for index, point in enumerate(points, start=1)
             )
         if malformed:
             return [
@@ -243,8 +253,8 @@ def _decisions_from_elicitation(decision_points: list, result: ElicitationResult
                 for point in points
             ]
     decisions: list[UserDecision] = []
-    for point in points:
-        selected = result.data.get(point.decision_id, "") if result.action == "accept" else ""
+    for index, point in enumerate(points, start=1):
+        selected = result.data.get(f"review_choice_{index}", "") if result.action == "accept" else ""
         action = result.action
         if action == "error":
             action = "malformed"
@@ -674,6 +684,81 @@ async def _reconsider(
     ), warnings
 
 
+async def _reconsider_context(
+    task: ReviewTaskV2,
+    answered_gaps: list[ContextGapV2],
+    executor: ModelExecutor,
+    telemetry: RuntimeTelemetry,
+    budget: SampleBudget,
+) -> tuple[list[FindingV2], PhaseReconsiderationProvenance, list[str]]:
+    """Revisit only roles materially named by accepted context gaps."""
+    role_ids = sorted(
+        {
+            role_id
+            for gap in answered_gaps
+            for role_id in gap.affected_role_ids
+            if role_id in ROLE_REGISTRY and ROLE_REGISTRY[role_id].role_type == "reviewer"
+        },
+        key=lambda role_id: (ROLE_REGISTRY[role_id].priority, role_id),
+    )[:3]
+    provenance = PhaseReconsiderationProvenance(requested_role_ids=role_ids)
+    findings: list[FindingV2] = []
+    warnings: list[str] = []
+    for role_id in role_ids:
+        role_gaps = [gap for gap in answered_gaps if role_id in gap.affected_role_ids]
+        if budget.remaining <= 0:
+            provenance.skipped_role_ids.append(role_id)
+            warnings.append(f"context_reconsideration_skipped_budget:{role_id}")
+            telemetry.record(RuntimeEvent("fallback", "context_reconsideration_budget_unavailable", detail=role_id))
+            continue
+        packet = [
+            {"gap_id": gap.gap_id, "question": gap.question, "answer": gap.answer}
+            for gap in role_gaps[:2]
+        ]
+        raw = await _sample_json(
+            executor,
+            telemetry,
+            budget,
+            build_context_reconsideration_prompt(task, ROLE_REGISTRY[role_id], packet),
+            max_tokens=1_200,
+        )
+        if raw is None or not isinstance(raw.get("findings", []), list):
+            provenance.failed_role_ids.append(role_id)
+            warnings.append(f"context_reconsideration_failed:{role_id}")
+            continue
+        revised: list[FindingV2] = []
+        failed = False
+        for item in raw.get("findings", [])[:5]:
+            if not isinstance(item, dict):
+                failed = True
+                break
+            try:
+                finding = FindingV2.model_validate({
+                    **item,
+                    "finding_id": "",
+                    "agent_name": role_id,
+                    "role_perspective": ROLE_REGISTRY[role_id].display_name,
+                    "evidence_origin": "model",
+                    "blocking": False,
+                    "constraint_tier": "advisory",
+                    "rule_refs": [],
+                })
+            except (ValidationError, TypeError, ValueError):
+                failed = True
+                break
+            if finding.problem or finding.action or finding.proposed_value:
+                revised.append(finding)
+        if failed:
+            provenance.failed_role_ids.append(role_id)
+            warnings.append(f"context_reconsideration_failed:{role_id}")
+            continue
+        findings.extend(revised)
+        provenance.completed_role_ids.append(role_id)
+        effect = str(raw.get("change_effect", "unchanged"))[:120]
+        provenance.change_effects.append(f"{role_id}:{effect}")
+    return findings, PhaseReconsiderationProvenance.model_validate(provenance.model_dump()), warnings
+
+
 async def run_structured_review(
     task: ReviewTaskV2,
     executor: ModelExecutor,
@@ -771,6 +856,8 @@ async def run_structured_review(
 
     independent_reviews: list[dict[str, Any]] = []
     all_findings: list[FindingV2] = []
+    sampled_context_gaps: list[ContextGapV2] = []
+    invalid_context_gap_count = 0
     successful_reviewers = 0
     for role_id in plan.active_role_ids:
         raw = await _sample_json(
@@ -780,13 +867,15 @@ async def run_structured_review(
             build_v2_reviewer_prompt(ROLE_REGISTRY[role_id], effective_task, preflight, effective_brief),
             max_tokens=1_400,
         )
-        feedback, findings, sample_error = _review_findings(raw, role_id)
+        feedback, findings, context_gaps, invalid_gaps, sample_error = _review_findings(raw, role_id)
         sample_status = "structured_success" if not sample_error else "unavailable"
         if raw is not None and sample_error:
             telemetry.record(RuntimeEvent("parse_failure", "reviewer_schema_invalid", detail=sample_error))
             telemetry.record(RuntimeEvent("fallback", f"reviewer_{sample_error}"))
         successful_reviewers += int(not sample_error)
         all_findings.extend(findings)
+        sampled_context_gaps.extend(context_gaps)
+        invalid_context_gap_count += invalid_gaps
         independent_reviews.append(
             {
                 "agent_name": role_id,
@@ -794,6 +883,8 @@ async def run_structured_review(
                 "sample_error": sample_error,
                 "role_feedback": feedback,
                 "findings": [finding.model_dump(mode="json") for finding in findings],
+                "context_gap_count": len(context_gaps),
+                "invalid_context_gap_count": invalid_gaps,
             }
         )
 
@@ -806,6 +897,70 @@ async def run_structured_review(
         reviewer_coverage = "partial"
     if reviewer_coverage != "full":
         telemetry.record(RuntimeEvent("fallback", f"reviewer_coverage_{reviewer_coverage}"))
+
+    selected_gaps, context_gaps = select_context_gaps(sampled_context_gaps, effective_brief)
+    context_action = "skipped"
+    answered_gap_ids: list[str] = []
+    if selected_gaps:
+        if effective_task.interactive_mode == "off" or not gateway.capabilities().form_elicitation:
+            context_action = "unsupported"
+        else:
+            context_form, context_mapping = build_context_gap_form(selected_gaps)
+            elicited_context = await gateway.elicit(
+                context_gap_message(selected_gaps),
+                response_type=context_form,
+            )
+            context_action = elicited_context.action
+            telemetry.record_phase_elicitation("context_gap", context_action)
+            if context_action == "accept":
+                context_answers = normalize_context_answers(context_mapping, elicited_context.data)
+                if context_answers is None:
+                    context_action = "malformed"
+                else:
+                    answered_gap_ids = list(context_answers)
+                    context_gaps = [
+                        ContextGapV2.model_validate({
+                            **gap.model_dump(mode="json"),
+                            "disposition": "answered",
+                            "answer": context_answers[gap.gap_id],
+                        }) if gap.gap_id in context_answers else gap
+                        for gap in context_gaps
+                    ]
+                    actual_answers = [
+                        f"{gap.question}: {gap.answer}"
+                        for gap in context_gaps
+                        if gap.disposition == "answered" and gap.answer != CONTEXT_ASSUMPTION_VALUE
+                    ]
+                    if actual_answers:
+                        effective_task.context = (
+                            effective_task.context + "\n" + "\n".join(actual_answers)
+                        ).strip()[:12_000]
+                        effective_brief = effective_brief.model_copy(update={
+                            "usage_context": effective_task.context[:240],
+                            "context_confidence": "full" if effective_brief.context_confidence == "partial" else "partial",
+                            "field_provenance": {
+                                **effective_brief.field_provenance,
+                                "usage_context": "user_briefing",
+                            },
+                        })
+    context_gap_interaction = ContextGapInteraction(
+        requested=bool(selected_gaps),
+        action=context_action,
+        asked_gap_ids=[gap.gap_id for gap in selected_gaps],
+        answered_gap_ids=answered_gap_ids,
+    )
+    answered_material_gaps = [
+        gap for gap in context_gaps
+        if gap.disposition == "answered" and gap.answer != CONTEXT_ASSUMPTION_VALUE
+    ]
+    if answered_material_gaps:
+        context_findings, context_provenance, context_warnings = await _reconsider_context(
+            effective_task, answered_material_gaps, executor, telemetry, budget
+        )
+        all_findings.extend(context_findings)
+    else:
+        context_provenance = PhaseReconsiderationProvenance()
+        context_warnings = []
 
     clusters = cluster_findings(
         all_findings,
@@ -876,13 +1031,18 @@ async def run_structured_review(
         reconsideration_provenance.skipped_role_ids
         or reconsideration_provenance.failed_role_ids
     )
+    context_reconsideration_degraded = bool(
+        context_provenance.skipped_role_ids or context_provenance.failed_role_ids
+    )
     decision_validation_degraded = bool(decision_suppressions)
-    degraded = reconsideration_degraded or decision_validation_degraded
+    degraded = reconsideration_degraded or context_reconsideration_degraded or decision_validation_degraded
     if reconsideration_degraded:
         fallback_reason = ";".join(filter(None, (fallback_reason, "reconsideration_degraded")))
     if decision_validation_degraded:
         fallback_reason = ";".join(filter(None, (fallback_reason, "decision_validation_degraded")))
         telemetry.record(RuntimeEvent("fallback", "decision_validation_degraded"))
+    if context_reconsideration_degraded:
+        fallback_reason = ";".join(filter(None, (fallback_reason, "context_reconsideration_degraded")))
     gate_result = policy_gate(decision_points, clusters)
     gate_result["decision_suppressions"] = decision_suppressions
     chief, trace = build_chief_decision(clusters, decision_points, user_decisions)
@@ -944,6 +1104,19 @@ async def run_structured_review(
         reconsideration_provenance=reconsideration_provenance,
         effective_brief=effective_brief,
         briefing_interaction=brief_interaction,
+        context_gaps=context_gaps,
+        context_gap_interaction=context_gap_interaction,
+        context_reconsideration_provenance=context_provenance,
+        outcome_reconsideration_provenance=PhaseReconsiderationProvenance(
+            requested_role_ids=reconsideration_provenance.requested_role_ids,
+            completed_role_ids=reconsideration_provenance.completed_role_ids,
+            skipped_role_ids=reconsideration_provenance.skipped_role_ids,
+            failed_role_ids=reconsideration_provenance.failed_role_ids,
+            change_effects=[
+                f"{item.role_id}:{'changed' if item.changed else 'unchanged'}"
+                for item in reconsiderations if item.status == "completed"
+            ],
+        ),
         policy_gate_result=gate_result,
         chief_editor_decision=chief,
         decision_trace=trace,
@@ -954,7 +1127,12 @@ async def run_structured_review(
             clusters, user_decisions, trace, reconsideration_provenance, reconsiderations
         ),
         degraded=degraded,
-        warnings=[*reconsideration_warnings, *_suppression_warnings(decision_suppressions)],
+        warnings=[
+            *context_warnings,
+            *([f"invalid_context_gaps:{invalid_context_gap_count}"] if invalid_context_gap_count else []),
+            *reconsideration_warnings,
+            *_suppression_warnings(decision_suppressions),
+        ],
     )
     (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
     return record

@@ -6,12 +6,15 @@ from bounded Council assumptions.
 
 from __future__ import annotations
 
+import hashlib
+import re
 from typing import Any, Literal
 
 from pydantic import Field, create_model
 
 from council_of_translation.localization.models import (
     BriefingInteraction,
+    ContextGapV2,
     ReviewBriefV2,
     ReviewTaskV2,
 )
@@ -28,6 +31,7 @@ CONTENT_VALUE_MAP = {
     INFER_VALUE: "unspecified",
 }
 BRIEF_FIELDS = ("domain", "content_type", "audience", "tone_goal", "primary_focus", "usage_context")
+CONTEXT_ASSUMPTION_VALUE = "由 Council 按现有证据继续，不提供额外背景"
 
 
 def _provided_context_count(task: ReviewTaskV2) -> int:
@@ -200,3 +204,130 @@ def briefing_interaction(
             if requested and normalized_action != "accept" else ""
         ),
     )
+
+
+def parse_context_gaps(raw: Any, role_id: str) -> tuple[list[ContextGapV2], int]:
+    """Parse gaps independently so malformed gap prose cannot erase findings."""
+    if raw is None:
+        return [], 0
+    if not isinstance(raw, list):
+        return [], 1
+    parsed: list[ContextGapV2] = []
+    invalid = max(0, len(raw) - 5)
+    for item in raw[:5]:
+        if not isinstance(item, dict):
+            invalid += 1
+            continue
+        question = item.get("question", "")
+        materiality = item.get("materiality", "")
+        affected = item.get("affected_role_ids", [role_id])
+        if (
+            not isinstance(question, str)
+            or not question.strip()
+            or len(question) > 1_000
+            or not isinstance(materiality, str)
+            or not materiality.strip()
+            or len(materiality) > 1_000
+            or not isinstance(affected, list)
+            or any(not isinstance(value, str) for value in affected)
+        ):
+            invalid += 1
+            continue
+        digest = hashlib.sha256(
+            f"{question.strip().casefold()}\x1f{materiality.strip().casefold()}".encode("utf-8")
+        ).hexdigest()[:12]
+        parsed.append(ContextGapV2(
+            gap_id=f"gap_{digest}",
+            question=question,
+            materiality=materiality,
+            affected_role_ids=list(dict.fromkeys(affected or [role_id])),
+            source_role_id=role_id,
+            provenance="model",
+        ))
+    return parsed, invalid
+
+
+def _gap_is_answered(gap: ContextGapV2, brief: ReviewBriefV2) -> bool:
+    question = gap.question.casefold()
+    checks = (
+        (("audience", "读者", "用户"), bool(brief.audience)),
+        (("context", "场景", "页面", "组件", "位置"), bool(brief.usage_context)),
+        (("tone", "语气", "风格"), bool(brief.tone_goal)),
+        (("domain", "领域", "业务"), brief.domain != "unspecified"),
+        (("content type", "内容类型"), brief.content_type != "unspecified"),
+    )
+    return any(value and any(token in question for token in tokens) for tokens, value in checks)
+
+
+def select_context_gaps(
+    gaps: list[ContextGapV2], brief: ReviewBriefV2,
+) -> tuple[list[ContextGapV2], list[ContextGapV2]]:
+    """Select at most two material unanswered gaps with stable semantic dedupe."""
+    selected: list[ContextGapV2] = []
+    all_gaps: list[ContextGapV2] = []
+    seen: set[str] = set()
+    material_terms = ("改变", "影响", "判断", "结论", "选项", "建议", "change", "affect", "outcome", "decision")
+    generic = ("more context", "更多背景", "还有什么", "anything else")
+    for gap in gaps:
+        normalized = re.sub(r"\W+", "", gap.question.casefold())
+        update: dict[str, str] = {}
+        if normalized in seen:
+            update = {"disposition": "suppressed", "reason": "duplicate_gap"}
+        elif _gap_is_answered(gap, brief):
+            update = {"disposition": "suppressed", "reason": "already_answered"}
+        elif any(term in gap.question.casefold() for term in generic):
+            update = {"disposition": "suppressed", "reason": "generic_curiosity"}
+        elif not any(term in gap.materiality.casefold() for term in material_terms):
+            update = {"disposition": "suppressed", "reason": "immaterial_gap"}
+        elif len(selected) >= 2:
+            update = {"disposition": "suppressed", "reason": "question_limit"}
+        if update:
+            bounded = gap.model_copy(update=update)
+        else:
+            bounded = gap
+            selected.append(bounded)
+            seen.add(normalized)
+        all_gaps.append(bounded)
+    return selected, all_gaps
+
+
+def build_context_gap_form(gaps: list[ContextGapV2]) -> tuple[type, dict[str, ContextGapV2]]:
+    fields: dict[str, tuple[Any, Any]] = {}
+    mapping: dict[str, ContextGapV2] = {}
+    for index, gap in enumerate(gaps[:2], start=1):
+        field_name = f"context_{index}"
+        mapping[field_name] = gap
+        fields[field_name] = (
+            str,
+            Field(
+                title=f"补充背景 {index}",
+                description=(
+                    f"{gap.question[:120]} 回答会影响：{gap.materiality[:120]}。"
+                    f"若不提供，请填写“{CONTEXT_ASSUMPTION_VALUE}”。"
+                )[:160],
+                min_length=1,
+                max_length=240,
+            ),
+        )
+    return create_model("CouncilContextGapForm", **fields), mapping
+
+
+def context_gap_message(gaps: list[ContextGapV2]) -> str:
+    lines = ["以下背景可能改变专业判断；请在一个表单中回答（最多两项）："]
+    for index, gap in enumerate(gaps[:2], start=1):
+        lines.append(f"{index}. {gap.question[:160]}")
+    return "\n".join(lines)
+
+
+def normalize_context_answers(
+    mapping: dict[str, ContextGapV2], data: Any,
+) -> dict[str, str] | None:
+    if not isinstance(data, dict) or set(data) != set(mapping):
+        return None
+    answers: dict[str, str] = {}
+    for field_name, gap in mapping.items():
+        value = data.get(field_name)
+        if not isinstance(value, str) or not value.strip() or len(value) > 240:
+            return None
+        answers[gap.gap_id] = value.strip()
+    return answers
