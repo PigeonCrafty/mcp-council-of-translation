@@ -1,23 +1,25 @@
-# Council of Translation V0.6 Harness Plan
+# Council of Translation V0.7 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-003-r2` (`ACCEPTED / CLOSED`)
-- Accepted implementation HEAD: `9dac21dd3cee9d9a299786e8cdec525f28a0c517`
-- Product target: `0.6.0`
-- Diagnostic build target: `guided-deliberation-v4`
+- Active Campaign: `CAMPAIGN-004-r2` (`ACCEPTED / CLOSED`)
+- Accepted implementation: `3779a78a9788018082470408fdd4d87a042985dc`
+- Product target: `0.7.0`
+- Diagnostic build target: `concise-council-display-v5`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
 
 The Foreman and Main Worker are separate Codex conversations. The Worker must bootstrap exclusively from repository assets and must not assume access to the Foreman's conversation context.
 
-The V0.4 and V0.5 sections below are accepted architectural history. The `Campaign 003: Guided Process-first Council` section is the authoritative delta for the active V0.6 target.
+The V0.4, V0.5 and Campaign 003 sections below are accepted architectural history. `Campaign 004: Concise Primary Council Presentation` is the authoritative delta for the active V0.7 target.
 
 `CAMPAIGN-003-r1` produced the integrated V0.6 implementation and preserved evidence for all but one PKG-018 boundary. `CAMPAIGN-003-r2` corrected that boundary: auto-mode context is sufficient only when content type is recognized **and** at least two independent context categories are present. Independent review accepted the combined Campaign 003 implementation. Live Goose gates Q-008 and Q-009 remain separate post-publication validation.
+
+Published V0.6 live evidence accepted Q-008 but returned a diagnostic checklist instead of the Council process until the user explicitly requested `display_report`. Campaign 004 is the authoritative V0.7 delta: make a short, readable Council process the primary MCP content while preserving full structured evidence separately.
 
 ## Product outcome
 
@@ -601,3 +603,145 @@ Packages execute in dependency order under one Strict Campaign. `models.py`, `or
 - Unlimited questions, debate rounds, context reconsideration or outcome reconsideration.
 - Persisting or displaying hidden chain-of-thought.
 - Migrating this repository to an unreleased MCP SDK generation before current Goose compatibility is preserved by the runtime abstraction.
+
+## Campaign 004: Concise Primary Council Presentation
+
+### Live counterexample
+
+Published V0.6 record `20260812T113302675410Z_611c7d32146e` contains a complete six-role process and 12-part digest. Normal Goose nevertheless answered with version fields, call counts and schema checks because the tool exposed one large dictionary and left the outer agent to choose what mattered. A second explicit retrieval prompt showed the process, but it was long, repetitive, mixed English/internal labels with Chinese prose, and reported no consensus despite six affirmative role findings.
+
+Campaign 004 treats this as a presentation-contract defect, not a missing-review defect. The Council must remain structurally rich while its default human surface becomes short, layered and difficult for an outer agent to overlook.
+
+### Dual-channel MCP result
+
+FastMCP 2.13 supports a tool result containing both primary content blocks and structured content. V0.7 uses that protocol shape:
+
+```text
+MCP result
+  content[0].text       = concise user-facing Council Markdown
+  structuredContent    = existing compact or full structured dictionary
+```
+
+`review_translation`, `continue_review` and `view_review_record` use this dual channel. `get_server_info` and `list_review_records` remain structured utilities. No sixth tool or new public mode argument is added.
+
+Primary text is the normal human answer. Structured content preserves review ID, status, effective task, digest, runtime facts, warnings and retrieval fields for agents and automation. Tool/server descriptions explicitly instruct normal callers to show the primary Council text before optional diagnostics, but correctness never depends only on prompt wording.
+
+### Adaptive human report
+
+The persisted 12-field `process_digest` remains the machine-readable source. The default `display_report` no longer mirrors all 12 fields mechanically. It renders at most five Chinese sections:
+
+1. `审校背景` — language, content/use, audience, confidence and only material assumptions;
+2. `专业视角` — one short distinct line for every active role;
+3. `共识、分歧与盲区` — positive consensus, material disagreement, minority condition, unanswered gaps or coverage limits;
+4. `你的决定与复议` — included only when a user decision, delegation, context answer or position change actually occurred;
+5. `主编结论` — publishability, human-review need and a short action checklist, always last.
+
+Clean/simple reports target 1,800 Unicode code points. Every default report is capped at 3,200. Each role lens targets 120 characters; optional evidence anchors target 80. The renderer uses shallow bullets, Chinese labels and no internal role IDs. Empty/no-op sections are omitted rather than producing repeated `未触发` paragraphs. A material blocker, minority, unanswered gap, unavailable role, warning or degradation may never be omitted to satisfy a length target.
+
+### Role-lens compression
+
+Every active reviewer remains visible because the product value is the professional frame, not merely the verdict. Deterministic compression selects the most material role-specific signal in this order:
+
+1. critical/major issue or hard/preflight evidence relevant to the role;
+2. concrete choice or materially distinct condition;
+3. strongest bounded affirmation/evidence;
+4. truthful unavailable-role notice.
+
+Repeated generic praise is shortened, but role ownership is preserved. The renderer must not use a new model call, invent missing evidence, or substitute a generic MQM label for the role's actual perspective.
+
+### Truthful positive consensus
+
+Consensus is not limited to issue clusters. Structured successful affirmations and clean role feedback may establish a positive statement such as `六个专业视角均未发现阻碍发布的问题；共同支持保留“继续”`. This is coverage/evidence synthesis, not majority voting and not a Policy Gate input.
+
+The renderer must distinguish:
+
+- positive consensus;
+- no material issue but insufficient evidence for a shared semantic claim;
+- genuine disagreement;
+- unavailable or partial coverage.
+
+It must never display `未形成实质共识` merely because affirmations were excluded from issue clustering when the role evidence clearly shares a conclusion.
+
+### Presentation integrity
+
+- Preserve review-only: no full replacement translation in default content.
+- Hide hashes, option/decision IDs, internal role IDs, raw action prose, schema/build metadata and Policy Gate counters from primary text.
+- Keep warnings, degradation, fallback, coverage gaps and human-review requirements visible in plain language.
+- Use unique sentinel tests to prove briefing `tone_goal` and `primary_focus` labels round-trip to the correct stored fields.
+- Preserve the true phase order; do not ask the outer agent to reconstruct chronology from prose.
+- Full `view_review_record` structured content remains complete; its primary text stays concise unless the caller explicitly asks the outer agent to enumerate raw evidence.
+
+### Version and compatibility
+
+- Package/module: `0.7.0`.
+- Diagnostic build: `concise-council-display-v5`.
+- Record schema remains `2.2`; no persistence migration is justified by presentation-only changes.
+- Exact five tools and all V0.6 inputs/defaults remain.
+- Sampling budgets remain 6/13/18; presentation uses zero model samples.
+- Fresh installed-wheel tests must cover the locked FastMCP 2.13 behavior and the currently resolved FastMCP release behavior.
+
+### Campaign 004 package graph
+
+1. `PKG-023` — dual-channel primary MCP text plus structured content for review, continuation and record viewing.
+2. `PKG-024` — adaptive five-section Chinese report, conditional sections and 1,800/3,200 character budgets.
+3. `PKG-025` — positive consensus synthesis and concise distinct six-role lenses.
+4. `PKG-026` — presentation integrity, briefing field round-trip, errors/degradation/privacy and layered retrieval regressions.
+5. `PKG-027` — V0.7 identifiers, dual-version FastMCP packaging smoke, documentation and normal-user Goose recipe.
+
+Packages execute in dependency order. `digest.py`, `orchestration.py` and `tools/review.py` are integration hotspots owned by the Main Worker. Subagents may work only on disjoint tests/docs after the output interface is frozen.
+
+### Campaign 004 quality gates
+
+1. A normal tool call exposes the concise Markdown as `content[0].text` and the complete dictionary as structured content.
+2. Review, continuation and record-view tools share the same presentation adapter without changing the five-tool set.
+3. Clean six-role output is readable in five or fewer Chinese sections, targets 1,800 characters and never exceeds 3,200.
+4. Every active role retains one distinct practical lens; repetitive praise is compressed.
+5. Six affirmative roles produce truthful positive consensus rather than `未形成需合并的实质共识项`.
+6. Material minority, disagreement, blockers, gaps, warnings, degraded execution and unavailable coverage remain visible.
+7. Empty decision/context/reconsideration sections do not consume separate headings.
+8. Final disposition and action checklist appear last; internal telemetry and identifiers do not appear in primary text.
+9. `tone_goal` and `primary_focus` round-trip independently through real form schemas and Core persistence.
+10. Compact/full/metadata/off history, review-only, user authority, Policy Gate, V1/V2.0/V2.1 reads and V2.2 writes remain green.
+11. No presentation path adds sampling calls or exceeds 6/13/18.
+12. Exact five tools, package/module 0.7.0, build `concise-council-display-v5`, schema 2.2 and defaults pass in source and fresh wheel.
+13. All 184 accepted V0.6 tests plus focused V0.7 regressions pass without weakening useful assertions.
+14. A normal-user Goose recipe asks for review rather than diagnostics and defines Q-009 evidence: primary process visible in the first answer, concise role lenses, truthful consensus and verdict last.
+
+### Campaign 004 r1 review and bounded correction
+
+Independent Foreman review of r1 is `CHANGES_REQUESTED` in
+`harness/evaluations/CAMPAIGN-004-r1-review.md`. The dual-channel transport,
+adaptive report, role lenses, positive consensus, field mapping, limits, public
+diagnostics and dual-FastMCP package behavior are preserved evidence. Two deterministic
+defects remain:
+
+1. metadata-only history projection still writes V0.6 package/build identifiers for
+   newly produced V0.7 records;
+2. primary-text sanitization filters only some lowercase internal identifier families,
+   so cluster/position and case variants can remain visible.
+
+`CAMPAIGN-004-r2` is a two-surface correction. It may update the metadata projection,
+the primary-text sanitizer, focused regressions and strictly necessary documentation.
+It must not redesign the report, change the five-tool surface, schema, budgets,
+adjudication, reviewer behavior, persistence privacy allowlist or legacy records.
+
+### Campaign 004 acceptance
+
+`CAMPAIGN-004-r2` is accepted by
+`harness/evaluations/CAMPAIGN-004-r2-review.md` at
+`3779a78a9788018082470408fdd4d87a042985dc`. F-023 through F-027 are accepted.
+Independent final evidence includes 198 full passes, 27 focused passes, compile and
+scope checks, truthful V0.7 metadata projection, zero standalone internal IDs in the
+primary report, exact five-tool diagnostics and preserved FastMCP 2.13/3.4.7 evidence.
+
+Q-009 remains a separate live Goose usability gate. Repository acceptance does not
+claim that Goose has already rendered the new primary Council text correctly.
+
+### V0.7 non-goals
+
+- Custom MCP App/widget or control over Goose's visual layout.
+- A new presentation mode argument, sixth tool or separate `show_report` tool.
+- Removing structured fields needed by automation or full audit.
+- Hiding material evidence merely to meet a preferred length.
+- Additional model summarization calls, streaming hidden reasoning or raw chain-of-thought.
+- Changing review logic, roles, Policy Gate, user authority, budgets, persistence schema or translation-application boundary.

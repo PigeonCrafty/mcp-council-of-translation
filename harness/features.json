@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.6.0",
-  "active_campaign": "CAMPAIGN-003-r2",
+  "target_version": "0.7.0",
+  "active_campaign": "CAMPAIGN-004-r2",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "9dac21dd3cee9d9a299786e8cdec525f28a0c517",
+  "source_baseline": "3779a78a9788018082470408fdd4d87a042985dc",
   "features": [
     {
       "id": "F-001",
@@ -252,6 +252,61 @@
         "Version 0.6.0, diagnostic build guided-deliberation-v4, exact five tools, review-only boundary and 6/13/18 budgets are verified",
         "Fresh package artifacts, deterministic guided-session evaluations and pinned Goose briefing/process-first test recipes are delivered"
       ]
+    },
+    {
+      "id": "F-023",
+      "name": "Primary user-facing MCP process content",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-004-r2",
+      "criteria": [
+        "review_translation, continue_review and view_review_record return concise Council Markdown as primary MCP text content while retaining structuredContent",
+        "Normal Goose does not need a second prompt or diagnostic checklist to discover the Council process",
+        "The exact five-tool surface and all structured review fields remain available"
+      ]
+    },
+    {
+      "id": "F-024",
+      "name": "Adaptive concise Council report",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-004-r2",
+      "criteria": [
+        "The default Chinese report uses five or fewer clear sections, places the final disposition last and omits empty interaction sections",
+        "A clean six-role case targets 1800 characters and every default report is capped at 3200 Unicode code points",
+        "Full structured evidence remains retrievable without duplicating it in the default report"
+      ]
+    },
+    {
+      "id": "F-025",
+      "name": "Truthful consensus and distinct role compression",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-004-r2",
+      "criteria": [
+        "Affirmative role evidence contributes to a truthful positive consensus instead of appearing as no consensus",
+        "Every active role retains one concise distinct lens with a practical insight and optional evidence anchor",
+        "Semantic compression removes repeated praise but never erases a material minority, blocker, disagreement or unavailable role"
+      ]
+    },
+    {
+      "id": "F-026",
+      "name": "Presentation integrity and layered retrieval",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-004-r2",
+      "criteria": [
+        "User-facing text excludes internal IDs, English implementation headings, hidden reasoning and unnecessary Policy Gate telemetry",
+        "Briefing form titles and accepted values round-trip to tone_goal and primary_focus without transposition",
+        "Compact, full and metadata paths preserve review-only, privacy, phase truth and degradation visibility"
+      ]
+    },
+    {
+      "id": "F-027",
+      "name": "V0.7 concise-display migration and evaluation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-004-r2",
+      "criteria": [
+        "Package/module 0.7.0 and diagnostic build concise-council-display-v5 preserve schema 2.2, five tools and 6/13/18 budgets",
+        "FastMCP 2.13 and current resolved FastMCP compatibility prove primary text plus structured content on installed wheels",
+        "Fresh artifacts, full regressions and a normal-user Goose recipe are delivered for Q-009 revalidation"
+      ]
     }
   ],
   "quality_gates": [
@@ -293,12 +348,12 @@
     {
       "id": "Q-008",
       "name": "V0.6 source-target-only Goose briefing evidence",
-      "status": "planned"
+      "status": "accepted"
     },
     {
       "id": "Q-009",
       "name": "V0.6 process-first digest usability evidence",
-      "status": "planned"
+      "status": "changes_requested"
     }
   ]
 }
