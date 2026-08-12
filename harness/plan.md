@@ -1,19 +1,21 @@
-# Council of Translation V0.4 Harness Plan
+# Council of Translation V0.5 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-001-r5` (accepted implementation; live validation pending)
-- Source baseline: `34d41946717f1993b8954260afc893737198a3bb`
-- Product target: `0.4.0`
-- Diagnostic build target: `structured-deliberation-v2`
+- Active Campaign: `CAMPAIGN-002-r3` (`ACCEPTED / LIVE_VALIDATION_PENDING`)
+- Source baseline: `824559afd68f170758837769b1d1d19df991db4b`
+- Product target: `0.5.0`
+- Diagnostic build target: `outcome-first-decision-v3`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
 
 The Foreman and Main Worker are separate Codex conversations. The Worker must bootstrap exclusively from repository assets and must not assume access to the Foreman's conversation context.
+
+The V0.4 sections below are the accepted architectural foundation and remain binding unless Campaign 002 explicitly refines them. The `Campaign 002: Outcome-first Decision UX` section is the authoritative delta for the active V0.5 target.
 
 ## Product outcome
 
@@ -280,3 +282,125 @@ The Campaign is not ready for Foreman review until:
 - Literal democratic majority voting.
 - Unlimited debate rounds.
 - Persisting or exposing unrestricted chain-of-thought.
+
+## Campaign 002: Outcome-first Decision UX
+
+### Acceptance state
+
+The repository implementation is accepted at `ca3d24afdc8feaa65286b13c6118720809749436` by `harness/evaluations/CAMPAIGN-002-r3-review.md`. F-011 through F-016 are accepted. Q-007 remains pending until the accepted commit is pushed and a real Goose/provider interaction confirms the V0.5 decision-form UX and compact result.
+
+### Why this Campaign exists
+
+V0.4 has passed a real Goose end-to-end run. The live record `20260812T060954605875Z_1d988172bd1f` proves that sampling, six-role coverage, elicitation, reconsideration, adjudication, persistence, and full-trace retrieval work together. It also exposed a product-level weakness: the single Goose form rendered one submit button correctly, but the displayed choices were long overlapping reviewer actions rather than concise, mutually exclusive translation outcomes. Internal option IDs and dense descriptions made a successful interaction feel like a diagnostic dump.
+
+V0.5 keeps the standard MCP elicitation form and improves the information architecture. It does not introduce a custom Goose UI.
+
+### Frozen V0.5 decisions
+
+- Keep exactly five public MCP tools and the review-only boundary.
+- Keep `interactive_mode="auto"`, `decision_fallback="council_adjudication"`, `trace_level="summary"`, and `history_mode="full"` as defaults.
+- Keep sampling budgets at lightweight 6, standard 10, and strict 14 for the first V0.5 implementation; improve targeting before expanding budgets.
+- Present decisions as mutually exclusive candidate outcomes, not raw reviewer action strings.
+- Retain one batched MCP form with one submit action. One button is expected client behavior; the Council must make the fields and choices readable.
+- Always offer an explicit `暂不决定，由 Council 裁决` choice when user interaction is available.
+- A valid user choice remains decisive among valid options and cannot bypass the Policy Gate or deterministic hard constraints.
+- Reconsider only roles whose recorded position conflicts with the selected outcome or whose expertise is materially affected.
+- If the budget prevents required reconsideration, report a truthful degraded result with explicit warnings rather than silently returning `COMPLETED`.
+- The compact response leads with the effective task, a chief-editor deliberation digest, the decision outcome, and warnings; the full trace remains available through `view_review_record`.
+- V2.1 records must read V1 and V2.0 history. Value and correctness continue to take priority over preserving obsolete response aliases.
+
+### V2.1 data contract
+
+#### FindingV2 additions
+
+- `finding_kind`: `issue`, `choice`, or `affirmation`.
+- `proposed_value`: the concrete target outcome, when the finding proposes a choice.
+- Clean `affirmation` findings may support coverage and consensus but must not become issue clusters or DecisionPoints merely because they contain explanatory prose.
+- Legacy V2.0 findings without these fields normalize conservatively as `issue` unless their stored structure proves otherwise.
+
+#### Outcome-first clusters and decisions
+
+- `IssueCluster` owns normalized candidate outcomes derived from distinct `proposed_value` values, the current candidate, and admissible Council proposals.
+- Raw `action` remains reviewer advice and evidence; it is not itself a selectable option.
+- Options with the same normalized outcome collapse into one option regardless of how many roles repeat them.
+- If fewer than two materially distinct valid outcomes remain after the Policy Gate, do not create a DecisionPoint.
+- The current candidate is represented explicitly when it is a valid alternative.
+
+Each `DecisionOption` carries:
+
+- stable internal `option_id`;
+- machine-comparable `outcome_value`;
+- concise user-facing `label` and `description`;
+- supporting role IDs and a bounded support rationale;
+- policy validity and invalidation reason where applicable.
+
+Internal IDs remain in the trace and form value mapping but are not shown as user-facing option text.
+
+#### User decision and delegation
+
+- `UserDecision` distinguishes selecting an outcome from explicitly delegating to the Council.
+- Delegation invokes the existing constraint-aware Position Matrix; it is not a majority vote and is not recorded as an interaction failure.
+- Unsupported, declined, cancelled, malformed, and explicit delegation remain distinguishable in provenance and telemetry.
+
+#### Compact response and status truthfulness
+
+- Add a bounded `effective_task` snapshot that reports normalized content type, audience, mode, and material rule context actually used by the server.
+- Add a bounded `deliberation_summary` containing consensus, material disagreement, evidence basis, selected/delegated outcome, and affected-role reconsideration.
+- Add explicit `degraded` and `warnings` fields.
+- Required post-decision work skipped for budget or runtime reasons yields `COMPLETED_WITH_FALLBACK` or `NEEDS_HUMAN_REVIEW`, according to integrity impact; it must not masquerade as an unqualified `COMPLETED` result.
+- Chief-editor checklist items are deduplicated by normalized outcome and evidence target.
+
+### Goose form presentation rules
+
+- At most three DecisionPoints in one elicitation form.
+- At most four user-facing choices per DecisionPoint, including the explicit Council-delegation choice.
+- Labels should be short translation outcomes (target: at most 48 Unicode code points).
+- Descriptions explain the tradeoff in plain language (target: at most 160 Unicode code points) and do not repeat full reviewer feedback.
+- Field titles identify the decision topic; descriptions explain why user judgment is useful.
+- Option ordering is deterministic: current candidate first when valid, then distinct alternatives by policy/relevance, then Council delegation last.
+- The form result maps safely back to stable internal option IDs and rejects unknown or stale values.
+
+### Targeted reconsideration policy
+
+- A supporting role is not resampled solely because the user selected the outcome it already supports.
+- Prefer dissenting roles whose position conflicts with the chosen outcome, followed by roles whose hard expertise is materially implicated.
+- Respect role priority and remaining mode budget; do not manufacture reconsideration for unaffected roles.
+- For the standard six-reviewer, one-chief-editor path, up to three truly affected roles can reconsider within the existing 10-call budget.
+- Persist requested, completed, skipped, and failed reconsideration roles separately.
+
+### Campaign package graph
+
+1. `PKG-011` — V2.1 outcome-first domain models, compatibility, and persistence.
+2. `PKG-012` — candidate outcome extraction, normalization, deduplication, and DecisionPoint eligibility.
+3. `PKG-013` — Goose-readable batched elicitation form, stable value mapping, and explicit Council delegation.
+4. `PKG-014` — position-aware targeted reconsideration, budget accounting, and truthful degraded statuses.
+5. `PKG-015` — compact deliberation digest, effective-task visibility, warning surface, and chief-output deduplication.
+6. `PKG-016` — V0.5 regression/evaluation corpus, migration tests, version/build metadata, and authoritative documentation.
+
+Packages are executed sequentially under one Strict Campaign. Shared orchestration and model files are integration hotspots owned by the Main Worker; implementation subagents may receive only bounded, non-overlapping work or read-only assignments.
+
+### V0.5 quality gates
+
+1. A deterministic `Continue` / `继续` / `下一步` fixture renders genuine outcome choices rather than reviewer instructions.
+2. Duplicate reviewer wording cannot multiply or duplicate options.
+3. A clean affirmation does not manufacture an issue or user decision.
+4. The current candidate, distinct valid alternatives, and Council delegation are mapped round-trip through the form without exposing internal IDs as labels.
+5. Selecting an outcome resamples only contrary or materially affected roles; the standard reference flow fits the 10-call budget without `reconsideration_budget_unavailable`.
+6. A forced insufficient-budget case returns explicit degraded status and warnings.
+7. Compact output is bounded, non-duplicative, and explains Council reasoning without exposing hidden chain-of-thought.
+8. V1 and V2.0 records remain readable; new full and metadata V2.1 records preserve the privacy contract.
+9. All 117 accepted V0.4 tests plus focused V0.5 tests pass.
+10. Exact five-tool introspection, review-only behavior, 6/10/14 budgets, package/module version `0.5.0`, and diagnostic build `outcome-first-decision-v3` are verified.
+11. A fresh sdist and wheel are built from the V0.5 candidate using a repository-local cache/output path.
+12. A pinned-commit Goose test prompt and expected evidence checklist are delivered even when Worker credentials do not permit a live provider call.
+
+### V0.5 non-goals
+
+- Custom MCP Apps, bespoke Goose widgets, or multiple submit buttons.
+- General-purpose Councils or non-localization workflows.
+- Majority voting or one-person-one-vote restoration.
+- Per-role provider/model selection.
+- Automatic translation editing or file mutation.
+- Unlimited discussion/reconsideration rounds.
+- Budget expansion before targeted selection is proven insufficient.
+- Persisting or exposing hidden reasoning.
