@@ -119,6 +119,7 @@ def test_content_routing_is_deterministic_and_role_data_backed():
     assert marketing.active_role_ids == [
         "fidelity_reviewer",
         "terminology_reviewer",
+        "product_context_reviewer",
         "brand_voice_reviewer",
         "risk_ambiguity_reviewer",
         "fluency_reviewer",
@@ -133,6 +134,27 @@ def test_content_routing_is_deterministic_and_role_data_backed():
 
     for role in get_reviewers_for_plan("strict", ui.content_type):
         assert "*" in role.applicable_content_types or ui.content_type in role.applicable_content_types
+
+
+def test_marketing_route_is_exact_for_each_mode_and_strict_preserves_relative_order():
+    frozen = [
+        "fidelity_reviewer",
+        "terminology_reviewer",
+        "product_context_reviewer",
+        "brand_voice_reviewer",
+        "risk_ambiguity_reviewer",
+        "fluency_reviewer",
+    ]
+    lightweight = build_council_plan("lightweight", "marketing")
+    standard = build_council_plan("standard", "marketing")
+    strict = build_council_plan("strict", "marketing")
+    assert lightweight.active_role_ids == [
+        "fidelity_reviewer", "terminology_reviewer", "fluency_reviewer"
+    ]
+    assert standard.active_role_ids == frozen
+    assert [role for role in strict.active_role_ids if role in frozen] == frozen
+    assert strict.active_role_ids == frozen
+    assert (lightweight.sample_budget, standard.sample_budget, strict.sample_budget) == (6, 13, 18)
 
 
 def test_unknown_content_and_mode_fall_back_without_empty_council():

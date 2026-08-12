@@ -302,7 +302,7 @@ def _gap_has_material_impact(gap: ContextGapV2) -> bool:
             "meaning", "routing", "option", "valid", "release", "outcome", "decision",
         ))
         and any(token in combined for token in (
-            "用途", "使用", "场景", "受众", "用户", "产品", "上下文", "语境", "交互", "风险", "品牌",
+            "用途", "使用", "场景", "流程", "按钮", "受众", "用户", "产品", "上下文", "语境", "交互", "风险", "品牌",
             "术语", "词表", "参考", "usage", "audience", "product", "context", "brand",
             "term", "glossary", "reference",
         ))

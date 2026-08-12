@@ -135,7 +135,7 @@ REVIEWER_ROLES: tuple[ReviewerRole, ...] = (
         evidence_policy=("Prefer caller-supplied product context and UI metadata.", "Label assumptions when context is absent."),
         blocking_conditions=("explicit_context_confirms_action_or_state_is_materially_misrepresented",),
         applicable_modes=("standard", "strict"),
-        applicable_content_types=("unspecified", "ui", "technical_documentation"),
+        applicable_content_types=("unspecified", "ui", "marketing", "technical_documentation"),
         priority=40,
     ),
     _reviewer(
@@ -287,7 +287,18 @@ def get_reviewers_for_plan(mode: str | None, content_type: str | None = None) ->
     """Select reviewers by mode and normalized localization content type."""
 
     normalized_content = normalize_content_type(content_type)
-    reviewers = get_reviewers_for_mode(normalize_mode(mode))
+    normalized_mode = normalize_mode(mode)
+    if normalized_content == "marketing" and normalized_mode in {"standard", "strict"}:
+        frozen_marketing_ids = {
+            "fidelity_reviewer",
+            "terminology_reviewer",
+            "product_context_reviewer",
+            "brand_voice_reviewer",
+            "risk_ambiguity_reviewer",
+            "fluency_reviewer",
+        }
+        return [role for role in REVIEWER_ROLES if role.id in frozen_marketing_ids]
+    reviewers = get_reviewers_for_mode(normalized_mode)
     if normalized_content == "unspecified":
         return reviewers
     return [
