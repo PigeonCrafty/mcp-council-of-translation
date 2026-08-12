@@ -6,6 +6,8 @@ from council_of_translation.localization.orchestration import (
     _form_mapping,
     _interaction_form,
     _interaction_message,
+    _reconstruct_candidate,
+    _validate_outcome_options,
     normalize_continuation_decisions,
     run_structured_review,
 )
@@ -38,18 +40,26 @@ def _continue_point():
             confidence=0.9,
         )
     ]
-    return build_decision_points(
-        cluster_findings(findings, current_candidate="继续")
-    )[0]
+    return build_decision_points(cluster_findings(findings))[0]
 
 
-def test_continue_form_uses_readable_outcomes_and_safe_round_trip_values():
+def test_continue_form_uses_readable_enum_values_and_exact_round_trip():
+    from fastmcp.server.context import get_elicitation_schema
+
     point = _continue_point()
     mapping = _form_mapping(point)
-    schema = _interaction_form([point]).model_json_schema()["properties"][point.decision_id]
+    form = _interaction_form([point])
+    schema = form.model_json_schema()["properties"][point.decision_id]
+    fastmcp_schema = get_elicitation_schema(form)["properties"][point.decision_id]
     assert schema["enum"] == list(mapping)
+    assert fastmcp_schema["enum"] == list(mapping)
     assert len(mapping) == 3
-    assert all(value.startswith(("choice_", "delegate_")) for value in mapping)
+    assert list(mapping) == [
+        "保留：继续",
+        "改为：下一步",
+        "暂不决定，由 Council 裁决",
+    ]
+    assert not any("choice_" in value or "delegate_" in value or "option_" in value for value in mapping)
     assert all(option.option_id not in schema["description"] for option in point.options)
     assert "继续" in schema["description"]
     assert "下一步" in schema["description"]
@@ -86,7 +96,7 @@ def test_explicit_delegation_is_distinct_from_failure_and_bad_values_are_rejecte
         assert decision.elicitation_action == "malformed"
 
 
-def test_batched_duplicate_or_mismatched_values_are_rejected():
+def test_same_readable_value_in_two_fields_is_validated_per_field():
     first = _continue_point()
     second = first.model_copy(deep=True)
     second.decision_id = "decision_second"
@@ -98,7 +108,89 @@ def test_batched_duplicate_or_mismatched_values_are_rejected():
             data={first.decision_id: first_value, second.decision_id: first_value},
         ),
     )
-    assert [decision.elicitation_action for decision in decisions] == ["malformed", "malformed"]
+    assert [decision.elicitation_action for decision in decisions] == ["accept", "accept"]
+    assert [decision.selected_option_id for decision in decisions] == [
+        first.options[0].option_id,
+        second.options[0].option_id,
+    ]
+
+
+def test_readable_collision_is_disambiguated_without_hashes():
+    point = DecisionPoint(
+        decision_id="decision_collision",
+        issue_id="issue_collision",
+        question="选择",
+        options=[
+            DecisionOption(option_id="option_a", outcome_value="甲", label="相同"),
+            DecisionOption(option_id="option_b", outcome_value="乙", label="相同"),
+        ],
+    )
+    values = list(_form_mapping(point))
+    assert values == ["改为：相同", "改为：相同（选项 2）", "暂不决定，由 Council 裁决"]
+    assert not any("option_" in value or "choice_" in value or "delegate_" in value for value in values)
+
+
+def _local_choice(span: str, proposal: str = "下一步") -> FindingV2:
+    return FindingV2(
+        agent_name="ux_copy_reviewer",
+        source_span="Continue",
+        candidate_span=span,
+        issue_type="ux",
+        severity="minor",
+        finding_kind="choice",
+        proposed_value=proposal,
+        problem="wording choice",
+        evidence="UI context",
+    )
+
+
+def test_long_document_keeps_issue_local_current_and_full_reconstruction():
+    candidate = ("前言段落。" * 120) + "\n继续"
+    task = ReviewTaskV2(source_text=("Preface. " * 120) + "\nContinue", candidate_translation=candidate)
+    cluster = cluster_findings([_local_choice("继续")])[0]
+    point = build_decision_points([cluster])[0]
+    validated = _validate_outcome_options([point], task, [cluster])
+    assert cluster.current_outcome == "继续"
+    assert cluster.candidate_actions == ["继续", "下一步"]
+    assert [option.outcome_value for option in validated[0].options if option.valid] == ["继续", "下一步"]
+    assert all(candidate not in value for value in _form_mapping(validated[0]))
+
+
+def test_unrelated_placeholder_survives_local_reconstruction():
+    task = ReviewTaskV2(
+        source_text="Welcome {name}\nContinue",
+        candidate_translation="欢迎 {name}\n继续",
+    )
+    cluster = cluster_findings([_local_choice("继续")])[0]
+    point = build_decision_points([cluster])[0]
+    validated = _validate_outcome_options([point], task, [cluster])
+    assert [option.outcome_value for option in validated[0].options if option.valid] == ["继续", "下一步"]
+    reconstructed, provenance = _reconstruct_candidate(task, cluster, point.options[1])
+    assert reconstructed == "欢迎 {name}\n下一步"
+    assert provenance == "reconstructed_candidate"
+
+
+def test_affected_placeholder_and_ambiguous_anchor_are_conservative():
+    affected_task = ReviewTaskV2(
+        source_text="Continue {count}",
+        candidate_translation="继续 {count}",
+    )
+    affected = cluster_findings([_local_choice("继续 {count}")])[0]
+    affected_point = build_decision_points([affected])[0]
+    assert _validate_outcome_options([affected_point], affected_task, [affected]) == []
+
+    ambiguous_task = ReviewTaskV2(
+        source_text="Continue / Continue",
+        candidate_translation="继续 / 继续",
+    )
+    ambiguous = cluster_findings([_local_choice("继续")])[0]
+    ambiguous_point = build_decision_points([ambiguous])[0]
+    reconstructed, provenance = _reconstruct_candidate(
+        ambiguous_task, ambiguous, ambiguous_point.options[1]
+    )
+    assert reconstructed is None
+    assert provenance == "ambiguous_candidate_anchor"
+    assert _validate_outcome_options([ambiguous_point], ambiguous_task, [ambiguous]) == []
 
 
 def test_production_path_rejects_proposal_that_loses_required_placeholder(tmp_path):
