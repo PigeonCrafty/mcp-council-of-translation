@@ -2,7 +2,7 @@ from fastmcp import FastMCP
 
 
 INSTRUCTIONS = """
-Council of Translation V0.6 is a review-only MCP server for guided structured
+Council of Translation V0.7 is a review-only MCP server for guided structured
 localization translation QA. It never edits translation files and does not own
 translation memory, terminology/style-guide retrieval, project context, or final
 edit application; the calling agent supplies the relevant packet and applies the
@@ -25,12 +25,16 @@ Normal responses are compact and default to output_mode=review_only,
 briefing_mode=auto, interactive_mode=auto, trace_level=summary, and history_mode=full. Full structured
 records contain claims, evidence, positions, decisions, and changes—not hidden
 reasoning—and are available through view_review_record. Compact responses expose
-effective task context, a process-first digest, a bounded display report,
-degradation, and warnings.
+effective task context, a process-first digest, an adaptive Chinese display report
+with at most five sections, degradation, and warnings. The final editor disposition
+is always the last substantive line.
 
 For review_translation, continue_review, and view_review_record, present the first
-primary Council text block to the user before optional structured diagnostics. The same
-result retains the complete compact or full dictionary as structured content.
+primary Council text block directly to the user before optional structured diagnostics.
+It already contains the concise Council process, six role lenses, consensus or
+uncertainty, and the final disposition; do not require a second history lookup merely
+to show the review. The same result retains the complete compact or full dictionary as
+structured content for programmatic consumers.
 
 The public tool surface is frozen to exactly:
 1. review_translation — run a new review.
