@@ -86,9 +86,9 @@ def test_legacy_reviewer_attributes_remain_read_only_views():
                 "ux_copy_reviewer",
                 "fluency_reviewer",
             ],
-            10,
+            13,
         ),
-        ("strict", _ids(REVIEWER_ROLES), 14),
+        ("strict", _ids(REVIEWER_ROLES), 18),
     ],
 )
 def test_mode_plans_are_deterministic_and_preserve_budgets(mode, expected_ids, budget):
@@ -141,7 +141,7 @@ def test_unknown_content_and_mode_fall_back_without_empty_council():
     assert plan.mode == "standard"
     assert plan.content_type == "unspecified"
     assert plan.active_role_ids == _ids(get_reviewers_for_mode("standard"))
-    assert plan.sample_budget == 10
+    assert plan.sample_budget == 13
 
 
 def test_interaction_toggle_does_not_change_role_or_budget_routing():
@@ -151,4 +151,4 @@ def test_interaction_toggle_does_not_change_role_or_budget_routing():
     assert auto.interactive_enabled is True
     assert off.interactive_enabled is False
     assert auto.active_role_ids == off.active_role_ids
-    assert auto.sample_budget == off.sample_budget == 10
+    assert auto.sample_budget == off.sample_budget == 13

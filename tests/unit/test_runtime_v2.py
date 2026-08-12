@@ -148,7 +148,7 @@ def test_telemetry_hooks_and_storage_are_bounded_and_content_free():
     telemetry.record(RuntimeEvent("parse_failure", "invalid_json"))
 
     snapshot = telemetry.snapshot()
-    assert snapshot.sample_budget == 14
+    assert snapshot.sample_budget == 18
     assert snapshot.parse_failures == 1
     assert len(telemetry.events) == 64
     assert len(observed) == 81

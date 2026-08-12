@@ -88,7 +88,7 @@ class RuntimeTelemetry:
         hook: TelemetryHook | None = None,
         max_events: int = MAX_TELEMETRY_EVENTS,
     ) -> None:
-        self.sample_budget = max(0, min(int(sample_budget), 14))
+        self.sample_budget = max(0, min(int(sample_budget), 18))
         self.hook = hook
         self.max_events = max(0, min(int(max_events), MAX_TELEMETRY_EVENTS))
         self.sampling_calls = 0
@@ -98,6 +98,19 @@ class RuntimeTelemetry:
         self.fallbacks: list[str] = []
         self.elapsed_ms = 0
         self.events: list[RuntimeEvent] = []
+        self.phase_elicitation_actions: dict[str, list[str]] = {
+            "briefing": [],
+            "context_gap": [],
+            "outcome": [],
+        }
+
+    def record_phase_elicitation(self, phase: str, action: str) -> None:
+        """Attribute an already-counted elicitation to one workflow phase."""
+        if phase not in self.phase_elicitation_actions:
+            return
+        actions = self.phase_elicitation_actions[phase]
+        if len(actions) < MAX_TELEMETRY_EVENTS:
+            actions.append(str(action)[:64])
 
     def record(self, event: RuntimeEvent) -> None:
         safe_event = RuntimeEvent(
@@ -136,6 +149,12 @@ class RuntimeTelemetry:
             fallbacks=self.fallbacks,
             elapsed_ms=self.elapsed_ms,
             sample_budget=self.sample_budget,
+            briefing_elicitation_calls=len(self.phase_elicitation_actions["briefing"]),
+            briefing_elicitation_actions=self.phase_elicitation_actions["briefing"],
+            context_gap_elicitation_calls=len(self.phase_elicitation_actions["context_gap"]),
+            context_gap_elicitation_actions=self.phase_elicitation_actions["context_gap"],
+            outcome_elicitation_calls=len(self.phase_elicitation_actions["outcome"]),
+            outcome_elicitation_actions=self.phase_elicitation_actions["outcome"],
         )
 
 
