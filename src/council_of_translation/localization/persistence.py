@@ -40,6 +40,8 @@ _SAFE_PHASE_DISPOSITIONS = {
     "completed", "skipped", "degraded", "blocked", "accept", "decline", "cancel",
     "unsupported", "malformed", "error", "pending", "可发布", "修改后可发布", "需人工复核",
 }
+_CURRENT_PACKAGE_VERSION = "0.7.0"
+_CURRENT_DIAGNOSTIC_BUILD = "concise-council-display-v5"
 
 
 class ReviewPersistenceError(RuntimeError):
@@ -123,8 +125,8 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "briefing_elicitation_calls": record.runtime_metadata.briefing_elicitation_calls,
             "context_gap_elicitation_calls": record.runtime_metadata.context_gap_elicitation_calls,
             "outcome_elicitation_calls": record.runtime_metadata.outcome_elicitation_calls,
-            "package_version": "0.6.0",
-            "diagnostic_build": "guided-deliberation-v4",
+            "package_version": _CURRENT_PACKAGE_VERSION,
+            "diagnostic_build": _CURRENT_DIAGNOSTIC_BUILD,
         },
         "council_plan": {
             "mode": record.council_plan.mode,
@@ -201,8 +203,8 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             ]
         },
         "version_metadata": {
-            "package_version": "0.6.0",
-            "diagnostic_build": "guided-deliberation-v4",
+            "package_version": _CURRENT_PACKAGE_VERSION,
+            "diagnostic_build": _CURRENT_DIAGNOSTIC_BUILD,
             "record_schema": "2.2",
         },
     }

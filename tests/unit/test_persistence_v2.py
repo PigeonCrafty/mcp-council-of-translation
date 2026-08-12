@@ -147,6 +147,26 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.schema_version == "2.2"
 
 
+def test_metadata_write_persists_truthful_v07_runtime_and_version_identifiers(tmp_path):
+    store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
+    record = _record(build_review_id(), history_mode="metadata")
+    path = store.save(record, history_mode="metadata")
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    expected = {
+        "package_version": "0.7.0",
+        "diagnostic_build": "concise-council-display-v5",
+    }
+    assert {key: payload["runtime_metadata"][key] for key in expected} == expected
+    assert {key: payload["version_metadata"][key] for key in expected} == expected
+    assert payload["version_metadata"]["record_schema"] == "2.2"
+
+    loaded = store.load(record.review_id)
+    assert loaded.runtime_metadata.package_version == "0.7.0"
+    assert loaded.runtime_metadata.diagnostic_build == "concise-council-display-v5"
+    assert loaded.version_metadata == {**expected, "record_schema": "2.2"}
+
+
 def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
     store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
     record = _record(build_review_id(), history_mode="metadata")
