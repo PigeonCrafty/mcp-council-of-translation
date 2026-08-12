@@ -1,14 +1,14 @@
-# Council of Translation V0.7.1 Harness Plan
+# Council of Translation V0.8 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-005-r1` (`ACCEPTED / PUBLISHED_Q009_PENDING`)
-- Source baseline: `2bf090ac368c7b8af24b51ff534a145f88752ad0`
-- Product target: `0.7.1`
-- Diagnostic build target: `concise-council-display-v5.1`
+- Active Campaign: `CAMPAIGN-006-r1` (`DESIGN_FROZEN / ASSIGNED`)
+- Source baseline: `755aea681b64283a4cb369817d17b3e52c0973a0`
+- Product target: `0.8.0`
+- Diagnostic build target: `context-coherent-council-v6`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
@@ -833,3 +833,105 @@ local implementation/acceptance tree to remote commits `2580536`, `f34073f` and
 - Hiding material evidence merely to meet a preferred length.
 - Additional model summarization calls, streaming hidden reasoning or raw chain-of-thought.
 - Changing review logic, roles, Policy Gate, user authority, budgets, persistence schema or translation-application boundary.
+
+## Campaign 006: Context-Coherent Panoramic Council
+
+### Live counterexample and evidence boundary
+
+The published V0.7.1 presentation correction reached normal Goose: the first answer for
+`bigger than bigger` → `比大更大` exposed the Council process directly, omitted internal
+telemetry and kept material dissent plus the verdict visible. The run also combined a
+marketing brief with the retained UI-button context, which exposed deeper orchestration
+gaps recorded in `harness/evaluations/CAMPAIGN-005-q009-live-review.md`.
+
+The follow-up Goose audit is not raw telemetry evidence. It reported values that violate
+the current schema and registry (`reviewer_coverage=1.0`, `not_sampled`, obsolete role
+IDs and zero calls despite sampling/elicitation effects). Campaign 006 must test literal
+record dictionaries and must not add duplicate diagnostics merely to compensate for an
+outer agent's prose reconstruction.
+
+### Frozen V0.8 decisions
+
+1. Standard marketing uses six relevant perspectives in deterministic order:
+   fidelity, terminology, product context, brand voice, risk/ambiguity and fluency.
+   Lightweight remains intentionally narrow; strict contains every standard marketing
+   lens. Technical and UX roles are not added to marketing merely to reach a count.
+2. Context comes before wording. A question distinguishing brand slogan from functional
+   UI copy, or asking whether an official/binding slogan glossary applies, is material
+   because it can change role routing, option validity or the final disposition.
+3. Context-gap selection remains bounded to two questions and sampling-neutral. It may
+   use a small deterministic impact grammar across question plus materiality, but cannot
+   turn model prose into a hard rule or blocker.
+4. Direct already-answered questions may be suppressed; compound alternatives are not
+   considered answered merely because some usage-context text exists. Duplicate,
+   generic, immaterial and question-limit provenance remains explicit.
+5. Selected context questions are elicited and actually answered before affected-role
+   reconsideration, discussion and outcome selection. The explicit assumption value,
+   decline, cancel, unsupported, malformed or error actions leave material context
+   unresolved.
+6. Unresolved material context lowers `context_confidence`, prevents outcome elicitation
+   in that run and conservatively yields `NEEDS_HUMAN_REVIEW` with bounded warning and
+   fallback provenance. A real answer may continue through reconsideration and valid
+   user authority.
+7. Suppressed immaterial questions do not appear as user decisions. Unresolved material
+   questions appear as blind spots or required confirmation. Primary issue labels are
+   natural Chinese and renderer punctuation must not produce `。；依据`.
+8. Runtime metadata, review statuses, role IDs and coverage remain the existing V2.2
+   source of truth. Add invariant tests, not a duplicate fact sheet, new tool or new
+   telemetry field.
+9. Package/module target is `0.8.0`; diagnostic build is
+   `context-coherent-council-v6`. Record schema remains `2.2`; old V1/V2 records remain
+   readable. Public tools remain exactly five and budgets remain 6/13/18.
+10. Preserve review-only, briefing/outcome forms, Policy Gate, user authority, bounded
+    discussion, persistence privacy, concise primary presentation and full structured
+    evidence.
+
+### Package graph
+
+1. `PKG-032` — reproduce the live marketing/mixed-context counterexamples and harden
+   context-gap impact classification without a schema change.
+2. `PKG-033` — enforce material-context precedence, confidence/status truth and bounded
+   context reconsideration before outcomes.
+3. `PKG-034` — expand standard/strict marketing to the frozen six relevant roles within
+   the unchanged budgets.
+4. `PKG-035` — correct context-first primary presentation, issue-label localization,
+   punctuation and record-invariant regressions.
+5. `PKG-036` — migrate to V0.8 identifiers, documentation, fresh artifacts, installed
+   wheel verification and two pinned live recipes.
+
+Packages execute in order because guided selection, orchestration, role routing and the
+digest share behavior. The Main Worker owns all production integration; implementation
+subagents are forbidden for this tightly coupled correction.
+
+### Acceptance gates
+
+1. A standard marketing plan contains exactly the six frozen relevant role IDs and six
+   role lenses; lightweight remains bounded and strict is a superset.
+2. The sanitized live-shaped brand-versus-UI and official-glossary gaps are selected,
+   asked before any outcome form and reconsider only affected active roles after actual
+   answers.
+3. Decline, unsupported, malformed, cancelled, error and explicit assumption answers do
+   not trigger an outcome form; each produces truthful unresolved-context provenance,
+   lowered confidence, `NEEDS_HUMAN_REVIEW` and visible required confirmation.
+4. Actual answers can lead to a valid outcome choice and clean completion when no other
+   blocker, coverage loss or degraded work remains.
+5. No suppressed immaterial question is rendered as a completed decision; no raw `ux`
+   issue label or `。；依据` appears; verdict remains last and primary text stays within
+   the accepted 3,200 cap.
+6. New raw records use only registered role IDs, valid sample-status/coverage literals
+   and call counts consistent with executed samples/interactions. Structured evidence is
+   not removed or duplicated.
+7. Exact five tools, schema 2.2, review-only/defaults and 6/13/18 pass in source and a
+   fresh installed 0.8.0 wheel; all 203 baseline tests plus new regressions pass.
+8. Documentation distinguishes literal record evidence from outer-agent prose and
+   supplies clean-marketing and deliberately mixed-context live recipes.
+
+### Non-goals
+
+- General semantic contradiction detection over arbitrary prose.
+- An extra LLM call for briefing classification or presentation.
+- A new schema field, telemetry projection, diagnostic tool, custom Goose widget or
+  change to Goose itself.
+- Restoring literal majority voting, weakening valid user authority or allowing context
+  answers to create deterministic hard constraints.
+- Broad role redesign outside the bounded standard/strict marketing route.
