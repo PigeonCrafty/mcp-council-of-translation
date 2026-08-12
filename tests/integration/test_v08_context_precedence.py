@@ -95,6 +95,9 @@ def test_unresolved_context_actions_block_outcomes_and_require_review(tmp_path, 
     assert "material_context_unresolved" in record.fallback_reason
     assert "material_context_unresolved" in record.warnings
     assert any(gap.disposition == "unanswered" for gap in record.context_gaps)
+    assert record.context_gaps[0].question in record.display_report
+    assert "## 你的决定与复议" not in record.display_report
+    assert record.display_report.splitlines()[-1] == "- 最终处置：需人工复核；需人工复核：是"
 
 
 def test_unsupported_and_malformed_context_are_unresolved(tmp_path):
