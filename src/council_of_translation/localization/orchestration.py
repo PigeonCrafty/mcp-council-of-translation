@@ -982,8 +982,21 @@ async def run_structured_review(
                     context_gaps = [
                         ContextGapV2.model_validate({
                             **gap.model_dump(mode="json"),
-                            "disposition": "answered",
-                            "answer": context_answers[gap.gap_id],
+                            "disposition": (
+                                "unanswered"
+                                if context_answers[gap.gap_id] == CONTEXT_ASSUMPTION_VALUE
+                                else "answered"
+                            ),
+                            "reason": (
+                                "explicit_assumption"
+                                if context_answers[gap.gap_id] == CONTEXT_ASSUMPTION_VALUE
+                                else ""
+                            ),
+                            "answer": (
+                                ""
+                                if context_answers[gap.gap_id] == CONTEXT_ASSUMPTION_VALUE
+                                else context_answers[gap.gap_id]
+                            ),
                         }) if gap.gap_id in context_answers else gap
                         for gap in context_gaps
                     ]
@@ -1014,6 +1027,15 @@ async def run_structured_review(
         gap for gap in context_gaps
         if gap.disposition == "answered" and gap.answer != CONTEXT_ASSUMPTION_VALUE
     ]
+    selected_gap_ids = {gap.gap_id for gap in selected_gaps}
+    resolved_gap_ids = {gap.gap_id for gap in answered_material_gaps}
+    material_context_unresolved = bool(selected_gap_ids - resolved_gap_ids)
+    if material_context_unresolved:
+        effective_brief = effective_brief.model_copy(update={
+            "context_confidence": (
+                "partial" if effective_brief.context_confidence == "full" else "minimal"
+            ),
+        })
     if answered_material_gaps:
         context_findings, context_provenance, context_warnings = await _reconsider_context(
             effective_task, answered_material_gaps, executor, telemetry, budget
@@ -1051,9 +1073,11 @@ async def run_structured_review(
         suppression_provenance=decision_suppressions,
     )
     user_decisions: list[UserDecision] = []
-    fallback_reason = ""
+    fallback_reason = "material_context_unresolved" if material_context_unresolved else ""
+    if material_context_unresolved:
+        telemetry.record(RuntimeEvent("fallback", "material_context_unresolved"))
     returned_pending = False
-    if decision_points:
+    if decision_points and not material_context_unresolved:
         if effective_task.interactive_mode == "off" or not gateway.capabilities().form_elicitation:
             action = "unsupported"
             user_decisions = _fallback_decisions(decision_points, action)
@@ -1096,7 +1120,12 @@ async def run_structured_review(
         context_provenance.skipped_role_ids or context_provenance.failed_role_ids
     )
     decision_validation_degraded = bool(decision_suppressions)
-    degraded = reconsideration_degraded or context_reconsideration_degraded or decision_validation_degraded
+    degraded = (
+        reconsideration_degraded
+        or context_reconsideration_degraded
+        or decision_validation_degraded
+        or material_context_unresolved
+    )
     if reconsideration_degraded:
         fallback_reason = ";".join(filter(None, (fallback_reason, "reconsideration_degraded")))
     if decision_validation_degraded:
@@ -1124,6 +1153,10 @@ async def run_structured_review(
         chief.review_needed = "是"
         chief.review_reason = "等待用户决定。"
         chief.publishability = "需人工复核"
+    if material_context_unresolved:
+        chief.review_needed = "是"
+        chief.publishability = "需人工复核"
+        chief.review_reason = "关键背景尚未确认；在确认用途或约束前不能安全裁决措辞。"
 
     if returned_pending:
         status = "RETURNED_PENDING"
@@ -1219,6 +1252,7 @@ async def run_structured_review(
         degraded=degraded,
         warnings=[
             *context_warnings,
+            *(["material_context_unresolved"] if material_context_unresolved else []),
             *([f"invalid_context_gaps:{invalid_context_gap_count}"] if invalid_context_gap_count else []),
             *reconsideration_warnings,
             *_suppression_warnings(decision_suppressions),
