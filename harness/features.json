@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.5.0",
-  "active_campaign": "CAMPAIGN-002-r3",
+  "target_version": "0.6.0",
+  "active_campaign": "CAMPAIGN-003-r2",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "824559afd68f170758837769b1d1d19df991db4b",
+  "source_baseline": "9dac21dd3cee9d9a299786e8cdec525f28a0c517",
   "features": [
     {
       "id": "F-001",
@@ -186,6 +186,72 @@
         "Version 0.5.0, diagnostic build outcome-first-decision-v3, five tools, review-only boundary and 6/10/14 budgets are verified",
         "A fresh package build and a pinned Goose live-test recipe are delivered with docs aligned to the implemented contract"
       ]
+    },
+    {
+      "id": "F-017",
+      "name": "Guided pre-review briefing",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-003-r2",
+      "criteria": [
+        "Source/target-only reviews trigger one concise Goose form before reviewer sampling when briefing_mode is auto",
+        "The briefing collects domain, content location, audience, tone goal, review focus and bounded usage context with an explicit Council-inference option",
+        "Rich caller context skips redundant questions while briefing_mode always and off remain explicit and deterministic"
+      ]
+    },
+    {
+      "id": "F-018",
+      "name": "Context normalization and provenance",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-003-r2",
+      "criteria": [
+        "Common values such as UI button normalize to the intended review content type instead of silently becoming unspecified",
+        "Caller facts, user briefing answers and inferred assumptions retain field-level provenance and deterministic precedence",
+        "Declined, cancelled, unsupported and malformed briefing paths are explicit and never fabricate user input"
+      ]
+    },
+    {
+      "id": "F-019",
+      "name": "Adaptive material context gaps",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-003-r2",
+      "criteria": [
+        "Reviewers may surface bounded structured context gaps without creating hard constraints or hidden reasoning",
+        "At most one follow-up form with two material questions appears only when an answer could change a valid outcome or role judgment",
+        "Affected-role context reconsideration is targeted, provenance-rich and budget-aware"
+      ]
+    },
+    {
+      "id": "F-020",
+      "name": "Concise interaction information architecture",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-003-r2",
+      "criteria": [
+        "Briefing, context-gap and decision forms use deterministic short titles and non-repeating descriptions",
+        "Decision titles derive from safe source/candidate anchors rather than unbounded reviewer problem prose",
+        "All form schemas remain flat primitive MCP elicitation schemas that work in normal Goose"
+      ]
+    },
+    {
+      "id": "F-021",
+      "name": "Process-first Council digest",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-003-r2",
+      "criteria": [
+        "Default compact output leads with case brief, assumptions, blind spots, role lenses, consensus, minority report and material disagreements",
+        "User decisions, reconsideration changes and editor synthesis appear after the deliberation map, with the verdict last",
+        "A bounded display report and structured digest expose claims and evidence without hidden chain-of-thought or duplicated reviewer prose"
+      ]
+    },
+    {
+      "id": "F-022",
+      "name": "V0.6 guided-deliberation migration and evaluation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-003-r2",
+      "criteria": [
+        "New records use schema 2.2 while V1, V2.0 and V2.1 remain readable and metadata privacy remains allowlist-based",
+        "Version 0.6.0, diagnostic build guided-deliberation-v4, exact five tools, review-only boundary and 6/13/18 budgets are verified",
+        "Fresh package artifacts, deterministic guided-session evaluations and pinned Goose briefing/process-first test recipes are delivered"
+      ]
     }
   ],
   "quality_gates": [
@@ -223,6 +289,16 @@
       "id": "Q-007",
       "name": "V0.5 outcome-first Goose UX evidence",
       "status": "accepted"
+    },
+    {
+      "id": "Q-008",
+      "name": "V0.6 source-target-only Goose briefing evidence",
+      "status": "planned"
+    },
+    {
+      "id": "Q-009",
+      "name": "V0.6 process-first digest usability evidence",
+      "status": "planned"
     }
   ]
 }
