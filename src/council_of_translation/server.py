@@ -2,7 +2,7 @@ from fastmcp import FastMCP
 
 
 INSTRUCTIONS = """
-Council of Translation V0.7.1 is a review-only MCP server for guided structured
+Council of Translation V0.8 is a review-only MCP server for context-coherent structured
 localization translation QA. It never edits translation files and does not own
 translation memory, terminology/style-guide retrieval, project context, or final
 edit application; the calling agent supplies the relevant packet and applies the
@@ -10,7 +10,8 @@ chief-editor checklist.
 
 The default workflow adds a sampling-free briefing gate before deterministic
 technical preflight and role-routed independent review. Material missing context
-may trigger one two-question follow-up and affected-role context reconsideration.
+may trigger one two-question follow-up and affected-role context reconsideration before
+any wording outcome; unresolved material context requires human review.
 Outcome-centric clustering, at most one targeted discussion round, one batched
 interaction for at most three valid choices, separate outcome reconsideration,
 a Policy Gate, and evidence-weighted
