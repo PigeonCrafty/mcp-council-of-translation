@@ -5,7 +5,7 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-005-r1`
-- Campaign state: `ACCEPTED / PUBLICATION_PENDING`
+- Campaign state: `ACCEPTED / PUBLISHED_Q009_PENDING`
 - Campaign baseline: `2bf090ac368c7b8af24b51ff534a145f88752ad0`
 - Last updated: 2026-08-12 Asia/Shanghai
 - Completion authority: Foreman only
@@ -136,9 +136,10 @@ The Worker may create only the active Campaign ledger and report under `harness/
 - F-028 and F-029: accepted by `CAMPAIGN-005-r1`
 - Independent evidence: exact 16-path scope, ten protected hashes, compile pass, `42 passed` focused, `203 passed` full, 539-code-point live-shaped primary report and unchanged structured evidence
 - Package evidence: fresh 0.7.1 wheel/sdist and isolated FastMCP 3.4.7 exact-five-tool smoke passed
-- Publication state: pending protected-main workflow
+- Publication state: published through protected-main PR #8 at `e2e2ba34dc890591a66d60b86e1373eb0316e80b`; all six Windows/Linux Python checks passed
+- Publication mapping: rebase commits `2580536` / `f34073f` / `e2e2ba3` preserve the exact accepted tree from local acceptance commit `cf375be`
 - Live state: Q-009 remains `changes_requested` until the published commit passes normal-user Goose revalidation
 
 ## Next step
 
-Archive the accepted Campaign 005 contract, Worker evidence and Foreman review, publish the accepted implementation through the protected-main workflow, then run the pinned normal-user Goose Q-009 recipe. Do not mark Q-009 accepted until that live evidence is independently reviewed.
+Run the pinned normal-user Goose Q-009 recipe against protected-main commit `e2e2ba34dc890591a66d60b86e1373eb0316e80b`. Do not mark Q-009 accepted until the first user-visible answer and its persisted record have both been independently reviewed.
