@@ -955,7 +955,11 @@ async def run_structured_review(
     if reviewer_coverage != "full":
         telemetry.record(RuntimeEvent("fallback", f"reviewer_coverage_{reviewer_coverage}"))
 
-    selected_gaps, context_gaps = select_context_gaps(sampled_context_gaps, effective_brief)
+    selected_gaps, context_gaps = select_context_gaps(
+        sampled_context_gaps,
+        effective_brief,
+        active_role_ids=plan.active_role_ids,
+    )
     context_action = "skipped"
     answered_gap_ids: list[str] = []
     if selected_gaps:

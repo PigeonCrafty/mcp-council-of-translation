@@ -268,8 +268,15 @@ def parse_context_gaps(raw: Any, role_id: str) -> tuple[list[ContextGapV2], int]
 
 def _gap_is_answered(gap: ContextGapV2, brief: ReviewBriefV2) -> bool:
     question = gap.question.casefold()
+    compound_alternative = (
+        any(token in question for token in ("还是", "或是", "versus", " vs ", " or "))
+        and any(token in question for token in ("品牌", "标语", "slogan", "brand"))
+        and any(token in question for token in ("按钮", "功能", "界面", "ui", "functional"))
+    )
+    if compound_alternative:
+        return False
     checks = (
-        (("audience", "读者", "用户"), bool(brief.audience)),
+        (("audience", "受众", "读者", "用户"), bool(brief.audience)),
         (("context", "场景", "页面", "组件", "位置"), bool(brief.usage_context)),
         (("tone", "语气", "风格"), bool(brief.tone_goal)),
         (("domain", "领域", "业务"), brief.domain != "unspecified"),
@@ -278,16 +285,45 @@ def _gap_is_answered(gap: ContextGapV2, brief: ReviewBriefV2) -> bool:
     return any(value and any(token in question for token in tokens) for tokens, value in checks)
 
 
+def _gap_has_material_impact(gap: ContextGapV2) -> bool:
+    combined = f"{gap.question} {gap.materiality}".casefold()
+    brand_or_ui = (
+        any(token in combined for token in ("品牌", "标语", "口号", "slogan", "brand"))
+        and any(token in combined for token in ("按钮", "功能", "界面", "ui", "functional"))
+    )
+    binding_reference = (
+        any(token in combined for token in ("官方", "批准", "核准", "约束", "强制", "binding", "approved", "official"))
+        and any(token in combined for token in ("词表", "术语", "标语", "参考译", "glossary", "terminology", "reference"))
+    )
+    decision_impact = (
+        any(token in combined for token in (
+            "改变", "影响", "决定", "判断", "结论", "选项", "建议", "路由", "角色",
+            "含义", "语义", "发布", "结果", "有效", "change", "affect", "determine",
+            "meaning", "routing", "option", "valid", "release", "outcome", "decision",
+        ))
+        and any(token in combined for token in (
+            "用途", "使用", "场景", "受众", "用户", "产品", "上下文", "语境", "交互", "风险", "品牌",
+            "术语", "词表", "参考", "usage", "audience", "product", "context", "brand",
+            "term", "glossary", "reference",
+        ))
+    )
+    return brand_or_ui or binding_reference or decision_impact
+
+
 def select_context_gaps(
     gaps: list[ContextGapV2], brief: ReviewBriefV2,
+    *, active_role_ids: list[str] | None = None,
 ) -> tuple[list[ContextGapV2], list[ContextGapV2]]:
     """Select at most two material unanswered gaps with stable semantic dedupe."""
     selected: list[ContextGapV2] = []
     all_gaps: list[ContextGapV2] = []
     seen: set[str] = set()
-    material_terms = ("改变", "影响", "判断", "结论", "选项", "建议", "change", "affect", "outcome", "decision")
     generic = ("more context", "更多背景", "还有什么", "anything else")
     for gap in gaps:
+        if active_role_ids is not None:
+            active = set(active_role_ids)
+            affected = [role_id for role_id in gap.affected_role_ids if role_id in active]
+            gap = gap.model_copy(update={"affected_role_ids": affected})
         normalized = re.sub(r"\W+", "", gap.question.casefold())
         update: dict[str, str] = {}
         if normalized in seen:
@@ -296,7 +332,7 @@ def select_context_gaps(
             update = {"disposition": "suppressed", "reason": "already_answered"}
         elif any(term in gap.question.casefold() for term in generic):
             update = {"disposition": "suppressed", "reason": "generic_curiosity"}
-        elif not any(term in gap.materiality.casefold() for term in material_terms):
+        elif not _gap_has_material_impact(gap):
             update = {"disposition": "suppressed", "reason": "immaterial_gap"}
         elif len(selected) >= 2:
             update = {"disposition": "suppressed", "reason": "question_limit"}
