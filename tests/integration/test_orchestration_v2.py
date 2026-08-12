@@ -5,6 +5,7 @@ from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.deliberation import build_decision_points
 from council_of_translation.localization.models import FindingV2, ReviewTaskV2
 from council_of_translation.localization.orchestration import (
+    _form_mapping,
     compact_review_response,
     continue_structured_review,
     run_structured_review,
@@ -37,6 +38,8 @@ def _finding(agent, action):
         "problem": "wording choice",
         "evidence": "both preserve meaning",
         "action": action,
+        "finding_kind": "choice",
+        "proposed_value": action,
         "confidence": 0.8,
     }
 
@@ -79,7 +82,11 @@ def _standard_script(with_reconsideration=True):
 
 def test_full_mocked_interactive_workflow_is_bounded_compact_and_persisted(tmp_path):
     point = _point()
-    selected = point.options[1].option_id
+    selected = next(
+        value
+        for value, option in _form_mapping(point).items()
+        if option is not None and option.option_id == point.options[1].option_id
+    )
     telemetry = RuntimeTelemetry(sample_budget=10)
     executor = ScriptedModelExecutor(_standard_script(), telemetry)
     gateway = ScriptedUserInteractionGateway(

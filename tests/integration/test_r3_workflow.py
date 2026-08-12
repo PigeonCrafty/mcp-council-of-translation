@@ -31,6 +31,8 @@ def _finding(action: str, *, confidence: float = 0.8):
         "problem": "wording choice",
         "evidence": "both preserve meaning",
         "action": action,
+        "finding_kind": "choice",
+        "proposed_value": action,
         "confidence": confidence,
     }
 
