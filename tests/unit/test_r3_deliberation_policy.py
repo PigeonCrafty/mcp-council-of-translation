@@ -18,11 +18,13 @@ def _finding(role: str, action: str) -> FindingV2:
         agent_name=role,
         role_perspective=role,
         source_span="Continue button",
-        candidate_span="继续按钮",
+        candidate_span="继续",
         issue_type="terminology" if role == "terminology_reviewer" else "fluency",
         problem="wording choice",
         evidence="observable wording evidence",
         action=action,
+        finding_kind="choice",
+        proposed_value=action,
         confidence=0.8,
     )
 

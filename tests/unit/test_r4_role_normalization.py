@@ -14,6 +14,8 @@ def _finding(role: str, action: str) -> FindingV2:
         problem="wording choice",
         evidence="observable wording evidence",
         action=action,
+        finding_kind="choice",
+        proposed_value=action,
         confidence=0.8,
     )
 

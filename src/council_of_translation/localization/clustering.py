@@ -151,15 +151,9 @@ def _model_cluster(group: list[FindingV2]) -> IssueCluster:
         for finding in group
         if finding.finding_kind == "choice"
     )
-    # Preserve the accepted V2.0 direct clustering API for findings that do not
-    # contain concrete V2.1 proposals. Action prose never competes with a
-    # concrete proposed outcome.
-    legacy_actions = _distinct_outcomes(
-        finding.action for finding in group if finding.action
-    ) if not proposals else []
     current_outcome, outcome_anchor = _local_current_outcome(group)
     current = _distinct_outcomes([current_outcome])
-    outcomes = _distinct_outcomes([*current, *proposals]) if proposals else legacy_actions
+    outcomes = _distinct_outcomes([*current, *proposals])
     position_groups: dict[tuple[str, str], list[FindingV2]] = defaultdict(list)
     for finding in group:
         position_value = (
@@ -167,8 +161,6 @@ def _model_cluster(group: list[FindingV2]) -> IssueCluster:
             if finding.finding_kind == "choice" and finding.proposed_value
             else current_outcome
             if finding.finding_kind == "affirmation" and current_outcome
-            else outcome_key(finding.action)
-            if legacy_actions and finding.action
             else finding.problem
         )
         position_groups[(finding.agent_name, position_value)].append(finding)
