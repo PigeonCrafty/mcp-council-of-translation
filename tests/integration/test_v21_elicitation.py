@@ -53,6 +53,9 @@ def test_continue_form_uses_readable_enum_values_and_exact_round_trip():
     fastmcp_schema = get_elicitation_schema(form)["properties"][point.decision_id]
     assert schema["enum"] == list(mapping)
     assert fastmcp_schema["enum"] == list(mapping)
+    assert schema["title"] == point.question
+    assert fastmcp_schema["title"] == point.question
+    assert point.decision_id not in schema["title"]
     assert len(mapping) == 3
     assert list(mapping) == [
         "保留：继续",

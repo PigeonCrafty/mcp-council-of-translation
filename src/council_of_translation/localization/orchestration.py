@@ -189,7 +189,10 @@ def _interaction_form(decision_points: list) -> type:
         )
         fields[point.decision_id] = (
             option_type,
-            Field(description=f"{point.question} 可选值：{mapping}"),
+            Field(
+                title=point.question,
+                description=f"{point.question} 可选值：{mapping}",
+            ),
         )
     return create_model("CouncilDecisionForm", **fields)
 
