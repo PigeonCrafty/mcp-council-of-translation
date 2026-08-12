@@ -46,9 +46,24 @@ def _provided_context_count(task: ReviewTaskV2) -> int:
     return sum(values)
 
 
+def _provided_context_category_count(task: ReviewTaskV2) -> int:
+    categories = (
+        bool(task.context.strip() or task.reference_translations.strip()),
+        bool(task.audience.strip()),
+        bool(task.style_guide.strip() or task.brand_guidelines.strip()),
+        bool(
+            task.term_glossary.strip()
+            or task.project_rules.strip()
+            or task.technical_constraints.strip()
+        ),
+    )
+    return sum(categories)
+
+
 def context_is_sufficient(task: ReviewTaskV2) -> bool:
     """Return a transparent, sampling-free sufficiency decision."""
-    return _provided_context_count(task) >= 3
+    content_type_is_recognized = normalize_content_type(task.content_type) != "unspecified"
+    return content_type_is_recognized and _provided_context_category_count(task) >= 2
 
 
 def briefing_fields(task: ReviewTaskV2) -> list[str]:
