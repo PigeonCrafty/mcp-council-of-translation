@@ -2,6 +2,7 @@ import asyncio
 
 import pytest
 
+from council_of_translation.localization.guided import context_is_sufficient
 from council_of_translation.localization.models import ReviewTaskV2
 from council_of_translation.localization.orchestration import run_structured_review
 from council_of_translation.localization.persistence import ReviewStore
@@ -28,6 +29,89 @@ BRIEF_ANSWERS = {
 def _executor(task: ReviewTaskV2) -> ScriptedModelExecutor:
     calls = len(build_council_plan(task.mode, task.content_type).active_role_ids)
     return ScriptedModelExecutor([CLEAN] * calls, RuntimeTelemetry(sample_budget=18))
+
+
+def test_auto_context_sufficiency_requires_recognized_content_and_two_categories():
+    def task(**values):
+        return ReviewTaskV2(source_text="Save", candidate_translation="保存", **values)
+
+    cases = {
+        "recognized_plus_two": task(
+            content_type="ui", context="设置页按钮", audience="普通用户"
+        ),
+        "alias_plus_two": task(
+            content_type="UI button",
+            reference_translations="Save=保存",
+            brand_guidelines="简洁",
+        ),
+        "recognized_plus_one": task(content_type="ui", audience="普通用户"),
+        "unknown_plus_two": task(
+            content_type="mystery surface", context="设置页按钮", audience="普通用户"
+        ),
+        "unknown_plus_three": task(
+            content_type="mystery surface",
+            context="设置页按钮",
+            audience="普通用户",
+            style_guide="简洁",
+        ),
+        "unknown_plus_all_four": task(
+            content_type="unspecified",
+            context="设置页按钮",
+            audience="普通用户",
+            style_guide="简洁",
+            term_glossary="Save=保存",
+        ),
+        "source_target_only": task(),
+    }
+    assert {name: context_is_sufficient(value) for name, value in cases.items()} == {
+        "recognized_plus_two": True,
+        "alias_plus_two": True,
+        "recognized_plus_one": False,
+        "unknown_plus_two": False,
+        "unknown_plus_three": False,
+        "unknown_plus_all_four": False,
+        "source_target_only": False,
+    }
+    assert context_is_sufficient(
+        task(
+            content_type="ui",
+            known_exceptions="已获准例外",
+            notes="内部备注",
+            hard_constraints=["numeric_parity"],
+            do_not_translate_literals=["Save"],
+        )
+    ) is False
+
+
+def test_unspecified_content_with_all_four_categories_still_requests_auto_briefing(tmp_path):
+    task = ReviewTaskV2(
+        source_text="Save",
+        candidate_translation="保存",
+        content_type="unspecified",
+        context="设置页按钮",
+        audience="普通用户",
+        style_guide="简洁",
+        term_glossary="Save=保存",
+    )
+    executor = _executor(task)
+    gateway = ScriptedUserInteractionGateway(
+        [ElicitationResult(
+            action="accept",
+            data={
+                "content_type": "界面文案",
+                "primary_focus": "按钮是否准确可执行",
+            },
+        )],
+        telemetry=executor.telemetry,
+    )
+
+    record = asyncio.run(run_structured_review(
+        task, executor, gateway, store=ReviewStore(tmp_path, include_legacy=False)
+    ))
+
+    assert len(gateway.requests) == 1
+    assert record.briefing_interaction.action == "accept"
+    assert record.runtime_metadata.briefing_elicitation_calls == 1
 
 
 def test_source_target_only_auto_briefing_happens_before_first_sample(tmp_path):
