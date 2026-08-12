@@ -21,6 +21,8 @@ from council_of_translation.localization.deliberation import (
 )
 from council_of_translation.localization.models import (
     FindingV2,
+    DeliberationSummary,
+    EffectiveTask,
     InputDiagnostics,
     IssueCluster,
     Reconsideration,
@@ -238,6 +240,75 @@ def _decisions_from_elicitation(decision_points: list, result: ElicitationResult
 def _fallback_decisions(decision_points: list, action: str) -> list[UserDecision]:
     normalized = action if action in {"decline", "cancel", "unsupported", "pending", "malformed"} else "malformed"
     return [UserDecision(decision_id=point.decision_id, elicitation_action=normalized) for point in decision_points]
+
+
+def _effective_task(task: ReviewTaskV2) -> EffectiveTask:
+    material_context: list[str] = []
+    for name in (
+        "context",
+        "term_glossary",
+        "style_guide",
+        "project_rules",
+        "brand_guidelines",
+        "technical_constraints",
+        "reference_translations",
+        "known_exceptions",
+    ):
+        if getattr(task, name):
+            material_context.append(f"{name}:provided")
+    if task.do_not_translate_literals:
+        material_context.append(f"do_not_translate_literals:{len(task.do_not_translate_literals)}")
+    for constraint in task.hard_constraints:
+        kind = constraint.partition(":")[0].strip() or "hard_constraint"
+        material_context.append(f"hard_constraint:{kind[:80]}")
+    return EffectiveTask(
+        content_type=task.content_type or "unspecified",
+        audience=task.audience,
+        mode=task.mode,
+        material_rule_context=list(dict.fromkeys(material_context)),
+    )
+
+
+def _deliberation_summary(
+    clusters: list[IssueCluster],
+    decisions: list[UserDecision],
+    trace: Any,
+    provenance: ReconsiderationProvenance,
+) -> DeliberationSummary:
+    consensus = [cluster.topic for cluster in clusters if cluster.consensus_status == "consensus"]
+    if not clusters:
+        consensus = ["no_material_issues_identified"]
+    disagreements = [cluster.topic for cluster in clusters if cluster.consensus_status == "disputed"]
+    evidence_basis: list[str] = []
+    if any(cluster.category == "integrity" for cluster in clusters):
+        evidence_basis.append("deterministic_preflight")
+    if clusters:
+        evidence_basis.append("structured_role_evidence")
+    if any(decision.elicitation_action == "accept" for decision in decisions):
+        evidence_basis.append("valid_user_selection")
+    if any(decision.elicitation_action == "delegate" for decision in decisions):
+        evidence_basis.append("council_position_matrix")
+    selected_values = [
+        decision.selected_outcome_value
+        for decision in decisions
+        if decision.elicitation_action == "accept" and decision.selected_outcome_value
+    ]
+    final_values = [
+        entry.decision
+        for entry in trace.entries
+        if entry.decision and entry.outcome != "human_review"
+    ]
+    return DeliberationSummary(
+        consensus=list(dict.fromkeys(consensus)),
+        material_disagreement=list(dict.fromkeys(disagreements)),
+        evidence_basis=list(dict.fromkeys(evidence_basis)),
+        user_selection="；".join(dict.fromkeys(selected_values)),
+        delegated_to_council=any(
+            decision.elicitation_action == "delegate" for decision in decisions
+        ),
+        final_outcome="；".join(dict.fromkeys(final_values)),
+        reconsidered_role_ids=provenance.completed_role_ids,
+    )
 
 
 async def _reconsider(
@@ -571,6 +642,10 @@ async def run_structured_review(
         decision_trace=trace,
         status=status,
         fallback_reason=fallback_reason,
+        effective_task=_effective_task(task),
+        deliberation_summary=_deliberation_summary(
+            clusters, user_decisions, trace, reconsideration_provenance
+        ),
         degraded=degraded,
         warnings=reconsideration_warnings,
     )
@@ -664,6 +739,10 @@ async def continue_structured_review(
     record.policy_gate_result = policy_gate(parent.decision_points, clusters)
     record.chief_editor_decision = chief
     record.decision_trace = trace
+    record.effective_task = _effective_task(task)
+    record.deliberation_summary = _deliberation_summary(
+        clusters, decisions, trace, reconsideration_provenance
+    )
     record.runtime_metadata = telemetry.snapshot().model_copy(
         update={
             "reviewer_samples_successful": parent.runtime_metadata.reviewer_samples_successful,
@@ -698,7 +777,12 @@ def compact_review_response(record: ReviewRecordV2) -> dict[str, Any]:
         "material_disagreements": disputed,
         "user_decisions": [decision.model_dump(mode="json") for decision in record.user_decisions],
         "fallback_reason": record.fallback_reason,
+        "effective_task": record.effective_task.model_dump(mode="json"),
+        "deliberation_summary": record.deliberation_summary.model_dump(mode="json"),
+        "degraded": record.degraded,
+        "warnings": record.warnings,
         "runtime_metadata": record.runtime_metadata.model_dump(mode="json"),
+        "retrieval_hint": "Use view_review_record(review_id, detail_level='full') for structured evidence and trace.",
     }
     if record.status == "RETURNED_PENDING":
         response["decision_points"] = [point.model_dump(mode="json") for point in record.decision_points]

@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from collections import defaultdict
 from math import isclose
+import re
 from typing import Iterable
+import unicodedata
 
 from council_of_translation.localization.models import (
     ChiefEditorDecisionV2,
@@ -30,6 +32,23 @@ _ROLE_RELEVANCE = {
 _STANCE_WEIGHT = {"accept": 1.0, "accept_with_conditions": 0.7, "reject": -1.0, "not_applicable": 0.0}
 _ORIGIN_WEIGHT = {"preflight": 1.4, "caller": 1.3, "user": 1.15, "system": 1.0, "model": 0.7}
 _TIER_WEIGHT = {"hard": 1.6, "contextual": 1.25, "preference": 0.9, "advisory": 0.75}
+
+
+def _semantic_key(value: str) -> str:
+    normalized = unicodedata.normalize("NFKC", value).casefold().strip()
+    return re.sub(r"[\s\W_]+", "", normalized)
+
+
+def _dedupe(values: Iterable[str], *, seen: set[str] | None = None) -> list[str]:
+    known = seen if seen is not None else set()
+    result: list[str] = []
+    for value in values:
+        key = _semantic_key(value)
+        if not key or key in known:
+            continue
+        known.add(key)
+        result.append(value)
+    return result
 
 
 def valid_options(point: DecisionPoint) -> dict[str, str]:
@@ -148,19 +167,23 @@ def build_chief_decision(
     decisions_by_id = {decision.decision_id: decision for decision in user_decisions}
     clusters_by_id = {cluster.issue_id: cluster for cluster in clusters}
     resolved_issue_ids = {point.issue_id for point in decision_points}
-    must_fix = [cluster.topic for cluster in clusters if cluster.blocking]
-    should_fix = [
+    checklist_seen: set[str] = set()
+    must_fix = _dedupe(
+        [cluster.topic for cluster in clusters if cluster.blocking],
+        seen=checklist_seen,
+    )
+    should_fix = _dedupe([
         cluster.topic
         for cluster in clusters
         if cluster.issue_id not in resolved_issue_ids
         and not cluster.blocking
         and cluster.severity in {"critical", "major"}
-    ]
-    optional = [
+    ], seen=checklist_seen)
+    optional = _dedupe([
         cluster.topic
         for cluster in clusters
         if cluster.issue_id not in resolved_issue_ids and cluster.severity in {"minor", "preference"}
-    ]
+    ], seen=checklist_seen)
     entries: list[DecisionTraceEntry] = []
     conflict_resolutions: list[str] = []
     terminology_decisions: list[str] = []
@@ -210,7 +233,8 @@ def build_chief_decision(
             )
         )
 
-    optional.extend(resolved_actions)
+    terminology_decisions = _dedupe(terminology_decisions)
+    conflict_resolutions = _dedupe(conflict_resolutions)
     publishability = "需人工复核" if human_needed else "修改后可发布" if should_fix else "可发布"
     outcome_counts = {
         name: sum(entry.outcome == name for entry in entries)
@@ -229,7 +253,7 @@ def build_chief_decision(
         optional_improvements=optional,
         terminology_decisions=terminology_decisions,
         conflict_resolutions=conflict_resolutions,
-        execution_order=[*must_fix, *should_fix, *resolved_actions, *optional[: len(optional) - len(resolved_actions)]],
+        execution_order=_dedupe([*must_fix, *should_fix, *resolved_actions, *optional]),
         decision_rationale=rationale,
         review_needed="是" if human_needed else "否",
         review_reason="存在阻断项或有效证据不足/无法区分。" if human_needed else "",
