@@ -615,8 +615,8 @@ class RuntimeMetadata(DomainModel):
     context_gap_elicitation_actions: list[str] = Field(default_factory=list)
     outcome_elicitation_calls: int = Field(default=0, ge=0)
     outcome_elicitation_actions: list[str] = Field(default_factory=list)
-    package_version: str = "0.7.0"
-    diagnostic_build: str = "concise-council-display-v5"
+    package_version: str = "0.7.1"
+    diagnostic_build: str = "concise-council-display-v5.1"
 
 
 class ReviewTaskV2(DomainModel):
@@ -716,8 +716,8 @@ class ReviewRecordV2(DomainModel):
     process_digest: ProcessDigestV2 = Field(default_factory=ProcessDigestV2)
     display_report: str = ""
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
-        "package_version": "0.7.0",
-        "diagnostic_build": "concise-council-display-v5",
+        "package_version": "0.7.1",
+        "diagnostic_build": "concise-council-display-v5.1",
         "record_schema": "2.2",
     })
 
