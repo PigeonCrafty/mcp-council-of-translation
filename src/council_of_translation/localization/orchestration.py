@@ -11,6 +11,7 @@ from typing import Any, Iterable, Literal
 from pydantic import Field, ValidationError, create_model
 
 from council_of_translation.localization.clustering import cluster_findings
+from council_of_translation.localization.digest import build_process_digest, render_display_report
 from council_of_translation.localization.deliberation import (
     SampleBudget,
     apply_discussion_updates,
@@ -759,6 +760,40 @@ async def _reconsider_context(
     return findings, PhaseReconsiderationProvenance.model_validate(provenance.model_dump()), warnings
 
 
+def _build_phase_trace(
+    *,
+    briefing: BriefingInteraction,
+    preflight: Any,
+    plan: Any,
+    successful_reviewers: int,
+    unavailable_reviewers: int,
+    clusters: list[IssueCluster],
+    context_interaction: ContextGapInteraction,
+    context_provenance: PhaseReconsiderationProvenance,
+    discussion_rounds: list[Any],
+    decisions: list[UserDecision],
+    outcome_provenance: PhaseReconsiderationProvenance,
+    suppressions: list[dict[str, str]],
+    chief: ChiefEditorDecisionV2,
+) -> PhaseTrace:
+    decision_action = decisions[0].elicitation_action if decisions else "skipped"
+    return PhaseTrace(phases=[
+        PhaseRecord(phase="briefing", disposition=briefing.action, counts={"asked_fields": len(briefing.asked_fields)}),
+        PhaseRecord(phase="preflight", disposition="blocked" if preflight.blocking else "completed", counts={"checks": len(preflight.checks)}),
+        PhaseRecord(phase="planning", disposition="completed", counts={"active_roles": len(plan.active_role_ids), "sample_budget": plan.sample_budget}),
+        PhaseRecord(phase="independent_review", disposition="completed" if unavailable_reviewers == 0 else "degraded", counts={"successful": successful_reviewers, "unavailable": unavailable_reviewers}),
+        PhaseRecord(phase="blind_spot_mapping", disposition="completed", counts={"clusters": len(clusters)}),
+        PhaseRecord(phase="context_gap", disposition=context_interaction.action, counts={"asked": len(context_interaction.asked_gap_ids), "answered": len(context_interaction.answered_gap_ids)}),
+        PhaseRecord(phase="context_reconsideration", disposition="completed" if context_provenance.completed_role_ids else "skipped", counts={"completed": len(context_provenance.completed_role_ids), "skipped": len(context_provenance.skipped_role_ids), "failed": len(context_provenance.failed_role_ids)}),
+        PhaseRecord(phase="discussion", disposition="completed" if discussion_rounds else "skipped", counts={"rounds": len(discussion_rounds)}),
+        PhaseRecord(phase="outcome_decision", disposition=decision_action, counts={"decisions": len(decisions)}),
+        PhaseRecord(phase="outcome_reconsideration", disposition="completed" if outcome_provenance.completed_role_ids else "skipped", counts={"completed": len(outcome_provenance.completed_role_ids), "skipped": len(outcome_provenance.skipped_role_ids), "failed": len(outcome_provenance.failed_role_ids)}),
+        PhaseRecord(phase="policy_gate", disposition="completed", counts={"suppressed": len(suppressions)}),
+        PhaseRecord(phase="adjudication", disposition=chief.publishability, counts={"must_fix": len(chief.must_fix)}),
+        PhaseRecord(phase="digest_construction", disposition="completed", counts={"sections": 12}),
+    ])
+
+
 async def run_structured_review(
     task: ReviewTaskV2,
     executor: ModelExecutor,
@@ -815,6 +850,25 @@ async def run_structured_review(
 
     if effective_task.briefing_mode == "always" and request_brief and brief_action != "accept":
         telemetry.elapsed_ms = max(telemetry.elapsed_ms, int((perf_counter() - started) * 1_000))
+        early_chief = ChiefEditorDecisionV2(
+            publishability="需人工复核",
+            review_needed="是",
+            review_reason="审校尚未开始：必需的背景说明未被接受。",
+            decision_rationale=brief_interaction.retry_hint,
+        )
+        early_digest = build_process_digest(
+            task=effective_task,
+            brief=effective_brief,
+            plan=plan,
+            independent_reviews=[],
+            clusters=[],
+            context_gaps=[],
+            user_decisions=[],
+            context_provenance=PhaseReconsiderationProvenance(),
+            outcome_provenance=PhaseReconsiderationProvenance(),
+            chief=early_chief,
+            reviewer_coverage="not_applicable",
+        )
         record = ReviewRecordV2(
             review_id=build_review_id(),
             created_at=datetime.now(timezone.utc),
@@ -831,12 +885,7 @@ async def run_structured_review(
             preflight=preflight,
             effective_brief=effective_brief,
             briefing_interaction=brief_interaction,
-            chief_editor_decision=ChiefEditorDecisionV2(
-                publishability="需人工复核",
-                review_needed="是",
-                review_reason="审校尚未开始：必需的背景说明未被接受。",
-                decision_rationale=brief_interaction.retry_hint,
-            ),
+            chief_editor_decision=early_chief,
             status="RETURNED_PENDING",
             fallback_reason=f"briefing_{brief_action}",
             effective_task=_effective_task(effective_task),
@@ -850,6 +899,8 @@ async def run_structured_review(
                     summary="必需背景说明未接受；在独立评审前返回。",
                 )
             ]),
+            process_digest=early_digest,
+            display_report=render_display_report(early_digest),
         )
         (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
         return record
@@ -1081,6 +1132,44 @@ async def run_structured_review(
             "reviewer_coverage": reviewer_coverage,
         }
     )
+    outcome_provenance = PhaseReconsiderationProvenance(
+        requested_role_ids=reconsideration_provenance.requested_role_ids,
+        completed_role_ids=reconsideration_provenance.completed_role_ids,
+        skipped_role_ids=reconsideration_provenance.skipped_role_ids,
+        failed_role_ids=reconsideration_provenance.failed_role_ids,
+        change_effects=[
+            f"{item.role_id}:{'changed' if item.changed else 'unchanged'}"
+            for item in reconsiderations if item.status == "completed"
+        ],
+    )
+    process_digest = build_process_digest(
+        task=effective_task,
+        brief=effective_brief,
+        plan=plan,
+        independent_reviews=independent_reviews,
+        clusters=clusters,
+        context_gaps=context_gaps,
+        user_decisions=user_decisions,
+        context_provenance=context_provenance,
+        outcome_provenance=outcome_provenance,
+        chief=chief,
+        reviewer_coverage=reviewer_coverage,
+    )
+    phase_trace = _build_phase_trace(
+        briefing=brief_interaction,
+        preflight=preflight,
+        plan=plan,
+        successful_reviewers=successful_reviewers,
+        unavailable_reviewers=unavailable_reviewers,
+        clusters=clusters,
+        context_interaction=context_gap_interaction,
+        context_provenance=context_provenance,
+        discussion_rounds=discussion_rounds,
+        decisions=user_decisions,
+        outcome_provenance=outcome_provenance,
+        suppressions=decision_suppressions,
+        chief=chief,
+    )
     record = ReviewRecordV2(
         review_id=build_review_id(),
         created_at=datetime.now(timezone.utc),
@@ -1107,16 +1196,7 @@ async def run_structured_review(
         context_gaps=context_gaps,
         context_gap_interaction=context_gap_interaction,
         context_reconsideration_provenance=context_provenance,
-        outcome_reconsideration_provenance=PhaseReconsiderationProvenance(
-            requested_role_ids=reconsideration_provenance.requested_role_ids,
-            completed_role_ids=reconsideration_provenance.completed_role_ids,
-            skipped_role_ids=reconsideration_provenance.skipped_role_ids,
-            failed_role_ids=reconsideration_provenance.failed_role_ids,
-            change_effects=[
-                f"{item.role_id}:{'changed' if item.changed else 'unchanged'}"
-                for item in reconsiderations if item.status == "completed"
-            ],
-        ),
+        outcome_reconsideration_provenance=outcome_provenance,
         policy_gate_result=gate_result,
         chief_editor_decision=chief,
         decision_trace=trace,
@@ -1133,6 +1213,9 @@ async def run_structured_review(
             *reconsideration_warnings,
             *_suppression_warnings(decision_suppressions),
         ],
+        phase_trace=phase_trace,
+        process_digest=process_digest,
+        display_report=render_display_report(process_digest),
     )
     (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
     return record
@@ -1242,6 +1325,17 @@ async def continue_structured_review(
     record.user_decisions = decisions
     record.reconsiderations = reconsiderations
     record.reconsideration_provenance = reconsideration_provenance
+    outcome_provenance = PhaseReconsiderationProvenance(
+        requested_role_ids=reconsideration_provenance.requested_role_ids,
+        completed_role_ids=reconsideration_provenance.completed_role_ids,
+        skipped_role_ids=reconsideration_provenance.skipped_role_ids,
+        failed_role_ids=reconsideration_provenance.failed_role_ids,
+        change_effects=[
+            f"{item.role_id}:{'changed' if item.changed else 'unchanged'}"
+            for item in reconsiderations if item.status == "completed"
+        ],
+    )
+    record.outcome_reconsideration_provenance = outcome_provenance
     record.issue_clusters = clusters
     record.policy_gate_result = policy_gate(parent.decision_points, clusters)
     record.policy_gate_result["decision_suppressions"] = decision_suppressions
@@ -1271,6 +1365,35 @@ async def continue_structured_review(
         "reconsideration_degraded" if reconsideration_degraded else "",
         "decision_validation_degraded" if decision_validation_degraded else "",
     )))
+    record.process_digest = build_process_digest(
+        task=task,
+        brief=record.effective_brief,
+        plan=plan,
+        independent_reviews=record.independent_reviews,
+        clusters=clusters,
+        context_gaps=record.context_gaps,
+        user_decisions=decisions,
+        context_provenance=record.context_reconsideration_provenance,
+        outcome_provenance=outcome_provenance,
+        chief=chief,
+        reviewer_coverage=reviewer_coverage,
+    )
+    record.display_report = render_display_report(record.process_digest)
+    record.phase_trace = _build_phase_trace(
+        briefing=record.briefing_interaction,
+        preflight=record.preflight,
+        plan=plan,
+        successful_reviewers=parent.runtime_metadata.reviewer_samples_successful,
+        unavailable_reviewers=parent.runtime_metadata.reviewer_samples_unavailable,
+        clusters=clusters,
+        context_interaction=record.context_gap_interaction,
+        context_provenance=record.context_reconsideration_provenance,
+        discussion_rounds=record.discussion_rounds,
+        decisions=decisions,
+        outcome_provenance=outcome_provenance,
+        suppressions=decision_suppressions,
+        chief=chief,
+    )
     (store or ReviewStore()).save(record, history_mode=task.history_mode)
     return record
 
@@ -1299,6 +1422,8 @@ def compact_review_response(record: ReviewRecordV2) -> dict[str, Any]:
         "fallback_reason": record.fallback_reason,
         "effective_task": record.effective_task.model_dump(mode="json"),
         "deliberation_summary": record.deliberation_summary.model_dump(mode="json"),
+        "process_digest": record.process_digest.model_dump(mode="json"),
+        "display_report": record.display_report,
         "degraded": record.degraded,
         "warnings": record.warnings,
         "runtime_metadata": record.runtime_metadata.model_dump(mode="json"),
