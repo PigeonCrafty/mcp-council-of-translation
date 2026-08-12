@@ -75,10 +75,10 @@ def default_reviews_dir() -> Path:
 
 
 def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
-    """Create a valid V2 allowlist projection without user or model prose."""
+    """Create a valid V2.1 allowlist projection without user or model prose."""
     task = record.task
     return {
-        "schema_version": "2.0",
+        "schema_version": "2.1",
         "review_id": record.review_id,
         "parent_review_id": record.parent_review_id,
         "created_at": record.created_at.isoformat(),
@@ -98,6 +98,9 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "parse_failures": record.runtime_metadata.parse_failures,
             "elapsed_ms": record.runtime_metadata.elapsed_ms,
             "sample_budget": record.runtime_metadata.sample_budget,
+            "reviewer_samples_successful": record.runtime_metadata.reviewer_samples_successful,
+            "reviewer_samples_unavailable": record.runtime_metadata.reviewer_samples_unavailable,
+            "reviewer_coverage": record.runtime_metadata.reviewer_coverage,
             "package_version": "0.4.0",
             "diagnostic_build": "structured-deliberation-v2",
         },
@@ -114,10 +117,17 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "review_needed": record.chief_editor_decision.review_needed,
         },
         "status": record.status,
+        "degraded": record.degraded,
+        "reconsideration_provenance": {
+            "requested_role_ids": [],
+            "completed_role_ids": [],
+            "skipped_role_ids": [],
+            "failed_role_ids": [],
+        },
         "version_metadata": {
             "package_version": "0.4.0",
             "diagnostic_build": "structured-deliberation-v2",
-            "record_schema": "2.0",
+            "record_schema": "2.1",
         },
     }
 
@@ -177,10 +187,19 @@ class ReviewStore:
             return None
         if not is_supported_review_id(validated.review_id) or _LEGACY_REVIEW_ID.fullmatch(validated.review_id):
             raise InvalidReviewIdError("new V2 records require a sortable V2 review ID")
+        write_record = validated.model_copy(
+            update={
+                "schema_version": "2.1",
+                "version_metadata": {
+                    **validated.version_metadata,
+                    "record_schema": "2.1",
+                },
+            }
+        )
         payload = (
-            validated.model_dump(mode="json")
+            write_record.model_dump(mode="json")
             if mode == "full"
-            else _metadata_projection(validated)
+            else _metadata_projection(write_record)
         )
         destination = self.storage_dir / f"{validated.review_id}.json"
         _atomic_write_json(destination, payload)

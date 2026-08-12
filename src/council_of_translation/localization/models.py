@@ -20,6 +20,7 @@ TraceLevel = Literal["summary", "full"]
 ConstraintTier = Literal["hard", "contextual", "preference", "advisory"]
 Severity = Literal["critical", "major", "minor", "preference"]
 EvidenceOrigin = Literal["caller", "preflight", "model", "user", "system"]
+FindingKind = Literal["issue", "choice", "affirmation"]
 
 
 def option_id_for_action(issue_id: str, action: str) -> str:
@@ -60,6 +61,8 @@ class FindingV2(DomainModel):
     evidence_origin: EvidenceOrigin = "model"
     rule_refs: list[str] = Field(default_factory=list)
     action: str = ""
+    finding_kind: FindingKind = "issue"
+    proposed_value: str = ""
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
 
     @model_validator(mode="before")
@@ -80,8 +83,18 @@ class FindingV2(DomainModel):
             data["constraint_tier"] = "advisory"
         if data.get("evidence_origin") not in {"caller", "preflight", "model", "user", "system"}:
             data["evidence_origin"] = "model"
+        # Missing V2.0 classification is deliberately treated as an issue.  In
+        # particular, legacy action prose is never promoted into an outcome.
+        if data.get("finding_kind") not in {"issue", "choice", "affirmation"}:
+            data["finding_kind"] = "issue"
+        proposal = data.get("proposed_value", "")
+        data["proposed_value"] = proposal.strip() if isinstance(proposal, str) and len(proposal) <= 500 else ""
         # Sampled prose cannot escalate itself into a hard rule or blocker.
         if data.get("evidence_origin", "model") == "model":
+            data["blocking"] = False
+            if data.get("constraint_tier") == "hard":
+                data["constraint_tier"] = "advisory"
+        if data["finding_kind"] == "affirmation":
             data["blocking"] = False
             if data.get("constraint_tier") == "hard":
                 data["constraint_tier"] = "advisory"
@@ -211,10 +224,32 @@ class DiscussionRound(DomainModel):
 
 class DecisionOption(DomainModel):
     option_id: str
+    outcome_value: str = ""
     label: str
     description: str = ""
+    support_role_ids: list[str] = Field(default_factory=list)
+    support_rationale: str = ""
+    policy_basis: list[str] = Field(default_factory=list)
+    is_current_candidate: bool = False
+    is_delegation: bool = False
     valid: bool = True
     invalid_reason: str = ""
+
+    @model_validator(mode="after")
+    def bound_display_and_provenance(self) -> "DecisionOption":
+        self.label = self.label[:48]
+        self.description = self.description[:160]
+        self.support_rationale = self.support_rationale[:240]
+        self.support_role_ids = list(dict.fromkeys(self.support_role_ids))[:8]
+        self.policy_basis = list(dict.fromkeys(self.policy_basis))[:8]
+        if len(self.outcome_value) > 500:
+            self.outcome_value = ""
+            self.valid = False
+            self.invalid_reason = self.invalid_reason or "outcome_value_too_long"
+        if self.is_delegation:
+            self.outcome_value = ""
+            self.is_current_candidate = False
+        return self
 
 
 class DecisionPoint(DomainModel):
@@ -240,11 +275,29 @@ class DecisionPoint(DomainModel):
 class UserDecision(DomainModel):
     decision_id: str
     selected_option_id: str = ""
+    selected_outcome_value: str = ""
+    selection_kind: Literal["outcome", "council_delegation", "none"] = "none"
     authority_mode: Literal["decisive_within_valid_options", "advisory", "policy_override"] = "decisive_within_valid_options"
     classification: Literal["preference", "context_update", "policy_override"] = "preference"
     context: str = ""
-    elicitation_action: Literal["accept", "decline", "cancel", "unsupported", "pending", "malformed"] = "pending"
+    elicitation_action: Literal["accept", "delegate", "decline", "cancel", "unsupported", "pending", "malformed"] = "pending"
     provenance: str = "user"
+
+    @model_validator(mode="after")
+    def normalize_selection(self) -> "UserDecision":
+        if len(self.selected_outcome_value) > 500:
+            self.selected_outcome_value = ""
+        if self.elicitation_action == "delegate":
+            self.selection_kind = "council_delegation"
+            self.selected_option_id = ""
+            self.selected_outcome_value = ""
+        elif self.elicitation_action == "accept" and self.selected_option_id:
+            self.selection_kind = "outcome"
+        elif self.elicitation_action != "accept":
+            self.selection_kind = "none"
+            self.selected_option_id = ""
+            self.selected_outcome_value = ""
+        return self
 
 
 class Reconsideration(DomainModel):
@@ -254,6 +307,59 @@ class Reconsideration(DomainModel):
     previous_position: RolePosition | None = None
     revised_position: RolePosition | None = None
     changed: bool = False
+    status: Literal["requested", "completed", "skipped", "failed"] = "completed"
+    reason_code: str = ""
+
+
+class ReconsiderationProvenance(DomainModel):
+    requested_role_ids: list[str] = Field(default_factory=list)
+    completed_role_ids: list[str] = Field(default_factory=list)
+    skipped_role_ids: list[str] = Field(default_factory=list)
+    failed_role_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def deduplicate_roles(self) -> "ReconsiderationProvenance":
+        for name in (
+            "requested_role_ids",
+            "completed_role_ids",
+            "skipped_role_ids",
+            "failed_role_ids",
+        ):
+            setattr(self, name, list(dict.fromkeys(getattr(self, name)))[:8])
+        return self
+
+
+class EffectiveTask(DomainModel):
+    content_type: str = "unspecified"
+    audience: str = ""
+    mode: ReviewMode = "standard"
+    material_rule_context: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def bound_snapshot(self) -> "EffectiveTask":
+        self.content_type = self.content_type[:80]
+        self.audience = self.audience[:160]
+        self.material_rule_context = [item[:160] for item in self.material_rule_context[:8]]
+        return self
+
+
+class DeliberationSummary(DomainModel):
+    consensus: list[str] = Field(default_factory=list)
+    material_disagreement: list[str] = Field(default_factory=list)
+    evidence_basis: list[str] = Field(default_factory=list)
+    user_selection: str = ""
+    delegated_to_council: bool = False
+    final_outcome: str = ""
+    reconsidered_role_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def bound_summary(self) -> "DeliberationSummary":
+        for name in ("consensus", "material_disagreement", "evidence_basis"):
+            setattr(self, name, [item[:240] for item in getattr(self, name)[:8]])
+        self.user_selection = self.user_selection[:500]
+        self.final_outcome = self.final_outcome[:500]
+        self.reconsidered_role_ids = list(dict.fromkeys(self.reconsidered_role_ids))[:8]
+        return self
 
 
 class DecisionTraceEntry(DomainModel):
@@ -325,7 +431,7 @@ class ChiefEditorDecisionV2(DomainModel):
 
 
 class ReviewRecordV2(DomainModel):
-    schema_version: Literal["2.0"] = "2.0"
+    schema_version: Literal["2.0", "2.1"] = "2.1"
     review_id: str
     parent_review_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -341,6 +447,7 @@ class ReviewRecordV2(DomainModel):
     decision_points: list[DecisionPoint] = Field(default_factory=list)
     user_decisions: list[UserDecision] = Field(default_factory=list)
     reconsiderations: list[Reconsideration] = Field(default_factory=list)
+    reconsideration_provenance: ReconsiderationProvenance = Field(default_factory=ReconsiderationProvenance)
     policy_gate_result: dict[str, Any] = Field(default_factory=dict)
     chief_editor_decision: ChiefEditorDecisionV2 = Field(default_factory=ChiefEditorDecisionV2)
     decision_trace: DecisionTrace = Field(default_factory=DecisionTrace)
@@ -348,13 +455,22 @@ class ReviewRecordV2(DomainModel):
         "COMPLETED", "COMPLETED_WITH_FALLBACK", "NEEDS_HUMAN_REVIEW", "RETURNED_PENDING"
     ] = "NEEDS_HUMAN_REVIEW"
     fallback_reason: str = ""
+    effective_task: EffectiveTask = Field(default_factory=EffectiveTask)
+    deliberation_summary: DeliberationSummary = Field(default_factory=DeliberationSummary)
+    degraded: bool = False
+    warnings: list[str] = Field(default_factory=list)
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
         "package_version": "0.4.0",
         "diagnostic_build": "structured-deliberation-v2",
-        "record_schema": "2.0",
+        "record_schema": "2.1",
     })
 
     @field_validator("decision_points")
     @classmethod
     def cap_decision_points(cls, value: list[DecisionPoint]) -> list[DecisionPoint]:
         return value[:3]
+
+    @field_validator("warnings")
+    @classmethod
+    def bound_warnings(cls, value: list[str]) -> list[str]:
+        return list(dict.fromkeys(item[:240] for item in value))[:8]
