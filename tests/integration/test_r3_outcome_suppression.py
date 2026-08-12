@@ -49,6 +49,7 @@ def _run_case(tmp_path, findings, *, task=None, name="case"):
             source_text="Continue",
             candidate_translation="继续",
             content_type="ui",
+            briefing_mode="off",
         ),
         ScriptedModelExecutor(scripts, telemetry),
         gateway,
@@ -129,6 +130,7 @@ def test_anchor_suppression_persists_and_surfaces_truthful_degradation(
             source_text="Continue / Continue" if name == "ambiguous" else "Continue",
             candidate_translation=candidate,
             content_type="ui",
+            briefing_mode="off",
         ),
         name=name,
     )
@@ -161,6 +163,7 @@ def test_metadata_keeps_safe_degraded_disposition_but_not_suppression_details(tm
             candidate_translation="继续 / 继续",
             content_type="ui",
             history_mode="metadata",
+            briefing_mode="off",
         ),
         name="metadata",
     )
@@ -224,6 +227,7 @@ def test_protected_token_loss_is_normal_policy_invalidation_not_degradation(tmp_
             source_text="Continue {count}",
             candidate_translation="继续 {count}",
             content_type="ui",
+            briefing_mode="off",
         ),
         name="protected-loss",
     )

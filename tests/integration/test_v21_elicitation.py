@@ -49,8 +49,8 @@ def test_continue_form_uses_readable_enum_values_and_exact_round_trip():
     point = _continue_point()
     mapping = _form_mapping(point)
     form = _interaction_form([point])
-    schema = form.model_json_schema()["properties"][point.decision_id]
-    fastmcp_schema = get_elicitation_schema(form)["properties"][point.decision_id]
+    schema = form.model_json_schema()["properties"]["review_choice_1"]
+    fastmcp_schema = get_elicitation_schema(form)["properties"]["review_choice_1"]
     assert schema["enum"] == list(mapping)
     assert fastmcp_schema["enum"] == list(mapping)
     assert schema["title"] == point.question
@@ -64,9 +64,9 @@ def test_continue_form_uses_readable_enum_values_and_exact_round_trip():
     ]
     assert not any("choice_" in value or "delegate_" in value or "option_" in value for value in mapping)
     assert all(option.option_id not in schema["description"] for option in point.options)
-    assert "继续" in schema["description"]
-    assert "下一步" in schema["description"]
-    assert "暂不决定，由 Council 裁决" in schema["description"]
+    assert "保留当前候选译文" in schema["description"]
+    assert "采用候选结果：下一步" in schema["description"]
+    assert "Position Matrix" in schema["description"]
     message = _interaction_message([point])
     assert "继续" in message and "下一步" in message
     assert all(option.option_id not in message for option in point.options)
@@ -76,7 +76,7 @@ def test_continue_form_uses_readable_enum_values_and_exact_round_trip():
         if option is not None and option.outcome_value == "下一步"
     )
     decision = _decisions_from_elicitation(
-        [point], ElicitationResult(action="accept", data={point.decision_id: alternative_value})
+        [point], ElicitationResult(action="accept", data={"review_choice_1": alternative_value})
     )[0]
     assert decision.elicitation_action == "accept"
     assert decision.selected_outcome_value == "下一步"
@@ -87,12 +87,12 @@ def test_explicit_delegation_is_distinct_from_failure_and_bad_values_are_rejecte
     point = _continue_point()
     delegate_value = next(value for value, option in _form_mapping(point).items() if option is None)
     delegated = _decisions_from_elicitation(
-        [point], ElicitationResult(action="accept", data={point.decision_id: delegate_value})
+        [point], ElicitationResult(action="accept", data={"review_choice_1": delegate_value})
     )[0]
     assert delegated.elicitation_action == "delegate"
     assert delegated.selection_kind == "council_delegation"
 
-    for data in ({}, {point.decision_id: "stale_value"}, {"wrong_point": delegate_value}):
+    for data in ({}, {"review_choice_1": "stale_value"}, {"wrong_point": delegate_value}):
         decision = _decisions_from_elicitation(
             [point], ElicitationResult(action="accept", data=data)
         )[0]
@@ -108,7 +108,7 @@ def test_same_readable_value_in_two_fields_is_validated_per_field():
         [first, second],
         ElicitationResult(
             action="accept",
-            data={first.decision_id: first_value, second.decision_id: first_value},
+            data={"review_choice_1": first_value, "review_choice_2": first_value},
         ),
     )
     assert [decision.elicitation_action for decision in decisions] == ["accept", "accept"]
@@ -220,6 +220,7 @@ def test_production_path_rejects_proposal_that_loses_required_placeholder(tmp_pa
             source_text="Continue {count}",
             candidate_translation="继续 {count}",
             content_type="ui",
+            briefing_mode="off",
         ),
         ScriptedModelExecutor(scripts, telemetry),
         gateway,

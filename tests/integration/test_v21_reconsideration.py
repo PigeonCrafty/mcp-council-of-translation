@@ -165,10 +165,11 @@ def test_forced_lightweight_budget_shortfall_returns_truthful_degradation(tmp_pa
             candidate_translation="继续",
             content_type="ui",
             mode="lightweight",
+            briefing_mode="off",
         ),
         ScriptedModelExecutor([*reviews, RuntimeError("reconsideration transport"), reconsideration], telemetry),
         ScriptedUserInteractionGateway([
-            ElicitationResult(action="accept", data={point.decision_id: selected_value})
+            ElicitationResult(action="accept", data={"review_choice_1": selected_value})
         ], telemetry=telemetry),
         store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),
     ))

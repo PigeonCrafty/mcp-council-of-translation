@@ -76,7 +76,7 @@ def test_production_noninteractive_fallback_selects_expected_non_tied_option(act
         interactive_mode = "auto"
     record = run(
         run_structured_review(
-            ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui", interactive_mode=interactive_mode),
+            ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui", interactive_mode=interactive_mode, briefing_mode="off"),
             ScriptedModelExecutor(_standard_script(), telemetry),
             gateway,
             store=ReviewStore(tmp_path / action, legacy_dir=tmp_path / "legacy"),
@@ -94,7 +94,7 @@ def test_production_noninteractive_fallback_selects_expected_non_tied_option(act
     assert "position_matrix" in entry.basis
     assert record.runtime_metadata.sampling_calls == 7
     assert record.runtime_metadata.elicitation_calls == (0 if action in {"unsupported", "off"} else 1)
-    assert record.runtime_metadata.sample_budget == 10
+    assert record.runtime_metadata.sample_budget == 13
     assert "option_" not in json.dumps(record.chief_editor_decision.model_dump(), ensure_ascii=False)
     assert any("继续" in item for item in record.chief_editor_decision.terminology_decisions)
 
@@ -120,7 +120,7 @@ def test_production_discussion_change_updates_matrix_used_by_fallback(tmp_path):
     discussion[0]["issue_id"] = issue.issue_id
     telemetry = RuntimeTelemetry(sample_budget=10)
     record = run(run_structured_review(
-        ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui"),
+        ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui", briefing_mode="off"),
         ScriptedModelExecutor(_standard_script(discussion=discussion), telemetry),
         ScriptedUserInteractionGateway(supported=False, telemetry=telemetry),
         store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),
@@ -135,7 +135,7 @@ def test_production_genuine_tie_remains_human_review(tmp_path):
     reviews = [_review(), _review(), _review([_finding("继续"), _finding("下一步")]), _review(), _review(), _review()]
     telemetry = RuntimeTelemetry(sample_budget=10)
     record = run(run_structured_review(
-        ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui"),
+        ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui", briefing_mode="off"),
         ScriptedModelExecutor(reviews, telemetry),
         ScriptedUserInteractionGateway(supported=False, telemetry=telemetry),
         store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),
@@ -150,7 +150,7 @@ def test_production_genuine_tie_remains_human_review(tmp_path):
 def test_active_plan_budget_replaces_stale_telemetry_budget(mode, calls, budget, tmp_path):
     telemetry = RuntimeTelemetry(sample_budget=3)
     record = run(run_structured_review(
-        ReviewTaskV2(source_text="Save", candidate_translation="保存", mode=mode),
+        ReviewTaskV2(source_text="Save", candidate_translation="保存", mode=mode, briefing_mode="off"),
         ScriptedModelExecutor([_review()] * calls, telemetry),
         ScriptedUserInteractionGateway(supported=True, telemetry=telemetry),
         store=ReviewStore(tmp_path / mode, legacy_dir=tmp_path / "legacy"),

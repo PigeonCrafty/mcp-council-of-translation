@@ -90,13 +90,13 @@ def test_full_mocked_interactive_workflow_is_bounded_compact_and_persisted(tmp_p
     telemetry = RuntimeTelemetry(sample_budget=10)
     executor = ScriptedModelExecutor(_standard_script(), telemetry)
     gateway = ScriptedUserInteractionGateway(
-        [ElicitationResult(action="accept", data={point.decision_id: selected})],
+        [ElicitationResult(action="accept", data={"review_choice_1": selected})],
         telemetry=telemetry,
     )
     store = ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy")
     record = run(
         run_structured_review(
-            ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui"),
+            ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui", briefing_mode="off"),
             executor,
             gateway,
             store=store,
@@ -106,7 +106,7 @@ def test_full_mocked_interactive_workflow_is_bounded_compact_and_persisted(tmp_p
     assert record.status == "COMPLETED"
     assert record.runtime_metadata.sampling_calls == 8
     assert record.runtime_metadata.elicitation_calls == 1
-    assert record.runtime_metadata.sample_budget == 10
+    assert record.runtime_metadata.sample_budget == 13
     assert len(record.discussion_rounds) == 1
     assert len(record.decision_points) == 1
     assert {item.role_id for item in record.reconsiderations} == {"terminology_reviewer"}
@@ -129,7 +129,7 @@ def test_unsupported_interaction_falls_back_explicitly_without_hanging(tmp_path)
     gateway = ScriptedUserInteractionGateway(supported=False, telemetry=telemetry)
     record = run(
         run_structured_review(
-            ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui"),
+            ReviewTaskV2(source_text="Continue", candidate_translation="继续", content_type="ui", briefing_mode="off"),
             executor,
             gateway,
             store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),
@@ -152,7 +152,7 @@ def test_clean_translation_skips_conflict_discussion_and_interaction(tmp_path):
     gateway = ScriptedUserInteractionGateway(supported=True, telemetry=telemetry)
     record = run(
         run_structured_review(
-            ReviewTaskV2(source_text="Save", candidate_translation="保存", content_type="ui"),
+            ReviewTaskV2(source_text="Save", candidate_translation="保存", content_type="ui", briefing_mode="off"),
             executor,
             gateway,
             store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),
@@ -176,6 +176,7 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
                 source_text="Continue",
                 candidate_translation="继续",
                 content_type="ui",
+                briefing_mode="off",
                 decision_fallback="return_pending",
             ),
             ScriptedModelExecutor(_standard_script(with_reconsideration=False), first_telemetry),
@@ -186,7 +187,7 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     assert parent.status == "RETURNED_PENDING"
     assert parent.runtime_metadata.sampling_calls == 7
     assert parent.runtime_metadata.elicitation_calls == 0
-    assert parent.runtime_metadata.sample_budget == 10
+    assert parent.runtime_metadata.sample_budget == 13
     assert compact_review_response(parent)["decision_points"] == [
         point.model_dump(mode="json") for point in parent.decision_points
     ]
@@ -209,11 +210,14 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     )
     assert child.parent_review_id == parent.review_id
     assert child.review_id != parent.review_id
+    assert parent.schema_version == child.schema_version == "2.2"
     assert child.status == "COMPLETED"
     assert child.runtime_metadata.sampling_calls == 1
     assert child.runtime_metadata.elicitation_calls == 0
-    assert child.runtime_metadata.sample_budget == 10
+    assert child.runtime_metadata.sample_budget == 13
     assert {item.role_id for item in child.reconsiderations} == {"fluency_reviewer"}
+    assert child.process_digest.user_decisions
+    assert child.display_report
     assert parent_path.read_bytes() == parent_bytes
 
 
@@ -221,7 +225,7 @@ def test_missing_placeholder_remains_blocked_without_decision_point(tmp_path):
     telemetry = RuntimeTelemetry(sample_budget=6)
     record = run(
         run_structured_review(
-            ReviewTaskV2(source_text="Delete {count}", candidate_translation="删除", mode="lightweight"),
+            ReviewTaskV2(source_text="Delete {count}", candidate_translation="删除", mode="lightweight", briefing_mode="off"),
             ScriptedModelExecutor([_review()] * 4, telemetry),
             ScriptedUserInteractionGateway(supported=True, telemetry=telemetry),
             store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),

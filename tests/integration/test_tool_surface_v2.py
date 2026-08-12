@@ -32,17 +32,24 @@ def test_exact_frozen_public_tool_surface():
         "list_review_records",
         "get_server_info",
     }
+    briefing = tools["review_translation"].parameters["properties"]["briefing_mode"]
+    assert briefing == {
+        "default": "auto",
+        "enum": ["auto", "always", "off"],
+        "type": "string",
+    }
 
 
 def test_server_info_and_versioned_defaults():
     info = _server_info()
-    assert info["package_version"] == "0.5.0"
-    assert info["module_version"] == "0.5.0"
-    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "outcome-first-decision-v3"
-    assert info["schema_version"] == "2.1"
+    assert info["package_version"] == "0.6.0"
+    assert info["module_version"] == "0.6.0"
+    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "guided-deliberation-v4"
+    assert info["schema_version"] == "2.2"
     assert info["default_interactive_mode"] == "auto"
+    assert info["default_briefing_mode"] == "auto"
     assert info["default_history_mode"] == "full"
-    assert info["sample_budgets"] == {"lightweight": 6, "standard": 10, "strict": 14}
+    assert info["sample_budgets"] == {"lightweight": 6, "standard": 13, "strict": 18}
 
 
 def test_public_input_modes_normalize_conservatively():
@@ -74,6 +81,7 @@ def test_public_input_modes_normalize_conservatively():
     assert task.mode == "standard"
     assert task.output_mode == "review_only"
     assert task.interactive_mode == "auto"
+    assert task.briefing_mode == "auto"
     assert task.decision_fallback == "council_adjudication"
     assert task.trace_level == "summary"
     assert task.history_mode == "full"
@@ -139,13 +147,14 @@ def test_batched_form_schema_and_fastmcp_conversion_expose_described_enums():
     pydantic_schema = form.model_json_schema()
     fastmcp_schema = get_elicitation_schema(form)
 
-    for point in points:
+    for index, point in enumerate(points, start=1):
         expected = list(_form_mapping(point))
-        field = pydantic_schema["properties"][point.decision_id]
+        field_name = f"review_choice_{index}"
+        field = pydantic_schema["properties"][field_name]
         assert field["enum"] == expected
-        assert point.question in field["description"]
-        assert all(option.label in field["description"] for option in point.options)
-        assert fastmcp_schema["properties"][point.decision_id]["enum"] == expected
+        assert field["title"] == point.question
+        assert all(option.description in field["description"] for option in point.options)
+        assert fastmcp_schema["properties"][field_name]["enum"] == expected
         assert all(option.option_id not in field["description"] for option in point.options)
     message = _interaction_message(points)
     assert all(point.question in message for point in points)
@@ -165,7 +174,7 @@ def test_missing_or_invalid_accepted_form_data_degrades_to_malformed():
     )
     missing = _decisions_from_elicitation([point], ElicitationResult(action="accept", data={}))
     invalid = _decisions_from_elicitation(
-        [point], ElicitationResult(action="accept", data={point.decision_id: "not-valid"})
+        [point], ElicitationResult(action="accept", data={"review_choice_1": "not-valid"})
     )
     assert missing[0].elicitation_action == "malformed"
     assert invalid[0].elicitation_action == "malformed"
