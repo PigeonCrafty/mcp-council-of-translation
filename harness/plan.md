@@ -5,7 +5,7 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-002-r3` (`ACCEPTED / LIVE_VALIDATION_PENDING`)
+- Active Campaign: `CAMPAIGN-002-r3` (`ACCEPTED / CLOSED`)
 - Source baseline: `824559afd68f170758837769b1d1d19df991db4b`
 - Product target: `0.5.0`
 - Diagnostic build target: `outcome-first-decision-v3`
@@ -287,7 +287,7 @@ The Campaign is not ready for Foreman review until:
 
 ### Acceptance state
 
-The repository implementation is accepted at `ca3d24afdc8feaa65286b13c6118720809749436` by `harness/evaluations/CAMPAIGN-002-r3-review.md`. F-011 through F-016 are accepted. Q-007 remains pending until the accepted commit is pushed and a real Goose/provider interaction confirms the V0.5 decision-form UX and compact result.
+The repository implementation is accepted at `ca3d24afdc8feaa65286b13c6118720809749436` by `harness/evaluations/CAMPAIGN-002-r3-review.md` and published on protected `main` through PR #3 at `daacdbfdd2d3710291c8d792040d08875396b8c5`. F-011 through F-016 are accepted. Two real Goose workflows independently verified explicit Council delegation and valid user-outcome selection with targeted reconsideration; Q-007 is accepted by `harness/evaluations/CAMPAIGN-002-q007-live-review.md`. Campaign 002 is closed.
 
 ### Why this Campaign exists
 

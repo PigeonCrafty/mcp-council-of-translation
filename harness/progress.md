@@ -5,7 +5,7 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-002-r3`
-- Campaign state: `ACCEPTED / LIVE_VALIDATION_PENDING`
+- Campaign state: `ACCEPTED / CLOSED`
 - Campaign root baseline: `824559afd68f170758837769b1d1d19df991db4b`
 - Correction baseline: `f7a4f23865383d52dede37f95de091932918090c`
 - Last updated: 2026-08-12 Asia/Shanghai
@@ -21,6 +21,8 @@
 - That live evidence satisfies one Goose interactive path but does not establish both Desktop and CLI behavior; Q-003 is therefore `partial_live_evidence`, not fully accepted.
 - Campaign 002 V0.5 implementation is accepted at `ca3d24afdc8feaa65286b13c6118720809749436`; F-011 through F-016 are accepted by `CAMPAIGN-002-r3`.
 - Independent r3 acceptance evidence includes compile success, 159 passing tests, 36 focused regressions, production counterexample probes, a fresh `0.5.0` sdist/wheel, and isolated FastMCP 3.4.7 wheel smoke.
+- V0.5 is published on protected `main` through PR #3 at `daacdbfdd2d3710291c8d792040d08875396b8c5`; all six required Windows/Linux Python checks passed.
+- Q-007 is accepted by `harness/evaluations/CAMPAIGN-002-q007-live-review.md`. Live record `20260812T084202537834Z_bebbb7a76fc3` verified explicit Council delegation; record `20260812T084744453115Z_3864366de2b0` verified a valid user outcome, three requested/completed affected-role reconsiderations, 10/10 sampling, clean completion, and final user authority.
 
 ## Live V0.4 usability findings
 
@@ -71,10 +73,10 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Current risks
 
-1. V0.5 live provider/Goose decision-form UX has not yet been exercised; Q-007 remains `pending_live_validation`.
-2. The accepted implementation and Foreman-owned Campaign assets have not yet been pushed through the protected-branch workflow.
-3. Q-003 remains partial because one V0.4 Goose interactive run does not establish both Desktop and CLI behavior.
+1. Q-003 remains partial because the accumulated live evidence does not independently establish both Goose Desktop and interactive CLI behavior.
+2. The V0.5 form is functionally correct but its question title and description remain too dense for the desired process-first Council experience.
+3. The current workflow assumes callers provide useful context up front; source/target-only use does not yet receive a guided briefing before reviewer sampling.
 
 ## Next step
 
-After user authorization, commit the Foreman-owned acceptance assets and push the accepted V0.5 history through the repository's protected-branch workflow. Then run a pinned-commit live Goose interaction test and review its evidence before marking Q-007 or the V0.5 release complete.
+Archive and publish this live-acceptance state, then establish a new V0.6 Campaign for guided pre-review briefing, adaptive context questions, concise interaction design, and a process-first Council digest. Do not mix V0.6 implementation into the closed Campaign 002 history.
