@@ -4,9 +4,9 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-004-r2`
-- Campaign state: `ACCEPTED / CLOSED`
-- Accepted implementation HEAD: `3779a78a9788018082470408fdd4d87a042985dc`
+- Campaign: `CAMPAIGN-005-r1`
+- Campaign state: `ACCEPTED / PUBLICATION_PENDING`
+- Campaign baseline: `2bf090ac368c7b8af24b51ff534a145f88752ad0`
 - Last updated: 2026-08-12 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -114,10 +114,31 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Current risks
 
-1. Goose still owns final chat rendering; Q-009 requires real normal-user evidence after publication.
+1. Q-009 remains `changes_requested` pending a post-publication V0.7.1 Goose run. Campaign 005 has corrected the deterministic counter/evidence defects locally, but live client rendering is not yet claimed.
 2. FastMCP 2.13 emits the previously disclosed upstream Authlib deprecation warning, although r1 compatibility smoke passed.
-3. No live provider behavior is claimed by Campaign 004 acceptance.
+3. Goose's second audit answer misreported `sampling_calls` as 0; the persisted record proves 6/13 with full six-role coverage. This is outer-agent summarization error, not server execution failure.
+
+## Campaign 005 assignment
+
+- Contract: `harness/contracts/CAMPAIGN-005-r1.md`
+- Target: package/module `0.7.1`; diagnostic build `concise-council-display-v5.1`
+- Package graph: PKG-030 primary microcopy correction, then PKG-031 patch migration and evaluation
+- Frozen boundary: deterministic primary presentation and version/docs/tests only; no Council logic, prompt, sampling, schema, tool or budget change
+- Main Worker: Codex in a separate new conversation
+- Subagents: forbidden for this tightly bounded two-package correction
+- Commit policy: at most two scoped local commits; no push, PR, release, deployment, credentials or live provider calls
+- Required report: `harness/reports/CAMPAIGN-005-r1-worker.md`; no ledger required
+
+## Campaign 005 acceptance
+
+- Decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-005-r1-review.md`
+- Accepted implementation HEAD: `c8616eb66b49de4be00672e6439ad6b1ea468967`
+- F-028 and F-029: accepted by `CAMPAIGN-005-r1`
+- Independent evidence: exact 16-path scope, ten protected hashes, compile pass, `42 passed` focused, `203 passed` full, 539-code-point live-shaped primary report and unchanged structured evidence
+- Package evidence: fresh 0.7.1 wheel/sdist and isolated FastMCP 3.4.7 exact-five-tool smoke passed
+- Publication state: pending protected-main workflow
+- Live state: Q-009 remains `changes_requested` until the published commit passes normal-user Goose revalidation
 
 ## Next step
 
-Run and independently review the normal-user Goose Q-009 recipe pinned to protected-main archive commit `d71b23cd4968ad288f7f5d927fbbc76be7872624`. Do not mark Q-009 accepted until the first user-visible answer and persisted record have both been inspected.
+Archive the accepted Campaign 005 contract, Worker evidence and Foreman review, publish the accepted implementation through the protected-main workflow, then run the pinned normal-user Goose Q-009 recipe. Do not mark Q-009 accepted until that live evidence is independently reviewed.
