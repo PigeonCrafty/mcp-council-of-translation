@@ -30,6 +30,25 @@ _ROLE_FOCUS = {
     "legal_risk_reviewer": "法律含义、承诺边界与风险表达",
     "brand_voice_reviewer": "品牌语气、风格一致性与受众感受",
 }
+_INTERNAL_ENTITY_ID = re.compile(
+    r"(?<![A-Za-z0-9_])"
+    r"(?:issue|cluster|position|decision|option|gap)_"
+    r"(?P<suffix>[A-Za-z0-9_-]+)"
+    r"(?![A-Za-z0-9_-])",
+    re.IGNORECASE,
+)
+_INTERNAL_IMPLEMENTATION_LABEL = re.compile(
+    r"(?<![A-Za-z0-9_])(?:actor_action_object|schema_version|diagnostic_build|"
+    r"suggested_translation)(?![A-Za-z0-9_])",
+    re.IGNORECASE,
+)
+_ROLE_ID_LABELS = {role_id.casefold(): role.display_name for role_id, role in ROLE_REGISTRY.items()}
+_ROLE_ID = re.compile(
+    r"(?<![A-Za-z0-9_])(?:"
+    + "|".join(re.escape(role_id) for role_id in sorted(ROLE_REGISTRY, key=len, reverse=True))
+    + r")(?![A-Za-z0-9_])",
+    re.IGNORECASE,
+)
 
 
 def _semantic_key(value: str) -> str:
@@ -260,12 +279,18 @@ _NO_OP_PREFIXES = (
 )
 
 
+def _sanitize_primary_text(value: str) -> str:
+    """Remove implementation identifiers without erasing ordinary translation tokens."""
+    text = re.sub(r"policy\s+gate", "约束审查", value, flags=re.IGNORECASE)
+    text = re.sub(r"position\s+matrix", "证据矩阵", text, flags=re.IGNORECASE)
+    text = _ROLE_ID.sub(lambda match: _ROLE_ID_LABELS[match.group(0).casefold()], text)
+    text = _INTERNAL_ENTITY_ID.sub("内部引用", text)
+    return _INTERNAL_IMPLEMENTATION_LABEL.sub("内部信息", text)
+
+
 def _human_line(value: str, maximum: int = 120) -> str:
     text = re.sub(r"\s+", " ", str(value)).strip()
-    text = text.replace("Policy Gate", "约束审查")
-    for role_id, role in ROLE_REGISTRY.items():
-        text = text.replace(role_id, role.display_name)
-    text = re.sub(r"\b(?:decision|option|issue|gap)_[A-Za-z0-9_-]+\b", "内部引用", text)
+    text = _sanitize_primary_text(text)
     return text if len(text) <= maximum else text[: maximum - 1].rstrip() + "…"
 
 
