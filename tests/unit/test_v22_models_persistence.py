@@ -98,6 +98,12 @@ def test_v22_full_metadata_and_off_round_trips_are_privacy_safe(tmp_path):
     assert payload["schema_version"] == "2.2"
     assert payload["effective_brief"] == {"content_type": "ui", "context_confidence": "partial"}
     assert payload["briefing_interaction"]["action"] == "accept"
+    assert payload["context_gap_interaction"] == {
+        "requested": False,
+        "action": "skipped",
+        "asked_count": 0,
+        "answered_count": 0,
+    }
     for secret in ("source secret", "candidate secret", "caller secret", "BRIEF-SECRET", "secret question", "secret answer", "secret effect", "secret markdown", "secret summary"):
         assert secret not in raw
 

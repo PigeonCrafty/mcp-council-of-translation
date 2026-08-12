@@ -438,11 +438,16 @@ class ContextGapInteraction(DomainModel):
     action: Literal["accept", "decline", "cancel", "unsupported", "malformed", "error", "skipped"] = "skipped"
     asked_gap_ids: list[str] = Field(default_factory=list)
     answered_gap_ids: list[str] = Field(default_factory=list)
+    asked_count: int = Field(default=0, ge=0, le=2)
+    answered_count: int = Field(default=0, ge=0, le=2)
 
     @model_validator(mode="after")
     def bound_gap_interaction(self) -> "ContextGapInteraction":
         self.asked_gap_ids = list(dict.fromkeys(self.asked_gap_ids))[:2]
         self.answered_gap_ids = [item for item in dict.fromkeys(self.answered_gap_ids) if item in self.asked_gap_ids][:2]
+        self.asked_count = max(self.asked_count, len(self.asked_gap_ids))
+        self.answered_count = max(self.answered_count, len(self.answered_gap_ids))
+        self.answered_count = min(self.answered_count, self.asked_count)
         return self
 
 

@@ -111,6 +111,8 @@ def test_one_two_question_form_and_affected_role_reconsideration(tmp_path):
     assert list(schema["properties"]) == ["context_1", "context_2"]
     assert record.context_gap_interaction.action == "accept"
     assert len(record.context_gap_interaction.asked_gap_ids) == 2
+    assert record.context_gap_interaction.asked_count == 2
+    assert record.context_gap_interaction.answered_count == 2
     assert record.context_reconsideration_provenance.requested_role_ids == ["fidelity_reviewer"]
     assert record.context_reconsideration_provenance.completed_role_ids == ["fidelity_reviewer"]
     assert record.outcome_reconsideration_provenance.requested_role_ids == []
