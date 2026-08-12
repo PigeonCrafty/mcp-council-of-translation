@@ -202,6 +202,14 @@ class IssueCluster(DomainModel):
     consensus_status: Literal["consensus", "disputed", "insufficient_evidence"] = "insufficient_evidence"
     needs_user_input: bool = False
 
+    @model_validator(mode="after")
+    def bound_issue_summary(self) -> "IssueCluster":
+        self.topic = self.topic[:240]
+        self.source_spans = [item[:240] for item in self.source_spans[:8]]
+        self.candidate_spans = [item[:240] for item in self.candidate_spans[:8]]
+        self.evidence = [item[:240] for item in self.evidence[:8]]
+        return self
+
 
 class DiscussionTurn(DomainModel):
     round_id: str
@@ -432,6 +440,23 @@ class ChiefEditorDecisionV2(DomainModel):
     review_needed: Literal["是", "否"] = "是"
     review_reason: str = ""
     suggested_translation: str | None = None
+
+    @model_validator(mode="after")
+    def bound_execution_output(self) -> "ChiefEditorDecisionV2":
+        for name in (
+            "must_fix",
+            "should_fix",
+            "optional_improvements",
+            "terminology_decisions",
+            "conflict_resolutions",
+            "execution_order",
+        ):
+            setattr(self, name, [item[:240] for item in getattr(self, name)[:12]])
+        self.decision_rationale = self.decision_rationale[:1_000]
+        self.review_reason = self.review_reason[:500]
+        if self.suggested_translation is not None:
+            self.suggested_translation = self.suggested_translation[:12_000]
+        return self
 
 
 class ReviewRecordV2(DomainModel):
