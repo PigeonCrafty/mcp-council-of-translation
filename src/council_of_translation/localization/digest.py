@@ -166,37 +166,92 @@ def build_process_digest(
     )
 
 
-_SECTIONS = (
-    ("1. Case Brief", "case_brief"),
-    ("2. Assumptions & Context Confidence", "assumptions_context_confidence"),
-    ("3. Blind Spots", "blind_spots"),
-    ("4. Role Lenses", "role_lenses"),
-    ("5. Consensus", "consensus"),
-    ("6. Minority Report", "minority_report"),
-    ("7. Material Disagreements", "material_disagreements"),
-    ("8. Context Gaps & Answers", "context_gaps_answers"),
-    ("9. User Decisions", "user_decisions"),
-    ("10. Reconsideration Changes", "reconsideration_changes"),
-    ("11. Editor Synthesis", "editor_synthesis"),
-    ("12. Execution Checklist & Final Disposition", "execution_checklist_final_disposition"),
+_NO_OP_PREFIXES = (
+    "未提出需跟进", "未请求用户", "未触发重审", "未识别有效少数异议",
 )
 
 
-def render_display_report(digest: ProcessDigestV2) -> str:
-    lines = ["# Council Review Process"]
-    for title, field_name in _SECTIONS:
-        lines.extend(["", f"## {title}"])
-        value = getattr(digest, field_name)
-        if isinstance(value, list):
-            if field_name == "role_lenses":
-                for lens in value[:8]:
-                    role_name = ROLE_REGISTRY.get(lens.role_id)
-                    label = role_name.display_name if role_name else lens.role_id
-                    lines.append(f"- {label}：{lens.perspective[:140]}（{lens.disposition[:80]}）")
-            else:
-                lines.extend(f"- {item[:180]}" for item in value[:4])
-        else:
-            lines.append(f"- 异议：{value.dissent[:180]}")
-            lines.append(f"- 成为决定性条件：{value.decisive_condition[:180]}")
-    report = "\n".join(lines)
-    return report if len(report) <= 8_000 else report[:7_970] + "\n\n[报告已按 8,000 字符上限截断]"
+def _human_line(value: str, maximum: int = 120) -> str:
+    text = re.sub(r"\s+", " ", str(value)).strip()
+    return text if len(text) <= maximum else text[: maximum - 1].rstrip() + "…"
+
+
+def _material(values: list[str], *, maximum: int = 3) -> list[str]:
+    return [
+        _human_line(value)
+        for value in values
+        if value and not value.startswith(_NO_OP_PREFIXES)
+    ][:maximum]
+
+
+def _section(title: str, values: list[str]) -> list[str]:
+    return [f"## {title}", *(f"- {value}" for value in values)] if values else []
+
+
+def _role_lines(digest: ProcessDigestV2) -> list[str]:
+    lines: list[str] = []
+    for lens in digest.role_lenses[:8]:
+        role = ROLE_REGISTRY.get(lens.role_id)
+        label = role.display_name if role else "未识别专业角色"
+        perspective = _human_line(lens.perspective or lens.disposition, 120)
+        evidence = _material(lens.evidence, maximum=1)
+        suffix = f"；依据：{_human_line(evidence[0], 80)}" if evidence else ""
+        lines.append(_human_line(f"{label}：{perspective}{suffix}", 150))
+    return lines
+
+
+def render_display_report(
+    digest: ProcessDigestV2,
+    *,
+    status: str = "",
+    degraded: bool = False,
+    warnings: list[str] | None = None,
+    fallback_reason: str = "",
+) -> str:
+    """Render an adaptive Chinese report while preserving the 12-field digest."""
+    background = _material(digest.case_brief, maximum=4)
+    background.extend(_material(digest.assumptions_context_confidence, maximum=2))
+
+    deliberation = [
+        *(f"共识：{value}" for value in _material(digest.consensus, maximum=2)),
+        *(f"分歧：{value}" for value in _material(digest.material_disagreements, maximum=2)),
+        *(f"盲区：{value}" for value in _material(digest.blind_spots, maximum=2)),
+    ]
+    minority = digest.minority_report
+    if minority.dissent and not minority.dissent.startswith("未识别有效少数异议"):
+        deliberation.append(f"少数意见：{_human_line(minority.dissent)}")
+        if minority.decisive_condition:
+            deliberation.append(f"决定条件：{_human_line(minority.decisive_condition)}")
+
+    interaction = [
+        *_material(digest.context_gaps_answers, maximum=2),
+        *_material(digest.user_decisions, maximum=2),
+        *_material(digest.reconsideration_changes, maximum=2),
+    ]
+
+    conclusion = _material(digest.editor_synthesis, maximum=2)
+    checklist = _material(digest.execution_checklist_final_disposition, maximum=6)
+    final = next((item for item in reversed(checklist) if item.startswith("最终处置：")), "")
+    conclusion.extend(item for item in checklist if item != final)
+    if degraded or warnings or fallback_reason:
+        conclusion.append("本次执行存在降级或回退；相关风险需在发布前人工确认。")
+    if status == "RETURNED_PENDING":
+        conclusion.append("审校尚待补充信息或决定，当前结论不是发布许可。")
+    if not final:
+        final = "最终处置：需人工复核；需人工复核：是"
+
+    sections = [
+        _section("审校背景", background),
+        _section("专业视角", _role_lines(digest)),
+        _section("共识、分歧与盲区", [_human_line(value) for value in deliberation]),
+    ]
+    if interaction:
+        sections.append(_section("你的决定与复议", interaction))
+    sections.append(_section("主编结论", [*conclusion[:5], _human_line(final)]))
+    report = "\n\n".join("\n".join(section) for section in sections if section)
+    if len(report) <= 3_200:
+        return report
+
+    final_line = f"- {_human_line(final)}"
+    available = 3_200 - len(final_line) - 1
+    return report[:available].rstrip() + "\n" + final_line

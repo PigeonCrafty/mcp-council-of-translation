@@ -900,7 +900,13 @@ async def run_structured_review(
                 )
             ]),
             process_digest=early_digest,
-            display_report=render_display_report(early_digest),
+            display_report=render_display_report(
+                early_digest,
+                status="RETURNED_PENDING",
+                degraded=True,
+                warnings=[f"briefing_not_accepted:{brief_action}"],
+                fallback_reason=f"briefing_{brief_action}",
+            ),
         )
         (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
         return record
@@ -1215,7 +1221,14 @@ async def run_structured_review(
         ],
         phase_trace=phase_trace,
         process_digest=process_digest,
-        display_report=render_display_report(process_digest),
+        display_report="",
+    )
+    record.display_report = render_display_report(
+        process_digest,
+        status=record.status,
+        degraded=record.degraded,
+        warnings=record.warnings,
+        fallback_reason=record.fallback_reason,
     )
     (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
     return record
@@ -1384,7 +1397,13 @@ async def continue_structured_review(
         chief=chief,
         reviewer_coverage=reviewer_coverage,
     )
-    record.display_report = render_display_report(record.process_digest)
+    record.display_report = render_display_report(
+        record.process_digest,
+        status=record.status,
+        degraded=record.degraded,
+        warnings=record.warnings,
+        fallback_reason=record.fallback_reason,
+    )
     record.phase_trace = _build_phase_trace(
         briefing=record.briefing_interaction,
         preflight=record.preflight,

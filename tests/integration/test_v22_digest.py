@@ -40,16 +40,18 @@ def test_process_first_digest_has_frozen_order_six_lenses_and_bounded_display(tm
     compact = compact_review_response(record)
     assert len(record.process_digest.role_lenses) == 6
     assert [lens.role_id for lens in record.process_digest.role_lenses] == record.council_plan.active_role_ids
-    headers = [
-        "## 1. Case Brief", "## 2. Assumptions & Context Confidence", "## 3. Blind Spots",
-        "## 4. Role Lenses", "## 5. Consensus", "## 6. Minority Report",
-        "## 7. Material Disagreements", "## 8. Context Gaps & Answers",
-        "## 9. User Decisions", "## 10. Reconsideration Changes",
-        "## 11. Editor Synthesis", "## 12. Execution Checklist & Final Disposition",
+    assert list(type(record.process_digest).model_fields) == [
+        "case_brief", "assumptions_context_confidence", "blind_spots", "role_lenses",
+        "consensus", "minority_report", "material_disagreements",
+        "context_gaps_answers", "user_decisions", "reconsideration_changes",
+        "editor_synthesis", "execution_checklist_final_disposition",
     ]
+    headers = ["## 审校背景", "## 专业视角", "## 共识、分歧与盲区", "## 主编结论"]
     offsets = [record.display_report.index(header) for header in headers]
     assert offsets == sorted(offsets)
-    assert len(record.display_report) <= 8_000
+    assert "## 你的决定与复议" not in record.display_report
+    assert len(record.display_report) <= 1_800
+    assert record.display_report.splitlines()[-1].startswith("- 最终处置：")
     assert compact["process_digest"] == record.process_digest.model_dump(mode="json")
     assert compact["display_report"] == record.display_report
     assert "suggested_translation" not in compact["chief_editor"]
@@ -74,7 +76,7 @@ def test_hostile_long_prose_is_bounded_and_hidden_reasoning_keys_are_not_exposed
         store=ReviewStore(tmp_path, include_legacy=False),
     ))
     serialized = json.dumps(compact_review_response(record), ensure_ascii=False)
-    assert len(record.display_report) <= 8_000
+    assert len(record.display_report) <= 3_200
     assert all(len(lens.perspective) <= 240 for lens in record.process_digest.role_lenses)
     assert "SECRET-CHAIN-OF-THOUGHT" not in serialized
     assert "hidden_reasoning" not in serialized
