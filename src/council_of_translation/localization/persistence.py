@@ -85,10 +85,10 @@ def default_reviews_dir() -> Path:
 
 
 def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
-    """Create a valid V2.1 allowlist projection without user or model prose."""
+    """Create a valid V2.2 allowlist projection without user or model prose."""
     task = record.task
     return {
-        "schema_version": "2.1",
+        "schema_version": "2.2",
         "review_id": record.review_id,
         "parent_review_id": record.parent_review_id,
         "created_at": record.created_at.isoformat(),
@@ -97,6 +97,7 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "mode": task.mode,
             "output_mode": task.output_mode,
             "interactive_mode": task.interactive_mode,
+            "briefing_mode": task.briefing_mode,
             "decision_fallback": task.decision_fallback,
             "trace_level": task.trace_level,
             "history_mode": "metadata",
@@ -111,8 +112,11 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "reviewer_samples_successful": record.runtime_metadata.reviewer_samples_successful,
             "reviewer_samples_unavailable": record.runtime_metadata.reviewer_samples_unavailable,
             "reviewer_coverage": record.runtime_metadata.reviewer_coverage,
-            "package_version": "0.5.0",
-            "diagnostic_build": "outcome-first-decision-v3",
+            "briefing_elicitation_calls": record.runtime_metadata.briefing_elicitation_calls,
+            "context_gap_elicitation_calls": record.runtime_metadata.context_gap_elicitation_calls,
+            "outcome_elicitation_calls": record.runtime_metadata.outcome_elicitation_calls,
+            "package_version": "0.6.0",
+            "diagnostic_build": "guided-deliberation-v4",
         },
         "council_plan": {
             "mode": record.council_plan.mode,
@@ -128,6 +132,21 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         },
         "status": record.status,
         "degraded": record.degraded,
+        "effective_brief": {
+            "content_type": record.effective_brief.content_type,
+            "context_confidence": record.effective_brief.context_confidence,
+        },
+        "briefing_interaction": {
+            "requested": record.briefing_interaction.requested,
+            "action": record.briefing_interaction.action,
+            "asked_fields": record.briefing_interaction.asked_fields,
+        },
+        "context_gap_interaction": {
+            "requested": record.context_gap_interaction.requested,
+            "action": record.context_gap_interaction.action,
+            "asked_count": len(record.context_gap_interaction.asked_gap_ids),
+            "answered_count": len(record.context_gap_interaction.answered_gap_ids),
+        },
         "reconsideration_provenance": {
             "requested_role_ids": [
                 role_id for role_id in record.reconsideration_provenance.requested_role_ids
@@ -146,10 +165,24 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
                 if role_id in _SAFE_ROLE_IDS
             ],
         },
+        "context_reconsideration_provenance": {
+            name: [role_id for role_id in getattr(record.context_reconsideration_provenance, name) if role_id in _SAFE_ROLE_IDS]
+            for name in ("requested_role_ids", "completed_role_ids", "skipped_role_ids", "failed_role_ids")
+        },
+        "outcome_reconsideration_provenance": {
+            name: [role_id for role_id in getattr(record.outcome_reconsideration_provenance, name) if role_id in _SAFE_ROLE_IDS]
+            for name in ("requested_role_ids", "completed_role_ids", "skipped_role_ids", "failed_role_ids")
+        },
+        "phase_trace": {
+            "phases": [
+                {"phase": phase.phase, "disposition": phase.disposition, "counts": phase.counts}
+                for phase in record.phase_trace.phases
+            ]
+        },
         "version_metadata": {
-            "package_version": "0.5.0",
-            "diagnostic_build": "outcome-first-decision-v3",
-            "record_schema": "2.1",
+            "package_version": "0.6.0",
+            "diagnostic_build": "guided-deliberation-v4",
+            "record_schema": "2.2",
         },
     }
 
@@ -211,10 +244,10 @@ class ReviewStore:
             raise InvalidReviewIdError("new V2 records require a sortable V2 review ID")
         write_record = validated.model_copy(
             update={
-                "schema_version": "2.1",
+                "schema_version": "2.2",
                 "version_metadata": {
                     **validated.version_metadata,
-                    "record_schema": "2.1",
+                    "record_schema": "2.2",
                 },
             }
         )
