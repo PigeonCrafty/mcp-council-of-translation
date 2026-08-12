@@ -159,8 +159,8 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         "context_gap_interaction": {
             "requested": record.context_gap_interaction.requested,
             "action": record.context_gap_interaction.action,
-            "asked_count": len(record.context_gap_interaction.asked_gap_ids),
-            "answered_count": len(record.context_gap_interaction.answered_gap_ids),
+            "asked_count": record.context_gap_interaction.asked_count,
+            "answered_count": record.context_gap_interaction.answered_count,
         },
         "reconsideration_provenance": {
             "requested_role_ids": [
