@@ -4,10 +4,9 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-002-r3`
+- Campaign: `CAMPAIGN-003-r2`
 - Campaign state: `ACCEPTED / CLOSED`
-- Campaign root baseline: `824559afd68f170758837769b1d1d19df991db4b`
-- Correction baseline: `f7a4f23865383d52dede37f95de091932918090c`
+- Accepted implementation HEAD: `9dac21dd3cee9d9a299786e8cdec525f28a0c517`
 - Last updated: 2026-08-12 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -23,6 +22,8 @@
 - Independent r3 acceptance evidence includes compile success, 159 passing tests, 36 focused regressions, production counterexample probes, a fresh `0.5.0` sdist/wheel, and isolated FastMCP 3.4.7 wheel smoke.
 - V0.5 is published on protected `main` through PR #3 at `daacdbfdd2d3710291c8d792040d08875396b8c5`; all six required Windows/Linux Python checks passed.
 - Q-007 is accepted by `harness/evaluations/CAMPAIGN-002-q007-live-review.md`. Live record `20260812T084202537834Z_bebbb7a76fc3` verified explicit Council delegation; record `20260812T084744453115Z_3864366de2b0` verified a valid user outcome, three requested/completed affected-role reconsiderations, 10/10 sampling, clean completion, and final user authority.
+- Campaign 002 is closed. V0.5 is the accepted functional foundation for Campaign 003 and must not be reimplemented or weakened.
+- Campaign 003 V0.6 implementation is accepted at `9dac21dd3cee9d9a299786e8cdec525f28a0c517` by `harness/evaluations/CAMPAIGN-003-r2-review.md`. F-017 through F-022 are accepted. Independent final evidence includes the corrected deterministic briefing predicate, 11 focused passes, 184 full passes, a real Core briefing path, exact five-tool/version/schema/budget probes and fresh 0.6.0 artifacts.
 
 ## Live V0.4 usability findings
 
@@ -38,7 +39,7 @@ The accepted live record is the primary counterexample for Campaign 002:
 
 ## Protected baseline changes
 
-The Campaign starts from exact Git commit `824559afd68f170758837769b1d1d19df991db4b`. The following Foreman/user assets may be dirty and are protected. The Worker must preserve them and must not stage, edit, delete, move, or commit them:
+Campaign 003 starts from exact Git commit `fe4b55a6597d8ac18885c0faab14722f44588e12`. The following Foreman/user assets may be dirty and are protected. The Worker must preserve them and must not stage, edit, delete, move, or commit them:
 
 - `mcp-council-of-translation-audit-and-upgrade-recommendations.md`
 - `reviews/`
@@ -48,35 +49,41 @@ The Campaign starts from exact Git commit `824559afd68f170758837769b1d1d19df991d
 
 The Worker may create only the active Campaign ledger and report under `harness/reports/`. Production, test, and documentation paths are limited by the active contract.
 
-## Frozen V0.5 decisions
+## Frozen V0.6 decisions
 
-- Target package/module version: `0.5.0`; diagnostic build: `outcome-first-decision-v3`; record schema: `2.1`.
+- Target package/module version: `0.6.0`; diagnostic build: `guided-deliberation-v4`; write schema: `2.2`.
 - Goose-first, review-only, exact five public tools, `interactive_mode=auto`, one standard batched elicitation form, and no custom MCP UI.
-- User-facing choices are concise, mutually exclusive translation outcomes. Raw reviewer action prose remains evidence, not an option value.
+- `briefing_mode=auto` is added to `review_translation`; sparse source/target-only input elicits a guided brief before any reviewer sampling, while rich caller context skips redundant questions.
+- The default presentation is process-first: case brief, assumptions, blind spots, role lenses, consensus, minority report and material disagreements precede user decisions and the final editor synthesis.
+- User-facing choices remain concise, mutually exclusive translation outcomes. Raw reviewer action prose remains evidence, not an option value.
 - An explicit `暂不决定，由 Council 裁决` option is always available in interactive decisions.
 - User choice is decisive only among Policy-Gate-valid options. Council fallback remains evidence-weighted adjudication rather than majority voting.
-- Reconsider only contrary or materially affected roles. Preserve 6/10/14 budgets initially and make budget degradation truthful.
-- Compact results expose effective task, bounded deliberation summary, decision, degraded state, and warnings; full structured trace remains on demand.
-- V1 and V2.0 records remain readable. New V2.1 full and metadata persistence retain the established privacy contract.
+- At most one adaptive context-gap follow-up form with two material questions may occur after independent review; it cannot create hard constraints by model assertion.
+- Reconsider only contrary or materially affected roles. Sampling budgets are 6/13/18 for lightweight/standard/strict and all skipped/failed work remains truthful.
+- Full structured trace remains on demand; no hidden chain-of-thought is requested, exposed or persisted.
+- V1, V2.0 and V2.1 records remain readable. New V2.2 full and metadata persistence retain the established privacy contract.
 
-## Campaign 002 disposition
+## Campaign 003 acceptance
 
-- r1 and r2 Foreman decisions: `CHANGES_REQUESTED`; r3 Foreman decision: `ACCEPTED`.
-- Accepted correction contract: `harness/contracts/CAMPAIGN-002-r3.md`
-- Final implementation commit: `ca3d24afdc8feaa65286b13c6118720809749436`
-- Foreman review: `harness/evaluations/CAMPAIGN-002-r3-review.md`
-- Worker report: `harness/reports/CAMPAIGN-002-r3-worker.md`
-- Preserved r2 report: `harness/reports/CAMPAIGN-002-r2-worker.md`
-- Preserved r1 ledger/report: `harness/reports/CAMPAIGN-002-r1-ledger.md`, `harness/reports/CAMPAIGN-002-r1-worker.md`
-- Prior accepted review: `harness/evaluations/CAMPAIGN-001-r5-review.md`
-- Commit policy: scoped local commits required; no push, PR, release, deployment, credential, or Goose installation mutation
+- r1 decision: `CHANGES_REQUESTED` by `harness/evaluations/CAMPAIGN-003-r1-review.md`
+- Preserved r1 evidence: PKG-017 and PKG-019 through PKG-022; all five-tool, V2.2, privacy, process-digest, 6/13/18, compatibility and package-build evidence remains valid.
+- r1 correction resolved by r2: PKG-018 auto sufficiency now requires a recognized content type plus at least two independent context categories; the former numeric-only threshold is covered by regression counterexamples.
+- r2 decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-003-r2-review.md`
+- Accepted contract: `harness/contracts/CAMPAIGN-003-r2.md`
+- Main Worker: Codex in a separate new conversation
+- Execution ledger: not required for this one-package correction
+- Worker report: `harness/reports/CAMPAIGN-003-r2-worker.md`
+- Accepted implementation HEAD: `9dac21dd3cee9d9a299786e8cdec525f28a0c517`
+- Publication status: local only; not yet pushed after Campaign acceptance
+- Remaining validation: Q-008 source/target-only live Goose briefing and Q-009 process-first digest usability
 
 ## Current risks
 
-1. Q-003 remains partial because the accumulated live evidence does not independently establish both Goose Desktop and interactive CLI behavior.
-2. The V0.5 form is functionally correct but its question title and description remain too dense for the desired process-first Council experience.
-3. The current workflow assumes callers provide useful context up front; source/target-only use does not yet receive a guided briefing before reviewer sampling.
+1. Multiple elicitation checkpoints must remain bounded and must not make ordinary source/target-only reviews feel like a questionnaire maze.
+2. Goose controls actual form rendering, so production schemas and display text must be independently verified without assuming a custom client UI.
+3. Adaptive context-gap reconsideration can consume the expanded standard budget; deterministic tests prove the 13-call reference path, while live Goose/provider behavior remains to be observed.
+4. Process visibility must expose structured claims and evidence without turning into duplicated reviewer prose or hidden chain-of-thought.
 
 ## Next step
 
-Archive and publish this live-acceptance state, then establish a new V0.6 Campaign for guided pre-review briefing, adaptive context questions, concise interaction design, and a process-first Council digest. Do not mix V0.6 implementation into the closed Campaign 002 history.
+Commit the Foreman-owned Campaign 003 acceptance assets, publish the accepted commits through the protected-main workflow, then run pinned-commit Goose tests for Q-008 and Q-009. Do not mark either live gate accepted without inspecting real persisted records and user-visible interaction evidence.

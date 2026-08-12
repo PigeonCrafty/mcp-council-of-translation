@@ -1,21 +1,23 @@
-# Council of Translation V0.5 Harness Plan
+# Council of Translation V0.6 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-002-r3` (`ACCEPTED / CLOSED`)
-- Source baseline: `824559afd68f170758837769b1d1d19df991db4b`
-- Product target: `0.5.0`
-- Diagnostic build target: `outcome-first-decision-v3`
+- Active Campaign: `CAMPAIGN-003-r2` (`ACCEPTED / CLOSED`)
+- Accepted implementation HEAD: `9dac21dd3cee9d9a299786e8cdec525f28a0c517`
+- Product target: `0.6.0`
+- Diagnostic build target: `guided-deliberation-v4`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
 
 The Foreman and Main Worker are separate Codex conversations. The Worker must bootstrap exclusively from repository assets and must not assume access to the Foreman's conversation context.
 
-The V0.4 sections below are the accepted architectural foundation and remain binding unless Campaign 002 explicitly refines them. The `Campaign 002: Outcome-first Decision UX` section is the authoritative delta for the active V0.5 target.
+The V0.4 and V0.5 sections below are accepted architectural history. The `Campaign 003: Guided Process-first Council` section is the authoritative delta for the active V0.6 target.
+
+`CAMPAIGN-003-r1` produced the integrated V0.6 implementation and preserved evidence for all but one PKG-018 boundary. `CAMPAIGN-003-r2` corrected that boundary: auto-mode context is sufficient only when content type is recognized **and** at least two independent context categories are present. Independent review accepted the combined Campaign 003 implementation. Live Goose gates Q-008 and Q-009 remain separate post-publication validation.
 
 ## Product outcome
 
@@ -404,3 +406,198 @@ Packages are executed sequentially under one Strict Campaign. Shared orchestrati
 - Unlimited discussion/reconsideration rounds.
 - Budget expansion before targeted selection is proven insufficient.
 - Persisting or exposing hidden reasoning.
+
+## Campaign 003: Guided Process-first Council
+
+### Why this Campaign exists
+
+V0.5 proves that normal Goose can execute the complete technical path: six-role sampling, structured findings, bounded discussion, readable outcome elicitation, explicit Council delegation, valid user authority, targeted reconsideration, evidence-weighted adjudication, compact output and full-trace retrieval. The two accepted live records are summarized in `harness/evaluations/CAMPAIGN-002-q007-live-review.md`.
+
+The remaining product defect is information architecture. A source/target-only user must already know which domain, content type, audience, style and usage constraints matter. The Council then returns correct but dense structures whose verdict is easier to notice than the different professional perspectives that created value. Campaign 003 makes the process—not speed or the final answer—the primary experience.
+
+### Product principle
+
+The primary Council output is a structured expansion of the user's decision frame:
+
+1. what the Council understood;
+2. which assumptions it had to make;
+3. what the user may not have considered;
+4. what each professional lens noticed and why it matters;
+5. where genuine consensus and disagreement exist;
+6. which missing context could change the result;
+7. how user input changed role positions;
+8. the chief editor's synthesis and execution checklist, last.
+
+The server exposes structured claims, evidence, questions, positions and changes. It must never request, persist or display hidden chain-of-thought.
+
+### Guided session state machine
+
+```text
+RECEIVED
+  -> NORMALIZED
+  -> BRIEFING_SKIPPED | BRIEFING_REQUESTED
+  -> BRIEFING_ACCEPTED | BRIEFING_DECLINED | BRIEFING_CANCELLED
+     | BRIEFING_UNSUPPORTED | BRIEFING_MALFORMED
+  -> BRIEF_CONFIRMED
+  -> PREFLIGHTED
+  -> PLANNED
+  -> INDEPENDENT_REVIEWED
+  -> BLIND_SPOTS_MAPPED
+  -> CONTEXT_GAPS_READY | NO_CONTEXT_GAP_NEEDED
+  -> CONTEXT_UPDATED | CONTEXT_GAP_DECLINED | CONTEXT_GAP_UNSUPPORTED
+  -> CONTEXT_RECONSIDERED | CONTEXT_RECONSIDERATION_SKIPPED
+  -> DISCUSSED | DISCUSSION_SKIPPED
+  -> DECISION_POINTS_READY | NO_USER_DECISION_NEEDED
+  -> USER_DECIDED | USER_DELEGATED | USER_DECLINED | USER_CANCELLED
+     | INTERACTION_UNSUPPORTED | RETURNED_PENDING
+  -> OUTCOME_RECONSIDERED | OUTCOME_RECONSIDERATION_SKIPPED
+  -> POLICY_GATED
+  -> ADJUDICATED
+  -> PROCESS_DIGESTED
+  -> COMPLETED | COMPLETED_WITH_FALLBACK | NEEDS_HUMAN_REVIEW
+```
+
+Briefing happens before reviewer sampling. At most one adaptive context-gap form may happen after independent review. The existing outcome decision form remains a separate checkpoint because new context can invalidate or reshape prior options.
+
+### Pre-review Briefing Gate
+
+`review_translation` adds `briefing_mode` with `auto` as the default and `always` / `off` as explicit alternatives. No new public tool is added.
+
+`auto` requests a brief only when caller context is materially sparse. A normal source/target-only call is sparse. A call with a recognized content type plus useful audience/context/style/rule material skips redundant questions. The sufficiency rule is deterministic and tested; it does not spend a model call.
+
+One flat MCP form collects no more than six primitive fields:
+
+- domain;
+- content location/type;
+- audience;
+- tone or communication goal;
+- primary review focus;
+- bounded usage context.
+
+Every categorical field includes a concise `不确定，由 Council 推断` value. User briefing answers may replace defaults and inference, but cannot erase caller hard constraints, TB/SG authority or deterministic preflight facts. Field-level provenance distinguishes caller, user briefing, normalized alias and inferred assumption.
+
+Declined, cancelled, unsupported and malformed briefing responses remain distinct. In `auto`, the review may continue with explicit assumptions and context confidence. In `always`, absence of an accepted brief stops before reviewer sampling with a truthful pre-review disposition. No path may fabricate user answers.
+
+### Context normalization
+
+Common caller phrases such as `UI button`, `button`, `error message`, `onboarding`, `subtitle`, `marketing copy`, `technical docs` and their normalized variants map predictably to supported content types or locations. Unknown values remain visible as assumptions rather than silently becoming an unexplained `unspecified` plan.
+
+Precedence is frozen:
+
+1. deterministic hard constraints and explicit caller rule packets;
+2. accepted user briefing updates for mutable context/preferences;
+3. explicit caller context fields;
+4. normalized aliases;
+5. bounded Council inference.
+
+The effective brief is included in reviewer prompts, persisted under full history, and projected safely under metadata history without user free text.
+
+### Adaptive material context gaps
+
+Independent reviewer envelopes may add optional structured context gaps. A gap contains a bounded question, why the answer can change an outcome or professional judgment, affected role IDs, and safe answer guidance. It is advisory model evidence: it cannot create a hard constraint, blocker or policy override.
+
+The Core deduplicates gaps and selects at most two using deterministic materiality and role-relevance rules. It elicits at most one flat follow-up form. Generic curiosity, repeated questions, questions already answered by the brief, and questions that cannot change any valid outcome are suppressed.
+
+Accepted answers trigger only affected-role context reconsideration. Requested, completed, skipped and failed roles are separate from outcome reconsideration provenance. If the user declines or the client cannot elicit, the Council continues with explicit assumptions unless an existing integrity rule requires human review.
+
+### Concise interaction information architecture
+
+All three form families—briefing, context gap and outcome decision—share bounded presentation rules:
+
+- flat primitive schemas only;
+- at most six briefing fields, two context-gap fields and three outcome questions;
+- deterministic titles, target maximum 48 Unicode code points;
+- descriptions, target maximum 160 Unicode code points;
+- no title repeated inside its description;
+- no internal IDs, hashes, full reviewer prose or action instructions in user-facing values;
+- one submit action per batched form is expected Goose behavior.
+
+Decision titles derive from bounded source/candidate anchors and normalized issue category, for example `向导按钮译法` or `“Continue”按钮的处理方式`. They must not reuse an unbounded reviewer `problem` sentence as the title.
+
+### Process-first digest
+
+The default compact response adds a structured `process_digest` and a bounded `display_report`. The order is frozen:
+
+1. `case_brief`;
+2. `assumptions` and `context_confidence`;
+3. `blind_spots`;
+4. `role_lenses`;
+5. `consensus`;
+6. `minority_report`;
+7. `material_disagreements`;
+8. `context_gaps` and answers;
+9. `user_decisions`;
+10. `reconsideration_changes`;
+11. `editor_synthesis`;
+12. `execution_checklist` and final disposition.
+
+The digest preserves all six distinct role lenses when they contain material non-duplicate information. It compresses repeated prose by normalized issue/evidence target, not by erasing minority views. A minority report states the strongest valid dissent and the condition under which it would become decisive. Blind spots and counterfactual conditions precede the verdict.
+
+The Markdown `display_report` is derived deterministically from the structured digest and is safe for an outer agent to show directly. It remains review-only and must not contain a full replacement translation unless `output_mode=full_rewrite` was explicitly requested. Full raw reviewer records remain available through `view_review_record`.
+
+### V2.2 records and phase trace
+
+New V2.2 records add typed sections for:
+
+- effective review brief and field provenance;
+- briefing interaction and assumptions;
+- structured context gaps and answers;
+- context reconsideration provenance;
+- phase trace and phase-specific telemetry;
+- process-first digest.
+
+Phase telemetry distinguishes briefing elicitation, context-gap elicitation and outcome elicitation. Metadata persistence retains only safe categorical/disposition/count fields and excludes source, target, form free text, user answers, role prose and derived display prose. V1, V2.0 and V2.1 remain readable.
+
+### Sampling and interaction budgets
+
+- lightweight: maximum 6 sampling calls;
+- standard: maximum 13 sampling calls;
+- strict: maximum 18 sampling calls;
+- briefing forms consume no sampling calls;
+- maximum one context-gap form with two questions;
+- maximum one bounded discussion round;
+- maximum one outcome form with three DecisionPoints;
+- context and outcome reconsideration each target only materially affected roles;
+- insufficient budget or failed required reconsideration is explicit and cannot report clean completion.
+
+The standard deep reference path is six independent reviews, up to three context-affected role calls, one discussion call and up to three outcome-affected role calls: 13 total. Ordinary reviews need not consume the maximum.
+
+### Campaign 003 package graph
+
+1. `PKG-017` — V2.2 briefing/context-gap/process-digest models, compatibility and privacy-safe persistence.
+2. `PKG-018` — deterministic context sufficiency, aliases, Briefing Gate, form mapping and field provenance.
+3. `PKG-019` — reviewer context-gap contract, materiality aggregation, one follow-up form, affected-role context reconsideration and 6/13/18 accounting.
+4. `PKG-020` — shared concise form information architecture and deterministic issue titles.
+5. `PKG-021` — process-first digest, minority report, blind spots, phase trace and bounded display report.
+6. `PKG-022` — V0.6 migration, full regression/evaluation corpus, exact identifiers, fresh packaging and authoritative documentation.
+
+Packages execute in dependency order under one Strict Campaign. `models.py`, `orchestration.py`, `runtime.py` and `tools/review.py` are integration hotspots owned by the Main Worker. Subagents may receive only bounded non-overlapping packages or read-only assignments; they never own acceptance.
+
+### Campaign 003 quality gates
+
+1. A source/target-only normal Goose path requests a concise pre-review brief before the first sample.
+2. Rich caller context skips redundant briefing in `auto`; `always` and `off` behave deterministically.
+3. Briefing accept/decline/cancel/unsupported/malformed paths preserve truthful provenance and never fabricate user fields.
+4. `UI button` and equivalent aliases route to `ui`; unknown values remain visible assumptions.
+5. At most two material non-duplicate context gaps are elicited once; immaterial or answered questions are suppressed.
+6. Context answers reconsider only affected roles and cannot become model-authored hard constraints.
+7. Outcome decisions retain V0.5 user authority, Policy Gate behavior, delegation semantics and stable option mapping.
+8. Briefing/context/decision titles and descriptions meet bounds and do not repeat reviewer prose or expose internal identifiers.
+9. Process digest places blind spots, role lenses, minority report and disagreements before final synthesis; repeated content is semantically deduplicated.
+10. Display report is bounded, review-only and contains no hidden reasoning or unauthorized full translation.
+11. Full/metadata/off persistence preserves privacy; V1/V2.0/V2.1 records remain readable and new records write schema 2.2.
+12. Lightweight/standard/strict never exceed 6/13/18; deep standard reference flow completes within 13 and insufficient paths degrade truthfully.
+13. All 159 accepted V0.5 tests plus focused V0.6 regressions pass.
+14. Exact five tools, defaults, package/module `0.6.0`, build `guided-deliberation-v4`, schema `2.2`, review-only boundary and fresh sdist/wheel smoke pass.
+15. Pinned Goose recipes cover source/target-only briefing, optional material context follow-up, user selection and process-first output; Worker live calls remain optional and disclosed.
+
+### V0.6 non-goals
+
+- Custom MCP Apps, bespoke Goose widgets, control over Goose button/layout rendering or multiple submit buttons per form.
+- General-purpose or dynamically invented Councils.
+- Automatic translation application, file edits or translation memory ownership.
+- Per-role provider/model routing.
+- Majority voting or raw role-count authority.
+- Unlimited questions, debate rounds, context reconsideration or outcome reconsideration.
+- Persisting or displaying hidden chain-of-thought.
+- Migrating this repository to an unreleased MCP SDK generation before current Goose compatibility is preserved by the runtime abstraction.
