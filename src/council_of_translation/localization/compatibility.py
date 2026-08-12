@@ -1,4 +1,4 @@
-"""Small V1/V2 record adapters; V2 remains the authoritative write model."""
+"""Small V1/V2 record adapters; V2.1 is the authoritative write model."""
 
 from __future__ import annotations
 
@@ -35,6 +35,8 @@ def parse_review_record(value: Any) -> ReviewRecordV1 | ReviewRecordV2:
         data = dict(value)
         data["schema_version"] = "2.0"
         return ReviewRecordV2.model_validate(data)
+    if schema_version == "2.1":
+        return ReviewRecordV2.model_validate(value)
     raise ValueError(f"unsupported review record schema_version: {schema_version}")
 
 

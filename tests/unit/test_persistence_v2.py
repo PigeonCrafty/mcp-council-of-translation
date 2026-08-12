@@ -100,6 +100,7 @@ def test_full_write_is_atomic_and_round_trips(monkeypatch, tmp_path):
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
     assert loaded.task.source_text == "SECRET SOURCE"
+    assert loaded.schema_version == "2.1"
 
 
 def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
@@ -143,6 +144,26 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.task.source_text == ""
     assert loaded.independent_reviews == []
     assert loaded.user_decisions == []
+    assert loaded.schema_version == "2.1"
+
+
+def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
+    store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
+    record = _record(build_review_id(), history_mode="metadata")
+    record.degraded = True
+    record.warnings = ["SECRET WARNING"]
+    record.effective_task.audience = "SECRET EFFECTIVE AUDIENCE"
+    record.effective_task.material_rule_context = ["SECRET DERIVED RULE"]
+    record.deliberation_summary.final_outcome = "SECRET FINAL OUTCOME"
+    record.reconsideration_provenance.requested_role_ids = ["SECRET ROLE ID"]
+    path = store.save(record, history_mode="metadata")
+
+    serialized = path.read_text(encoding="utf-8")
+    assert "SECRET" not in serialized
+    loaded = store.load(record.review_id)
+    assert loaded.degraded is True
+    assert loaded.warnings == []
+    assert loaded.reconsideration_provenance.requested_role_ids == []
 
 
 def test_metadata_round_trip_preserves_safe_disposition_and_redacts_chief_prose(tmp_path):
@@ -256,3 +277,14 @@ def test_reader_accepts_frozen_eight_character_v2_suffix(tmp_path):
     path = store.save(_record(review_id))
     assert path is not None
     assert store.load(review_id).review_id == review_id
+
+
+def test_saving_readable_v20_model_writes_new_v21_schema(tmp_path):
+    store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
+    record = _record(build_review_id()).model_copy(update={"schema_version": "2.0"})
+    path = store.save(record)
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "2.1"
+    assert payload["version_metadata"]["record_schema"] == "2.1"
+    assert store.load(record.review_id).schema_version == "2.1"

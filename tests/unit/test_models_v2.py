@@ -5,6 +5,7 @@ from pydantic import ValidationError
 
 from council_of_translation.localization.compatibility import ReviewRecordV1, parse_review_record
 from council_of_translation.localization.models import (
+    DecisionOption,
     DecisionPoint,
     FindingV2,
     PreflightCheck,
@@ -37,6 +38,36 @@ def test_sampled_finding_cannot_create_hard_constraint_or_blocker():
     assert finding.severity == "minor"
     assert finding.constraint_tier == "advisory"
     assert finding.blocking is False
+    assert finding.finding_kind == "issue"
+    assert finding.proposed_value == ""
+
+
+def test_v21_finding_classification_and_proposal_are_conservative():
+    affirmation = FindingV2.model_validate(
+        {"finding_kind": "affirmation", "proposed_value": 42, "blocking": True, "constraint_tier": "hard"}
+    )
+    assert affirmation.finding_kind == "affirmation"
+    assert affirmation.proposed_value == ""
+    assert affirmation.blocking is False
+    assert affirmation.constraint_tier == "advisory"
+
+
+def test_v21_option_and_decision_fields_are_bounded_and_safe():
+    option = DecisionOption(
+        option_id="internal",
+        outcome_value="下一步",
+        label="界" * 60,
+        description="d" * 200,
+        support_role_ids=["ux", "ux", "fidelity"],
+        support_rationale="r" * 300,
+        policy_basis=["hard_constraint", "hard_constraint"],
+        is_current_candidate=True,
+    )
+    assert option.outcome_value == "下一步"
+    assert len(option.label) == 48
+    assert len(option.description) == 160
+    assert option.support_role_ids == ["ux", "fidelity"]
+    assert len(option.support_rationale) == 240
 
 
 def test_deterministic_preflight_can_create_blocker():
@@ -90,8 +121,25 @@ def test_minimal_v2_record_validates_and_caps_decisions():
             DecisionPoint(decision_id=f"d-{i}", issue_id=f"i-{i}", question="q") for i in range(5)
         ],
     )
-    assert record.schema_version == "2.0"
+    assert record.schema_version == "2.1"
     assert len(record.decision_points) == 3
+
+
+def test_v20_record_and_findings_remain_readable_without_gaining_choice_authority():
+    parsed = parse_review_record(
+        {
+            "schema_version": "2.0",
+            "review_id": "20260811T010203000004Z_ab12cd34",
+            "task": {},
+            "independent_reviews": [{"findings": [{"action": "Use Next", "blocking": True}]}],
+        }
+    )
+    assert isinstance(parsed, ReviewRecordV2)
+    assert parsed.schema_version == "2.0"
+    migrated = FindingV2.model_validate(parsed.independent_reviews[0]["findings"][0])
+    assert migrated.finding_kind == "issue"
+    assert migrated.proposed_value == ""
+    assert migrated.blocking is False
 
 
 def test_malformed_or_unknown_record_does_not_parse_as_success():
