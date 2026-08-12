@@ -13,7 +13,7 @@
 ## Accepted state
 
 - V0.3.0 remains the published remote baseline.
-- The cumulative V0.4.0 implementation is locally accepted at `3267259d335b87424bc2d24adb08f94697c484ec`; `origin/main` remains unchanged and local `main` is eight commits ahead.
+- The cumulative V0.4.0 implementation is accepted at `3267259d335b87424bc2d24adb08f94697c484ec`. Its Harness acceptance archive was committed at `c5f62a7a5c524f20fa2f424df1f5b99c5ee39975` and pushed to remote branch `v0.4-structured-deliberation`; protected `origin/main` remains unchanged.
 - Foreman baseline syntax check on 2026-08-11: `python -m compileall src tests` passed with exit code 0.
 - The DeepSeek reasoning-first MCP sampling issue was fixed in the user's Goose installation and published separately to `aaif-goose/goose#11092`; that external Goose patch is not part of this repository Campaign.
 - All ten V0.4 feature items and local automated quality gates Q-001, Q-002, Q-004, Q-005, and Q-006 are accepted by the Foreman.
@@ -58,9 +58,9 @@ The Main Worker may create only the ledger and report paths authorized by the ac
 ## Current risks
 
 1. Live Goose/provider behavior for the accepted V0.4 flow remains unverified; Q-003 is pending.
-2. The accepted commit is local and unpushed, so the remote git-pinned `uvx` command cannot consume it yet.
+2. Protected `origin/main` remains on V0.3 because direct updates require six status checks; the remote V0.4 test branch is available for git-pinned `uvx` testing.
 3. Host uv cache and default pytest temp roots retain access defects; the existing `.venv` runs the complete 117-test suite successfully.
 
 ## Next step
 
-No r6 implementation assignment is required. When the user authorizes it, push the accepted commit, run Goose against the exact pinned SHA, and record Q-003 evidence before claiming release-level completion.
+No r6 implementation assignment is required. Run Goose against the exact pushed test-branch SHA, record Q-003 evidence, then use the protected-branch PR/status-check path before claiming release-level completion.
