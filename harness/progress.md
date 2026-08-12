@@ -4,9 +4,9 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-005-r1`
-- Campaign state: `ACCEPTED / PUBLISHED_Q009_PENDING`
-- Campaign baseline: `2bf090ac368c7b8af24b51ff534a145f88752ad0`
+- Campaign: `CAMPAIGN-006-r1`
+- Campaign state: `DESIGN_FROZEN / ASSIGNED`
+- Campaign baseline: `755aea681b64283a4cb369817d17b3e52c0973a0`
 - Last updated: 2026-08-12 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -114,7 +114,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Current risks
 
-1. Q-009 remains `changes_requested` pending a post-publication V0.7.1 Goose run. Campaign 005 has corrected the deterministic counter/evidence defects locally, but live client rendering is not yet claimed.
+1. Q-009 remains `changes_requested` by `harness/evaluations/CAMPAIGN-005-q009-live-review.md`: Campaign 005 presentation reached Goose, but standard marketing coverage, material-context precedence and final disposition remain insufficient.
 2. FastMCP 2.13 emits the previously disclosed upstream Authlib deprecation warning, although r1 compatibility smoke passed.
 3. Goose's second audit answer misreported `sampling_calls` as 0; the persisted record proves 6/13 with full six-role coverage. This is outer-agent summarization error, not server execution failure.
 
@@ -140,6 +140,26 @@ The Worker may create only the active Campaign ledger and report under `harness/
 - Publication mapping: rebase commits `2580536` / `f34073f` / `e2e2ba3` preserve the exact accepted tree from local acceptance commit `cf375be`
 - Live state: Q-009 remains `changes_requested` until the published commit passes normal-user Goose revalidation
 
+## Campaign 005 live Q-009 result
+
+- Published presentation correction: live-verified; first answer directly showed a concise Council process without procedural counters or redundant clean-role evidence
+- Live counterexample: `bigger than bigger` → `比大更大` combined marketing with retained UI-button context
+- Deterministic source finding: standard marketing currently activates only fidelity, terminology and fluency
+- Context finding: two outcome-changing brand/usage questions were suppressed as `immaterial_gap`, after which wording selection proceeded and the chief returned an unqualified publishable disposition
+- Goose audit limitation: its claimed raw values included invalid coverage/status/role IDs and impossible zero call counts; prose audit telemetry is rejected
+- Gate decision: Q-009 remains `changes_requested`; Q-010 is planned for clean and deliberately mixed-context live evidence
+
+## Campaign 006 assignment
+
+- Contract: `harness/contracts/CAMPAIGN-006-r1.md`
+- Target: package/module `0.8.0`; diagnostic build `context-coherent-council-v6`; schema remains `2.2`
+- Package graph: PKG-032 context-gap classification; PKG-033 context precedence/status; PKG-034 marketing role routing; PKG-035 presentation/invariants; PKG-036 migration/build/docs
+- Frozen marketing route: standard and strict use fidelity, terminology, product context, brand voice, risk/ambiguity and fluency; lightweight remains narrow
+- Public invariants: exact five tools, review-only, current defaults and budgets 6/13/18
+- Main Worker: Codex in a separate conversation; implementation subagents forbidden because the packages share guided/orchestration/role/digest boundaries
+- Commit policy: three to five scoped local commits; no push, PR, release, deployment, credentials or live provider calls
+- Required report: `harness/reports/CAMPAIGN-006-r1-worker.md`; required ledger: `harness/reports/CAMPAIGN-006-r1-ledger.md`
+
 ## Next step
 
-Run the pinned normal-user Goose Q-009 recipe against protected-main commit `e2e2ba34dc890591a66d60b86e1373eb0316e80b`. Do not mark Q-009 accepted until the first user-visible answer and its persisted record have both been independently reviewed.
+Start a separate Codex Main Worker conversation at exact baseline `755aea681b64283a4cb369817d17b3e52c0973a0`. Execute only `harness/contracts/CAMPAIGN-006-r1.md`, preserve Foreman/user assets, write the required ledger/report, make only scoped local commits and stop at `READY_FOR_REVIEW` or `BLOCKED` without pushing.

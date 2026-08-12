@@ -329,6 +329,61 @@
         "The accepted live-shaped clean fixture produces concise natural Chinese with no procedural counters or implementation-heavy evidence",
         "Fresh artifacts, full regressions and a pinned normal-user Goose Q-009 revalidation recipe are delivered"
       ]
+    },
+    {
+      "id": "F-030",
+      "name": "Relevant panoramic marketing Council",
+      "status": "planned",
+      "accepted_by": null,
+      "criteria": [
+        "Standard marketing activates exactly six relevant lenses: fidelity, terminology, product context, brand voice, risk ambiguity and fluency",
+        "Lightweight remains explicitly narrower and strict never loses a standard marketing lens",
+        "Role routing stays deterministic, registry-backed and within the unchanged 6/13/18 budgets"
+      ]
+    },
+    {
+      "id": "F-031",
+      "name": "Material context before wording outcomes",
+      "status": "planned",
+      "accepted_by": null,
+      "criteria": [
+        "Brand-versus-functional usage and binding slogan or terminology questions are selected as material even when reviewer prose varies",
+        "Material context elicitation and affected-role reconsideration occur before discussion and outcome selection",
+        "Answered, duplicate, generic, immaterial and question-limit provenance remains bounded and truthful"
+      ]
+    },
+    {
+      "id": "F-032",
+      "name": "Context confidence and disposition coherence",
+      "status": "planned",
+      "accepted_by": null,
+      "criteria": [
+        "Unresolved material context lowers effective confidence and cannot produce an unqualified publishable completion",
+        "Declined, unsupported, malformed or assumption-only context prevents premature wording elicitation and requires human review",
+        "Actual context answers may continue through bounded reconsideration and a valid user outcome without weakening Policy Gate authority"
+      ]
+    },
+    {
+      "id": "F-033",
+      "name": "Context-first process presentation integrity",
+      "status": "planned",
+      "accepted_by": null,
+      "criteria": [
+        "Primary text shows unresolved material context as a blind spot or required confirmation, not as a completed user decision",
+        "Issue labels and punctuation are natural Chinese with no raw ux token or doubled full-stop-semicolon sequence",
+        "Raw V2.2 runtime and role facts remain internally consistent while no duplicate diagnostic fact sheet or sixth tool is added"
+      ]
+    },
+    {
+      "id": "F-034",
+      "name": "V0.8 context-coherent Council migration",
+      "status": "planned",
+      "accepted_by": null,
+      "criteria": [
+        "Package/module 0.8.0 and diagnostic build context-coherent-council-v6 preserve schema 2.2, five tools and 6/13/18 budgets",
+        "Fresh artifacts, full regression and current FastMCP installed-wheel smoke pass",
+        "Pinned live recipes cover a clean marketing slogan and a deliberately mixed marketing-versus-UI context"
+      ]
     }
   ],
   "quality_gates": [
@@ -376,6 +431,11 @@
       "id": "Q-009",
       "name": "V0.6 process-first digest usability evidence",
       "status": "changes_requested"
+    },
+    {
+      "id": "Q-010",
+      "name": "Context-coherent panoramic Council live evidence",
+      "status": "planned"
     }
   ]
 }
