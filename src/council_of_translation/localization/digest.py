@@ -49,6 +49,16 @@ _ROLE_ID = re.compile(
     + r")(?![A-Za-z0-9_])",
     re.IGNORECASE,
 )
+_PRIMARY_VOCABULARY = (
+    (re.compile(r"(?<![A-Za-z0-9_])effective\s+brief(?![A-Za-z0-9_])", re.IGNORECASE), "有效背景"),
+    (re.compile(r"(?<![A-Za-z0-9_])preflight(?![A-Za-z0-9_])", re.IGNORECASE), "技术预检"),
+    (re.compile(r"(?<![A-Za-z0-9_])placeholder_parity(?![A-Za-z0-9_])", re.IGNORECASE), "占位符一致性"),
+    (re.compile(r"(?<![A-Za-z0-9_])tag_integrity(?![A-Za-z0-9_])", re.IGNORECASE), "标签完整性"),
+    (re.compile(r"(?<![A-Za-z0-9_])context(?![A-Za-z0-9_])", re.IGNORECASE), "上下文"),
+    (re.compile(r"(?<![A-Za-z0-9_])policy\s+gate(?![A-Za-z0-9_])", re.IGNORECASE), "约束审查"),
+    (re.compile(r"(?<![A-Za-z0-9_])position\s+matrix(?![A-Za-z0-9_])", re.IGNORECASE), "证据矩阵"),
+    (re.compile(r"(?<![A-Za-z0-9_])council\s+fallback(?![A-Za-z0-9_])", re.IGNORECASE), "委员会回退裁决"),
+)
 
 
 def _semantic_key(value: str) -> str:
@@ -281,8 +291,9 @@ _NO_OP_PREFIXES = (
 
 def _sanitize_primary_text(value: str) -> str:
     """Remove implementation identifiers without erasing ordinary translation tokens."""
-    text = re.sub(r"policy\s+gate", "约束审查", value, flags=re.IGNORECASE)
-    text = re.sub(r"position\s+matrix", "证据矩阵", text, flags=re.IGNORECASE)
+    text = value
+    for pattern, replacement in _PRIMARY_VOCABULARY:
+        text = pattern.sub(replacement, text)
     text = _ROLE_ID.sub(lambda match: _ROLE_ID_LABELS[match.group(0).casefold()], text)
     text = _INTERNAL_ENTITY_ID.sub("内部引用", text)
     return _INTERNAL_IMPLEMENTATION_LABEL.sub("内部信息", text)
@@ -306,15 +317,47 @@ def _section(title: str, values: list[str]) -> list[str]:
     return [f"## {title}", *(f"- {value}" for value in values)] if values else []
 
 
+def _is_canonical_procedural_synthesis(value: str) -> bool:
+    """Identify only the chief's generated adjudication-counter boilerplate."""
+    text = re.sub(r"\s+", " ", str(value)).strip()
+    return bool(
+        re.search(r"(?:policy\s+gate|约束审查)", text, re.IGNORECASE)
+        and re.search(r"用户有效选择\s*\d+\s*项", text)
+        and re.search(r"(?:council\s+fallback|委员会回退裁决)\s*\d+\s*项", text, re.IGNORECASE)
+        and re.search(r"人工复核\s*\d+\s*项", text)
+        and re.search(r"未使用(?:票数)?多数", text)
+    )
+
+
+def _is_clean_role_lens(lens: RoleLens) -> bool:
+    perspective = re.sub(r"\s+", " ", lens.perspective or lens.disposition).strip()
+    return (
+        (perspective.startswith("围绕") and "确认当前译文可接受" in perspective)
+        or perspective.startswith("未发现职责范围内的实质问题")
+        or perspective.startswith("结构化评审不可用")
+    )
+
+
+def _whole_optional_evidence(values: list[str], maximum: int = 80) -> str:
+    """Return one complete evidence item or omit it; never create a fragment."""
+    for value in values:
+        text = re.sub(r"\s+", " ", str(value)).strip()
+        text = _sanitize_primary_text(text)
+        if text and len(text) <= maximum:
+            return text
+    return ""
+
+
 def _role_lines(digest: ProcessDigestV2) -> list[str]:
     lines: list[str] = []
     for lens in digest.role_lenses[:8]:
         role = ROLE_REGISTRY.get(lens.role_id)
         label = role.display_name if role else "未识别专业角色"
-        perspective = _human_line(lens.perspective or lens.disposition, 120)
-        evidence = _material(lens.evidence, maximum=1)
-        suffix = f"；依据：{_human_line(evidence[0], 80)}" if evidence else ""
-        lines.append(_human_line(f"{label}：{perspective}{suffix}", 150))
+        evidence = "" if _is_clean_role_lens(lens) else _whole_optional_evidence(lens.evidence)
+        suffix = f"；依据：{evidence}" if evidence else ""
+        perspective_limit = max(40, 150 - len(label) - 1 - len(suffix))
+        perspective = _human_line(lens.perspective or lens.disposition, perspective_limit)
+        lines.append(f"{label}：{perspective}{suffix}")
     return lines
 
 
@@ -347,7 +390,10 @@ def render_display_report(
         *_material(digest.reconsideration_changes, maximum=2),
     ]
 
-    conclusion = _material(digest.editor_synthesis, maximum=2)
+    conclusion = _material([
+        value for value in digest.editor_synthesis
+        if not _is_canonical_procedural_synthesis(value)
+    ], maximum=2)
     checklist = _material(digest.execution_checklist_final_disposition, maximum=6)
     final = next((item for item in reversed(checklist) if item.startswith("最终处置：")), "")
     conclusion.extend(item for item in checklist if item != final)
@@ -371,5 +417,14 @@ def render_display_report(
         return report
 
     final_line = f"- {_human_line(final)}"
-    available = 3_200 - len(final_line) - 1
-    return report[:available].rstrip() + "\n" + final_line
+    retained: list[str] = []
+    used = 0
+    for line in report.splitlines():
+        if line == final_line:
+            continue
+        added = len(line) + (1 if retained else 0)
+        if used + added + 1 + len(final_line) > 3_200:
+            break
+        retained.append(line)
+        used += added
+    return "\n".join([*retained, final_line])
