@@ -116,6 +116,8 @@ def test_continuation_preserves_partial_parent_coverage_and_cannot_clear_human_r
         "problem": "wording choice",
         "evidence": "observable wording evidence",
         "action": action,
+        "finding_kind": "choice",
+        "proposed_value": action,
         "confidence": 0.8,
     }
     parent_script = [

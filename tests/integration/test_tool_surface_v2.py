@@ -9,6 +9,7 @@ from council_of_translation.server import mcp
 from council_of_translation.localization.models import DecisionOption, DecisionPoint
 from council_of_translation.localization.orchestration import (
     _decisions_from_elicitation,
+    _form_mapping,
     _interaction_form,
     _interaction_message,
 )
@@ -138,18 +139,19 @@ def test_batched_form_schema_and_fastmcp_conversion_expose_described_enums():
     fastmcp_schema = get_elicitation_schema(form)
 
     for point in points:
-        expected = [option.option_id for option in point.options]
+        expected = list(_form_mapping(point))
         field = pydantic_schema["properties"][point.decision_id]
         assert field["enum"] == expected
         assert point.question in field["description"]
         assert all(option.label in field["description"] for option in point.options)
         assert fastmcp_schema["properties"][point.decision_id]["enum"] == expected
+        assert all(option.option_id not in field["description"] for option in point.options)
     message = _interaction_message(points)
     assert all(point.question in message for point in points)
     assert all(
-        option.option_id in message and option.label in message and option.description in message
+        option.option_id not in message and option.label in message and option.description in message
         for point in points
-        for option in point.options
+    for option in point.options
     )
 
 

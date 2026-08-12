@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import hashlib
 import json
 import re
 from time import perf_counter
@@ -130,7 +131,7 @@ def _review_findings(
             )
         except (ValidationError, TypeError, ValueError):
             return "评审响应包含无效 finding；已丢弃该样本的全部 findings。", [], "invalid_finding_value"
-        if not (finding.problem or finding.action):
+        if not (finding.problem or finding.action or finding.proposed_value):
             return "评审响应包含空 finding；已丢弃该样本的全部 findings。", [], "inert_finding"
         findings.append(finding)
 
@@ -139,15 +140,38 @@ def _review_findings(
     return role_feedback, findings, ""
 
 
+def _safe_form_value(decision_id: str, option_id: str) -> str:
+    digest = hashlib.sha256(f"{decision_id}\x1f{option_id}".encode("utf-8")).hexdigest()[:12]
+    return f"choice_{digest}"
+
+
+def _delegate_form_value(decision_id: str) -> str:
+    digest = hashlib.sha256(f"{decision_id}\x1fdelegate".encode("utf-8")).hexdigest()[:12]
+    return f"delegate_{digest}"
+
+
+def _form_mapping(point: Any) -> dict[str, Any | None]:
+    ordered = sorted(
+        [option for option in point.options if option.valid and not option.is_delegation],
+        key=lambda option: not option.is_current_candidate,
+    )[:3]
+    mapping = {
+        _safe_form_value(point.decision_id, option.option_id): option
+        for option in ordered
+    }
+    mapping[_delegate_form_value(point.decision_id)] = None
+    return mapping
+
+
 def _interaction_form(decision_points: list) -> type:
     fields: dict[str, tuple[Any, Any]] = {}
-    for point in decision_points:
-        options = valid_options(point)
-        option_type = Literal.__getitem__(tuple(options))
+    for point in decision_points[:3]:
+        mapping = _form_mapping(point)
+        option_type = Literal.__getitem__(tuple(mapping))
         mapping = "; ".join(
-            f"{option.option_id} = {option.label}（{option.description or option.label}）"
-            for option in point.options
-            if option.valid
+            f"{value} = {option.label if option else '暂不决定，由 Council 裁决'}"
+            f"（{option.description if option else '由证据加权 Position Matrix 裁决'}）"
+            for value, option in _form_mapping(point).items()
         )
         fields[point.decision_id] = (
             option_type,
@@ -158,29 +182,51 @@ def _interaction_form(decision_points: list) -> type:
 
 def _interaction_message(decision_points: list) -> str:
     lines = ["Council 发现以下均满足硬约束的选择，请在一个表单中决定："]
-    for point in decision_points:
+    for point in decision_points[:3]:
         lines.append(f"- {point.question}")
-        for option in point.options:
-            if option.valid:
+        for option in _form_mapping(point).values():
+            if option is not None:
                 lines.append(
-                    f"  - {option.option_id}: {option.label} — {option.description or option.label}"
+                    f"  - {option.label} — {option.description or option.label}"
                 )
+        lines.append("  - 暂不决定，由 Council 裁决 — 由证据加权 Position Matrix 裁决")
     return "\n".join(lines)
 
 
 def _decisions_from_elicitation(decision_points: list, result: ElicitationResult) -> list[UserDecision]:
+    points = decision_points[:3]
+    if result.action == "accept":
+        expected = {point.decision_id for point in points}
+        values = list(result.data.values())
+        malformed = (
+            set(result.data) != expected
+            or any(not isinstance(value, str) for value in values)
+            or len(values) != len(set(values))
+        )
+        if not malformed:
+            malformed = any(
+                result.data[point.decision_id] not in _form_mapping(point)
+                for point in points
+            )
+        if malformed:
+            return [
+                UserDecision(decision_id=point.decision_id, elicitation_action="malformed")
+                for point in points
+            ]
     decisions: list[UserDecision] = []
-    for point in decision_points:
-        selected = str(result.data.get(point.decision_id, "")) if result.action == "accept" else ""
+    for point in points:
+        selected = result.data.get(point.decision_id, "") if result.action == "accept" else ""
         action = result.action
         if action == "error":
             action = "malformed"
-        if action == "accept" and selected not in valid_options(point):
-            action = "malformed"
+        option = _form_mapping(point).get(selected) if action == "accept" else None
+        if action == "accept" and selected == _delegate_form_value(point.decision_id):
+            action = "delegate"
         decisions.append(
             UserDecision(
                 decision_id=point.decision_id,
-                selected_option_id=selected,
+                selected_option_id=option.option_id if option is not None else "",
+                selected_outcome_value=option.outcome_value or option.label if option is not None else "",
                 elicitation_action=action,
                 provenance="mcp_elicitation",
             )
@@ -318,7 +364,11 @@ async def run_structured_review(
     if reviewer_coverage != "full":
         telemetry.record(RuntimeEvent("fallback", f"reviewer_coverage_{reviewer_coverage}"))
 
-    clusters = cluster_findings(all_findings, preflight)
+    clusters = cluster_findings(
+        all_findings,
+        preflight,
+        current_candidate=task.candidate_translation,
+    )
     discussion_issues = select_discussion_issues(clusters, task.mode) if plan.discussion_enabled else []
     discussion_rounds = []
     if discussion_issues and budget.remaining:
@@ -350,11 +400,20 @@ async def run_structured_review(
             )
             user_decisions = _decisions_from_elicitation(decision_points, elicited)
             action = elicited.action
-        if any(decision.elicitation_action != "accept" for decision in user_decisions):
+        failed_actions = [
+            decision.elicitation_action
+            for decision in user_decisions
+            if decision.elicitation_action not in {"accept", "delegate"}
+        ]
+        delegated = any(decision.elicitation_action == "delegate" for decision in user_decisions)
+        if failed_actions:
             fallback_reason = f"user_interaction_{action}"
             telemetry.record(RuntimeEvent("fallback", fallback_reason))
             if task.decision_fallback == "return_pending":
                 returned_pending = True
+        elif delegated:
+            fallback_reason = "user_delegated_to_council"
+            telemetry.record(RuntimeEvent("fallback", fallback_reason))
 
     reconsiderations = [] if returned_pending else await _reconsider(
         task, clusters, user_decisions, executor, telemetry, budget
