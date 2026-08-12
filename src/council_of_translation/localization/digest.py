@@ -58,6 +58,7 @@ _PRIMARY_VOCABULARY = (
     (re.compile(r"(?<![A-Za-z0-9_])policy\s+gate(?![A-Za-z0-9_])", re.IGNORECASE), "约束审查"),
     (re.compile(r"(?<![A-Za-z0-9_])position\s+matrix(?![A-Za-z0-9_])", re.IGNORECASE), "证据矩阵"),
     (re.compile(r"(?<![A-Za-z0-9_])council\s+fallback(?![A-Za-z0-9_])", re.IGNORECASE), "委员会回退裁决"),
+    (re.compile(r"(?<![A-Za-z0-9_])ux(?![A-Za-z0-9_])", re.IGNORECASE), "用户体验"),
 )
 
 
@@ -225,10 +226,6 @@ def build_process_digest(
     for gap in context_gaps:
         if gap.disposition == "answered":
             gap_lines.append(f"{gap.question} → 已回答：{gap.answer}")
-        elif gap.disposition == "suppressed":
-            gap_lines.append(f"{gap.question} → 已抑制（{gap.reason}）")
-        else:
-            gap_lines.append(f"{gap.question} → 未回答")
 
     decision_lines = []
     for decision in user_decisions:
@@ -302,6 +299,8 @@ def _sanitize_primary_text(value: str) -> str:
 def _human_line(value: str, maximum: int = 120) -> str:
     text = re.sub(r"\s+", " ", str(value)).strip()
     text = _sanitize_primary_text(text)
+    text = re.sub(r"。+\s*；", "；", text)
+    text = re.sub(r"；{2,}", "；", text)
     return text if len(text) <= maximum else text[: maximum - 1].rstrip() + "…"
 
 
@@ -357,7 +356,9 @@ def _role_lines(digest: ProcessDigestV2) -> list[str]:
         suffix = f"；依据：{evidence}" if evidence else ""
         perspective_limit = max(40, 150 - len(label) - 1 - len(suffix))
         perspective = _human_line(lens.perspective or lens.disposition, perspective_limit)
-        lines.append(f"{label}：{perspective}{suffix}")
+        if suffix:
+            perspective = perspective.rstrip("。；; ")
+        lines.append(_human_line(f"{label}：{perspective}{suffix}", 150))
     return lines
 
 
