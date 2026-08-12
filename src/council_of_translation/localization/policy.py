@@ -33,7 +33,11 @@ _TIER_WEIGHT = {"hard": 1.6, "contextual": 1.25, "preference": 0.9, "advisory": 
 
 
 def valid_options(point: DecisionPoint) -> dict[str, str]:
-    return {option.option_id: option.label for option in point.options if option.valid}
+    return {
+        option.option_id: option.outcome_value or option.label
+        for option in point.options
+        if option.valid and not option.is_delegation
+    }
 
 
 def policy_gate(
