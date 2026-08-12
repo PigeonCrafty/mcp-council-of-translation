@@ -4,9 +4,9 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-003-r2`
+- Campaign: `CAMPAIGN-004-r2`
 - Campaign state: `ACCEPTED / CLOSED`
-- Accepted implementation HEAD: `9dac21dd3cee9d9a299786e8cdec525f28a0c517`
+- Accepted implementation HEAD: `3779a78a9788018082470408fdd4d87a042985dc`
 - Last updated: 2026-08-12 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -24,6 +24,8 @@
 - Q-007 is accepted by `harness/evaluations/CAMPAIGN-002-q007-live-review.md`. Live record `20260812T084202537834Z_bebbb7a76fc3` verified explicit Council delegation; record `20260812T084744453115Z_3864366de2b0` verified a valid user outcome, three requested/completed affected-role reconsiderations, 10/10 sampling, clean completion, and final user authority.
 - Campaign 002 is closed. V0.5 is the accepted functional foundation for Campaign 003 and must not be reimplemented or weakened.
 - Campaign 003 V0.6 implementation is accepted at `9dac21dd3cee9d9a299786e8cdec525f28a0c517` by `harness/evaluations/CAMPAIGN-003-r2-review.md`. F-017 through F-022 are accepted. Independent final evidence includes the corrected deterministic briefing predicate, 11 focused passes, 184 full passes, a real Core briefing path, exact five-tool/version/schema/budget probes and fresh 0.6.0 artifacts.
+- V0.6 is published on protected `main` through PR #5 at `b601cf93f452a8e574e3c15a4a9c236cf8142ce1`; all six required Windows/Linux Python checks passed.
+- Q-008 is accepted and Q-009 is `changes_requested` by `harness/evaluations/CAMPAIGN-003-q008-q009-live-review.md`. Live record `20260812T113302675410Z_611c7d32146e` proved pre-sampling briefing and six-role process generation, but normal Goose initially displayed only diagnostic fields and required a second prompt to reveal a long repetitive `display_report`.
 
 ## Live V0.4 usability findings
 
@@ -74,16 +76,47 @@ The Worker may create only the active Campaign ledger and report under `harness/
 - Execution ledger: not required for this one-package correction
 - Worker report: `harness/reports/CAMPAIGN-003-r2-worker.md`
 - Accepted implementation HEAD: `9dac21dd3cee9d9a299786e8cdec525f28a0c517`
-- Publication status: local only; not yet pushed after Campaign acceptance
-- Remaining validation: Q-008 source/target-only live Goose briefing and Q-009 process-first digest usability
+- Publication status: published through PR #5 at protected-main commit `b601cf93f452a8e574e3c15a4a9c236cf8142ce1`
+- Live validation: Q-008 accepted; Q-009 changes requested and is the user-facing target of Campaign 004
+
+## Frozen V0.7 presentation decisions
+
+- Package/module target: `0.7.0`; diagnostic build: `concise-council-display-v5`; record schema remains `2.2`.
+- Keep exactly five tools, review-only defaults, existing inputs, user authority, Policy Gate, 6/13/18 budgets and all V0.6 persistence compatibility.
+- Use FastMCP dual-channel results: concise Markdown is primary MCP text content; the existing compact/full dictionary remains structured content.
+- Apply primary text presentation to `review_translation`, `continue_review` and `view_review_record`; diagnostics/list tools remain structured utilities.
+- Default human report is Chinese, process-first and five sections or fewer: review brief; professional lenses; consensus/disagreement/blind spots; decisions/reconsideration only when present; chief conclusion last.
+- Preserve one concise lens for every active role. Target each lens at 120 characters and include an evidence anchor only when it adds distinct value.
+- Clean six-role output targets 1,800 characters; every default report has a hard 3,200-code-point cap. Full evidence remains available through structured content and full record retrieval.
+- Positive affirmations contribute to truthful consensus. Role count is coverage evidence, never voting authority.
+- Empty context-gap, decision, reconsideration and minority sections are omitted or compressed into one short statement; material dissent, blockers, gaps, degradation and unavailable roles are never hidden.
+- No internal IDs, English implementation headings, raw model prose, chain-of-thought or unnecessary Policy Gate counters appear in primary text.
+
+## Campaign 004 assignment
+
+- r1 decision: `CHANGES_REQUESTED` by `harness/evaluations/CAMPAIGN-004-r1-review.md`
+- r1 implementation HEAD: `ff0e345ff174f1f39741bbb47979aa51e277ca52`
+- Preserved r1 evidence: PKG-023 through PKG-025; PKG-026 field mapping/privacy/layering/bounds; PKG-027 public diagnostics, docs, fresh artifacts and FastMCP 2.13.0.2/3.4.7 dual-channel wheel smoke
+- r1 independent verification: 19 authorized files, 14 protected hashes exact, compile pass and `196 passed`; two acceptance counterexamples reproduced
+- Active correction contract: `harness/contracts/CAMPAIGN-004-r2.md`
+- Main Worker: Codex in a separate new conversation
+- r1 ledger/report: `harness/reports/CAMPAIGN-004-r1-ledger.md`, `harness/reports/CAMPAIGN-004-r1-worker.md`
+- r2 report: `harness/reports/CAMPAIGN-004-r2-worker.md`; no new ledger required
+- r2 scope: correct V0.7 metadata-only history identifiers and case-insensitive internal-ID sanitization only
+- Commit policy: at most two scoped local commits; no push, PR, release, deployment, credentials or live provider calls
+- Subagents: forbidden for the bounded correction
+- r2 decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-004-r2-review.md`
+- F-023 through F-027: accepted by `CAMPAIGN-004-r2`
+- Independent r2 evidence: four authorized files, all protected hashes exact, compile pass, `27 passed` focused, `198 passed` full, real metadata/privacy probe, standalone-ID adversarial probe and exact FastMCP five-tool diagnostics
+- Accepted Campaign 004 implementation: `3779a78a9788018082470408fdd4d87a042985dc`
+- Archive state: Campaign contracts, Worker evidence, Foreman reviews and acceptance state are closed and ready for the Foreman archival commit.
 
 ## Current risks
 
-1. Multiple elicitation checkpoints must remain bounded and must not make ordinary source/target-only reviews feel like a questionnaire maze.
-2. Goose controls actual form rendering, so production schemas and display text must be independently verified without assuming a custom client UI.
-3. Adaptive context-gap reconsideration can consume the expanded standard budget; deterministic tests prove the 13-call reference path, while live Goose/provider behavior remains to be observed.
-4. Process visibility must expose structured claims and evidence without turning into duplicated reviewer prose or hidden chain-of-thought.
+1. Goose still owns final chat rendering; Q-009 requires real normal-user evidence after publication.
+2. FastMCP 2.13 emits the previously disclosed upstream Authlib deprecation warning, although r1 compatibility smoke passed.
+3. No live provider behavior is claimed by Campaign 004 acceptance.
 
 ## Next step
 
-Commit the Foreman-owned Campaign 003 acceptance assets, publish the accepted commits through the protected-main workflow, then run pinned-commit Goose tests for Q-008 and Q-009. Do not mark either live gate accepted without inspecting real persisted records and user-visible interaction evidence.
+Create one Foreman-owned archival commit containing the accepted Campaign 004 contracts, reports, evaluations and state assets without including user `.learnings/**`, `reviews/**` or the audit Markdown. Publish the accepted implementation through the protected-main workflow, then run and independently review the pinned normal-user Goose Q-009 recipe.
