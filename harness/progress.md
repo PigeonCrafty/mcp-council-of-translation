@@ -4,63 +4,77 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-001-r5`
+- Campaign: `CAMPAIGN-002-r3`
 - Campaign state: `ACCEPTED / LIVE_VALIDATION_PENDING`
-- Source baseline: `34d41946717f1993b8954260afc893737198a3bb`
+- Campaign root baseline: `824559afd68f170758837769b1d1d19df991db4b`
+- Correction baseline: `f7a4f23865383d52dede37f95de091932918090c`
 - Last updated: 2026-08-12 Asia/Shanghai
 - Completion authority: Foreman only
 
 ## Accepted state
 
-- V0.3.0 remains the published remote baseline.
-- The cumulative V0.4.0 implementation is accepted at `3267259d335b87424bc2d24adb08f94697c484ec`. Its Harness acceptance archive was committed at `c5f62a7a5c524f20fa2f424df1f5b99c5ee39975` and pushed to remote branch `v0.4-structured-deliberation`; protected `origin/main` remains unchanged.
-- Foreman baseline syntax check on 2026-08-11: `python -m compileall src tests` passed with exit code 0.
-- The DeepSeek reasoning-first MCP sampling issue was fixed in the user's Goose installation and published separately to `aaif-goose/goose#11092`; that external Goose patch is not part of this repository Campaign.
-- All ten V0.4 feature items and local automated quality gates Q-001, Q-002, Q-004, Q-005, and Q-006 are accepted by the Foreman.
-- Campaign r1 was independently reviewed at short commit `8a2531e` and received `CHANGES_REQUESTED`; accepted package evidence is preserved in `harness/evaluations/CAMPAIGN-001-r1-review.md` but no overall V0.4 acceptance has been issued.
-- The r2 correction attempt made no implementation changes and closed as `CHANGES_REQUESTED` because the Foreman supplied a nonexistent expanded SHA. The verified full candidate baseline is `8a2531e91a42a1523e83d374b84553907a5e3e94`.
-- Campaign r3 repaired the option/form/discussion/policy-output/metadata paths at `d9eca22`, but Foreman review found two remaining untrusted-model gaps: duplicate same-role Positions multiply influence, and total reviewer sampling failure is misreported as a clean publishable review. r3 therefore closed as `CHANGES_REQUESTED`; passing evidence is preserved in `harness/evaluations/CAMPAIGN-001-r3-review.md`.
-- Campaign r4 at `6978c7b` repaired both r3 defects and passed all 99 tests, but independent Foreman probes found that syntactically valid malformed reviewer envelopes (`{}`, non-list `findings`, invalid finding values) are still counted as full clean coverage or can raise an uncaught validation exception. r4 therefore closed as `CHANGES_REQUESTED`; its passing evidence is preserved in `harness/evaluations/CAMPAIGN-001-r4-review.md`.
-- Campaign r5 at `3267259` closed the semantic reviewer-envelope gap. Foreman independently inspected all six changed paths, reran 117 tests, verified the malformed/mixed/clean Core matrix, and accepted r5. No further code correction revision is active.
+- V0.4.0 is published on protected `main` at `824559afd68f170758837769b1d1d19df991db4b` through PR #2; the required main-branch checks passed.
+- All ten V0.4 feature items F-001 through F-010 and local quality gates Q-001, Q-002, Q-004, Q-005, and Q-006 are accepted. The final independent review is `harness/evaluations/CAMPAIGN-001-r5-review.md`.
+- The accepted automated baseline contains 117 passing tests, exact five-tool introspection, package/module version `0.4.0`, diagnostic build `structured-deliberation-v2`, review-only behavior, and 6/10/14 sampling budgets.
+- The DeepSeek reasoning-first MCP sampling compatibility repair was validated by the user in normal Goose and is external to this repository Campaign.
+- A real Goose end-to-end V0.4 run completed successfully and persisted record `20260812T060954605875Z_1d988172bd1f` with full six-role coverage, no reviewer parse failures, a DecisionPoint, elicitation acceptance, reconsideration, adjudication, and retrievable full trace.
+- That live evidence satisfies one Goose interactive path but does not establish both Desktop and CLI behavior; Q-003 is therefore `partial_live_evidence`, not fully accepted.
+- Campaign 002 V0.5 implementation is accepted at `ca3d24afdc8feaa65286b13c6118720809749436`; F-011 through F-016 are accepted by `CAMPAIGN-002-r3`.
+- Independent r3 acceptance evidence includes compile success, 159 passing tests, 36 focused regressions, production counterexample probes, a fresh `0.5.0` sdist/wheel, and isolated FastMCP 3.4.7 wheel smoke.
+
+## Live V0.4 usability findings
+
+The accepted live record is the primary counterexample for Campaign 002:
+
+- The standard MCP client correctly rendered one batched form and one submit button; this is expected behavior and is not a protocol defect.
+- Four choices were verbose, overlapping reviewer `action` strings rather than mutually exclusive translation outcomes such as keeping `继续` versus using `下一步`.
+- Internal option identifiers and dense descriptions made the form difficult to scan.
+- The selected option caused only three of four participant roles to reconsider because the standard 10-call budget was exhausted; `reconsideration_budget_unavailable` was stored while the review still appeared unqualified `COMPLETED`.
+- The compact result did not make the effective normalized task, decision rationale, degraded reconsideration, or Council process sufficiently visible.
+- The actual record normalized `content_type` to `unspecified` and `audience` to an empty value despite the outer test prompt describing UI context, so effective inputs must be visible in the compact result.
+- A clean semantic affirmation was surfaced as an optional improvement, showing that positive confirmation and actionable issues need distinct representation.
 
 ## Protected baseline changes
 
-The Main Worker must preserve and must not stage, edit, delete, move, or commit:
+The Campaign starts from exact Git commit `824559afd68f170758837769b1d1d19df991db4b`. The following Foreman/user assets may be dirty and are protected. The Worker must preserve them and must not stage, edit, delete, move, or commit them:
 
 - `mcp-council-of-translation-audit-and-upgrade-recommendations.md`
 - `reviews/`
 - `.learnings/`
-- Foreman-owned `harness/plan.md`, `harness/features.json`, `harness/progress.md`, and issued contracts
+- Foreman-owned `harness/plan.md`, `harness/features.json`, `harness/progress.md`, and all issued contracts/evaluations
+- `myTest/` if it appears
 
-The Main Worker may create only the ledger and report paths authorized by the active contract under `harness/reports/`.
+The Worker may create only the active Campaign ledger and report under `harness/reports/`. Production, test, and documentation paths are limited by the active contract.
 
-## Frozen decisions
+## Frozen V0.5 decisions
 
-- Goose-first execution target.
-- Review-only boundary remains mandatory.
-- Default interaction mode is `auto`.
-- User choice is decisive among valid options.
-- No literal majority voting; no-response fallback is constraint-aware Position Matrix adjudication.
-- Maximum three DecisionPoints in one elicitation form.
-- Full history is the default, but default tool output is a compact chief-editor summary.
-- `continue_review` is the only new public MCP tool.
-- Value takes priority over exact V0.3 response compatibility; V1 records remain readable.
-- Custom MCP UI is outside V0.4.
+- Target package/module version: `0.5.0`; diagnostic build: `outcome-first-decision-v3`; record schema: `2.1`.
+- Goose-first, review-only, exact five public tools, `interactive_mode=auto`, one standard batched elicitation form, and no custom MCP UI.
+- User-facing choices are concise, mutually exclusive translation outcomes. Raw reviewer action prose remains evidence, not an option value.
+- An explicit `暂不决定，由 Council 裁决` option is always available in interactive decisions.
+- User choice is decisive only among Policy-Gate-valid options. Council fallback remains evidence-weighted adjudication rather than majority voting.
+- Reconsider only contrary or materially affected roles. Preserve 6/10/14 budgets initially and make budget degradation truthful.
+- Compact results expose effective task, bounded deliberation summary, decision, degraded state, and warnings; full structured trace remains on demand.
+- V1 and V2.0 records remain readable. New V2.1 full and metadata persistence retain the established privacy contract.
 
-## Active assignment
+## Campaign 002 disposition
 
-- Contract: none; `harness/contracts/CAMPAIGN-001-r5.md` is accepted
-- Worker role: none
-- Accepted Worker report: `harness/reports/CAMPAIGN-001-r5-worker.md`
-- Prior execution ledger: `harness/reports/CAMPAIGN-001-r1-ledger.md`
-- Foreman reviews: `harness/evaluations/CAMPAIGN-001-r1-review.md`, `harness/evaluations/CAMPAIGN-001-r2-review.md`, `harness/evaluations/CAMPAIGN-001-r3-review.md`, `harness/evaluations/CAMPAIGN-001-r4-review.md`, `harness/evaluations/CAMPAIGN-001-r5-review.md`
+- r1 and r2 Foreman decisions: `CHANGES_REQUESTED`; r3 Foreman decision: `ACCEPTED`.
+- Accepted correction contract: `harness/contracts/CAMPAIGN-002-r3.md`
+- Final implementation commit: `ca3d24afdc8feaa65286b13c6118720809749436`
+- Foreman review: `harness/evaluations/CAMPAIGN-002-r3-review.md`
+- Worker report: `harness/reports/CAMPAIGN-002-r3-worker.md`
+- Preserved r2 report: `harness/reports/CAMPAIGN-002-r2-worker.md`
+- Preserved r1 ledger/report: `harness/reports/CAMPAIGN-002-r1-ledger.md`, `harness/reports/CAMPAIGN-002-r1-worker.md`
+- Prior accepted review: `harness/evaluations/CAMPAIGN-001-r5-review.md`
+- Commit policy: scoped local commits required; no push, PR, release, deployment, credential, or Goose installation mutation
 
 ## Current risks
 
-1. Live Goose/provider behavior for the accepted V0.4 flow remains unverified; Q-003 is pending.
-2. Protected `origin/main` remains on V0.3 because direct updates require six status checks; the remote V0.4 test branch is available for git-pinned `uvx` testing.
-3. Host uv cache and default pytest temp roots retain access defects; the existing `.venv` runs the complete 117-test suite successfully.
+1. V0.5 live provider/Goose decision-form UX has not yet been exercised; Q-007 remains `pending_live_validation`.
+2. The accepted implementation and Foreman-owned Campaign assets have not yet been pushed through the protected-branch workflow.
+3. Q-003 remains partial because one V0.4 Goose interactive run does not establish both Desktop and CLI behavior.
 
 ## Next step
 
-No r6 implementation assignment is required. Run Goose against the exact pushed test-branch SHA, record Q-003 evidence, then use the protected-branch PR/status-check path before claiming release-level completion.
+After user authorization, commit the Foreman-owned acceptance assets and push the accepted V0.5 history through the repository's protected-branch workflow. Then run a pinned-commit live Goose interaction test and review its evidence before marking Q-007 or the V0.5 release complete.

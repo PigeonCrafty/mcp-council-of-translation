@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.4.0",
-  "active_campaign": "CAMPAIGN-001-r5",
+  "target_version": "0.5.0",
+  "active_campaign": "CAMPAIGN-002-r3",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "34d41946717f1993b8954260afc893737198a3bb",
+  "source_baseline": "824559afd68f170758837769b1d1d19df991db4b",
   "features": [
     {
       "id": "F-001",
@@ -120,6 +120,72 @@
         "Context updates and preferences trigger only affected roles",
         "Default responses are compact and the full trace remains retrievable"
       ]
+    },
+    {
+      "id": "F-011",
+      "name": "V2.1 outcome-first data contracts",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-002-r3",
+      "criteria": [
+        "Finding kind and proposed outcome are represented explicitly without treating clean affirmations as issues",
+        "Decision options carry stable internal IDs, normalized outcome values and concise user-facing labels",
+        "V1 and V2.0 records remain readable while new V2.1 records preserve full and metadata privacy contracts"
+      ]
+    },
+    {
+      "id": "F-012",
+      "name": "Mutually exclusive outcome normalization",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-002-r3",
+      "criteria": [
+        "Selectable options are concrete translation outcomes rather than raw reviewer action strings",
+        "Equivalent proposed outcomes collapse across roles and cannot multiply influence or choices",
+        "DecisionPoints require at least two materially distinct valid outcomes after the Policy Gate"
+      ]
+    },
+    {
+      "id": "F-013",
+      "name": "Goose-readable batched decision form",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-002-r3",
+      "criteria": [
+        "One standard MCP form presents no more than three decisions and four concise choices per decision",
+        "Internal option IDs are hidden from labels but map safely and deterministically through form values",
+        "Every interactive decision offers an explicit option to delegate to Council adjudication"
+      ]
+    },
+    {
+      "id": "F-014",
+      "name": "Budget-aware targeted reconsideration and truthful degradation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-002-r3",
+      "criteria": [
+        "Only contrary or materially affected roles reconsider after a user outcome selection",
+        "The standard reference flow completes useful reconsideration within the existing ten-call budget",
+        "Skipped or failed required reconsideration is explicit in status, warnings and trace provenance"
+      ]
+    },
+    {
+      "id": "F-015",
+      "name": "Compact deliberation digest and chief-output cleanup",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-002-r3",
+      "criteria": [
+        "Compact output exposes the effective task, consensus, material disagreement, decision and bounded evidence basis",
+        "Degraded execution and warnings are visible without opening the full record",
+        "Chief-editor checklist entries are deduplicated by outcome and evidence target"
+      ]
+    },
+    {
+      "id": "F-016",
+      "name": "V0.5 migration, evaluation and authoritative documentation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-002-r3",
+      "criteria": [
+        "All accepted V0.4 regressions and focused V0.5 counterexamples pass",
+        "Version 0.5.0, diagnostic build outcome-first-decision-v3, five tools, review-only boundary and 6/10/14 budgets are verified",
+        "A fresh package build and a pinned Goose live-test recipe are delivered with docs aligned to the implemented contract"
+      ]
     }
   ],
   "quality_gates": [
@@ -136,7 +202,7 @@
     {
       "id": "Q-003",
       "name": "Goose Desktop and interactive CLI evidence",
-      "status": "pending_live_validation"
+      "status": "partial_live_evidence"
     },
     {
       "id": "Q-004",
@@ -152,6 +218,11 @@
       "id": "Q-006",
       "name": "Legacy Council removal after test migration",
       "status": "accepted"
+    },
+    {
+      "id": "Q-007",
+      "name": "V0.5 outcome-first Goose UX evidence",
+      "status": "pending_live_validation"
     }
   ]
 }
