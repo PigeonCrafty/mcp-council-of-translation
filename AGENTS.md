@@ -15,8 +15,8 @@ Council-of-Translation is a review-only MCP server for localization translation 
 - Default decision fallback: `council_adjudication`
 - Default trace level: `summary`
 - Default history mode: `full`
-- Current expected diagnostic build: `structured-deliberation-v2`
-- Current version: `0.4.0`
+- Current expected diagnostic build: `outcome-first-decision-v3`
+- Current version: `0.5.0`
 
 Normal callers should call `review_translation` directly. `get_server_info` is only for cache/version checks; `review_translation` already returns `server_info`.
 
@@ -39,7 +39,7 @@ Each finding should include:
 - `evidence_type`
 - `action`
 
-Findings are clustered by issue, optionally discussed once, and adjudicated through a Policy Gate and evidence-weighted Position Matrix. RolePositions and DecisionPoints share one deterministic option identity. Repeated findings do not multiply a reviewer's authority: each reviewer has one fixed total matrix influence, normalized across its distinct actions. Safe discussion changes update only an existing affected matrix row. The one batched form describes every choice and restricts fields to valid IDs; fallback selects a non-tied valid action and leaves genuine ties for human review. Structured reviewer coverage is recorded separately from finding count. Success requires both envelope keys, a string `role_feedback`, a list `findings`, and safely validated finding objects; empty findings additionally require non-blank feedback. If any finding entry is invalid, the whole sample's findings are discarded and it is unavailable. Partial or zero coverage requires human review and is exposed in fallback/runtime metadata. User choices are decisive only among valid options and cannot override technical integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Use `hard_constraints` values `numeric_parity`, `markdown_parity`, `required_literal:<text>`, or `forbidden_literal:<text>` for machine-enforced caller rules; other rule packets remain authoritative reviewer context but do not become deterministic blockers by model assertion alone.
+Findings are clustered by issue, optionally discussed once, and adjudicated through a Policy Gate and evidence-weighted Position Matrix. V2.1 reviewers classify `issue`, `choice`, and `affirmation`; only a concrete `proposed_value` can become an outcome, while `action` remains advice. RolePositions and DecisionPoints share one deterministic outcome identity. Repeated or synonymous findings do not multiply a reviewer's authority. The batched form shows readable outcomes using safe opaque values, keeps current candidate first, and offers explicit Council delegation last. Only contrary/materially affected roles reconsider; requested/completed/skipped/failed provenance is recorded, and budget/runtime gaps surface as degradation and warnings. Structured reviewer coverage is recorded separately from finding count. Success requires both envelope keys, a string `role_feedback`, a list `findings`, and safely validated finding objects; empty findings additionally require non-blank feedback. If any finding entry is invalid, the whole sample's findings are discarded and it is unavailable. Partial or zero coverage requires human review and is exposed in fallback/runtime metadata. User choices are decisive only among valid options and cannot override technical integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Use `hard_constraints` values `numeric_parity`, `markdown_parity`, `required_literal:<text>`, or `forbidden_literal:<text>` for machine-enforced caller rules; other rule packets remain authoritative reviewer context but do not become deterministic blockers by model assertion alone.
 
 Default `review_only` output must not include a full recommended translation. The chief editor returns an execution checklist such as:
 
@@ -91,9 +91,9 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 If Goose appears stale, call `get_server_info()` and verify:
 
-- `package_version`: `0.4.0`
-- `module_version`: `0.4.0`
-- `diagnostic_build`: `structured-deliberation-v2`
+- `package_version`: `0.5.0`
+- `module_version`: `0.5.0`
+- `diagnostic_build`: `outcome-first-decision-v3`
 
 ## Repository Hygiene
 

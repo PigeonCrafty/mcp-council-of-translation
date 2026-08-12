@@ -72,6 +72,9 @@ def test_effective_task_reports_presence_without_copying_rule_packets():
     assert "hard_constraint:required_literal" in effective.material_rule_context
     assert "PRIVATE" not in serialized
 
+    aliased = _effective_task(ReviewTaskV2(content_type="product-ui"))
+    assert aliased.content_type == "ui"
+
 
 def test_compact_response_surfaces_decision_digest_degradation_and_retrieval_hint():
     cluster = _cluster("i1", "button wording")

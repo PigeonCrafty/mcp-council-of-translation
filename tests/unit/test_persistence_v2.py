@@ -166,6 +166,22 @@ def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
     assert loaded.reconsideration_provenance.requested_role_ids == []
 
 
+def test_v21_metadata_preserves_only_safe_reconsideration_role_provenance(tmp_path):
+    store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
+    record = _record(build_review_id(), history_mode="metadata")
+    record.reconsideration_provenance.requested_role_ids = [
+        "ux_copy_reviewer", "PRIVATE_USER_ROLE"
+    ]
+    record.reconsideration_provenance.completed_role_ids = ["ux_copy_reviewer"]
+    path = store.save(record, history_mode="metadata")
+
+    serialized = path.read_text(encoding="utf-8")
+    assert "PRIVATE_USER_ROLE" not in serialized
+    loaded = store.load(record.review_id)
+    assert loaded.reconsideration_provenance.requested_role_ids == ["ux_copy_reviewer"]
+    assert loaded.reconsideration_provenance.completed_role_ids == ["ux_copy_reviewer"]
+
+
 def test_metadata_round_trip_preserves_safe_disposition_and_redacts_chief_prose(tmp_path):
     store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
     record = _record(build_review_id(), history_mode="metadata")

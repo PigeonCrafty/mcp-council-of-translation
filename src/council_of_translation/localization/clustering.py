@@ -120,7 +120,10 @@ def _severity(findings: list[FindingV2]) -> str:
 
 
 def _model_cluster(group: list[FindingV2], current_candidate: str = "") -> IssueCluster:
-    first = group[0]
+    first = next(
+        (finding for finding in group if finding.finding_kind != "affirmation"),
+        group[0],
+    )
     family = _ISSUE_FAMILY[first.issue_type]
     anchors = sorted({anchor for finding in group for anchor in (finding.source_span, finding.candidate_span) if anchor})
     issue_id = _stable_id("issue", family, *anchors)
@@ -142,6 +145,8 @@ def _model_cluster(group: list[FindingV2], current_candidate: str = "") -> Issue
         position_value = (
             outcome_key(finding.proposed_value)
             if finding.finding_kind == "choice" and finding.proposed_value
+            else outcome_key(current_candidate)
+            if finding.finding_kind == "affirmation" and current_candidate
             else outcome_key(finding.action)
             if legacy_actions and finding.action
             else finding.problem
@@ -220,14 +225,11 @@ def cluster_findings(
     current_candidate: str = "",
 ) -> list[IssueCluster]:
     """Cluster findings around issues, never around named production examples."""
-    findings = [
-        finding
-        for finding in normalize_findings(raw_findings)
-        if finding.finding_kind != "affirmation"
-    ]
+    findings = normalize_findings(raw_findings)
     clusters = [
         _model_cluster(group, current_candidate=current_candidate)
         for group in _cluster_model_findings(findings)
+        if any(finding.finding_kind != "affirmation" for finding in group)
     ]
     if preflight is not None:
         clusters = [*_preflight_clusters(preflight), *clusters]

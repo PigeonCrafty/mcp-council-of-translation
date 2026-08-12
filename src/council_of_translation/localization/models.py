@@ -263,7 +263,9 @@ class DecisionPoint(DomainModel):
 
     @model_validator(mode="after")
     def enforce_meaningful_choice(self) -> "DecisionPoint":
-        self.options = self.options[:8]
+        self.question = self.question[:240]
+        self.reason_user_input_useful = self.reason_user_input_useful[:240]
+        self.options = self.options[:4]
         valid_ids = {option.option_id for option in self.options if option.valid}
         if self.recommended_option_id not in valid_ids:
             self.recommended_option_id = ""
@@ -351,6 +353,7 @@ class DeliberationSummary(DomainModel):
     delegated_to_council: bool = False
     final_outcome: str = ""
     reconsidered_role_ids: list[str] = Field(default_factory=list)
+    reconsideration_effect: str = ""
 
     @model_validator(mode="after")
     def bound_summary(self) -> "DeliberationSummary":
@@ -358,6 +361,7 @@ class DeliberationSummary(DomainModel):
             setattr(self, name, [item[:240] for item in getattr(self, name)[:8]])
         self.user_selection = self.user_selection[:500]
         self.final_outcome = self.final_outcome[:500]
+        self.reconsideration_effect = self.reconsideration_effect[:240]
         self.reconsidered_role_ids = list(dict.fromkeys(self.reconsidered_role_ids))[:8]
         return self
 
@@ -386,8 +390,8 @@ class RuntimeMetadata(DomainModel):
     reviewer_samples_successful: int = Field(default=0, ge=0, le=8)
     reviewer_samples_unavailable: int = Field(default=0, ge=0, le=8)
     reviewer_coverage: Literal["full", "partial", "none", "not_applicable"] = "not_applicable"
-    package_version: str = "0.4.0"
-    diagnostic_build: str = "structured-deliberation-v2"
+    package_version: str = "0.5.0"
+    diagnostic_build: str = "outcome-first-decision-v3"
 
 
 class ReviewTaskV2(DomainModel):
@@ -460,8 +464,8 @@ class ReviewRecordV2(DomainModel):
     degraded: bool = False
     warnings: list[str] = Field(default_factory=list)
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
-        "package_version": "0.4.0",
-        "diagnostic_build": "structured-deliberation-v2",
+        "package_version": "0.5.0",
+        "diagnostic_build": "outcome-first-decision-v3",
         "record_schema": "2.1",
     })
 
