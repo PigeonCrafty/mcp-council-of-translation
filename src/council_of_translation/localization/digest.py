@@ -20,6 +20,18 @@ from council_of_translation.localization.models import (
 from council_of_translation.localization.roles import ROLE_REGISTRY
 
 
+_ROLE_FOCUS = {
+    "technical_safety_reviewer": "占位符、变量、标签与格式完整性",
+    "fidelity_reviewer": "语义、逻辑关系与信息完整性",
+    "terminology_reviewer": "术语表、历史译法与一致性",
+    "product_context_reviewer": "组件、流程阶段与产品语境",
+    "ux_copy_reviewer": "用户理解、行动指引与界面清晰度",
+    "fluency_reviewer": "目标语言习惯、自然度与简洁性",
+    "legal_risk_reviewer": "法律含义、承诺边界与风险表达",
+    "brand_voice_reviewer": "品牌语气、风格一致性与受众感受",
+}
+
+
 def _semantic_key(value: str) -> str:
     return re.sub(r"[^\w\u3400-\u9fff]+", "", value.casefold())[:160]
 
@@ -72,12 +84,12 @@ def _role_lenses(plan: CouncilPlan, reviews: list[dict[str, Any]]) -> list[RoleL
             proposal = str(strongest.get("proposed_value") or "").strip()
             perspective = f"提出具体措辞选择{f'“{proposal}”' if proposal else ''}：{strongest.get('problem', '')}"
         elif strongest.get("finding_kind") == "affirmation":
-            check = role.must_check[0] if role and role.must_check else "职责范围"
+            check = _ROLE_FOCUS.get(role_id, "该角色职责范围")
             perspective = f"围绕{check}确认当前译文可接受：{strongest.get('problem') or strongest.get('evidence') or '未发现实质问题'}"
         elif strongest:
             perspective = f"发现{strongest.get('issue_type', '质量')}问题：{strongest.get('problem') or feedback}"
-        elif role and role.must_check:
-            perspective = f"未发现职责范围内的实质问题；已检查{role.must_check[0]}。"
+        elif role:
+            perspective = f"未发现职责范围内的实质问题；已检查{_ROLE_FOCUS.get(role_id, '该角色职责范围')}。"
         else:
             perspective = feedback or "未发现职责范围内的实质问题。"
         lenses.append(RoleLens(
@@ -236,7 +248,7 @@ def build_process_digest(
         user_decisions=_dedupe(decision_lines) or ["未请求用户结果选择。"],
         reconsideration_changes=_dedupe(changes) or ["未触发重审。"],
         editor_synthesis=_dedupe([
-            chief.decision_rationale or "主编依据 Policy Gate 与角色证据完成综合。",
+            chief.decision_rationale or "主编依据有效约束与角色证据完成综合。",
             chief.review_reason,
         ]),
         execution_checklist_final_disposition=_dedupe(checklist),
@@ -250,6 +262,10 @@ _NO_OP_PREFIXES = (
 
 def _human_line(value: str, maximum: int = 120) -> str:
     text = re.sub(r"\s+", " ", str(value)).strip()
+    text = text.replace("Policy Gate", "约束审查")
+    for role_id, role in ROLE_REGISTRY.items():
+        text = text.replace(role_id, role.display_name)
+    text = re.sub(r"\b(?:decision|option|issue|gap)_[A-Za-z0-9_-]+\b", "内部引用", text)
     return text if len(text) <= maximum else text[: maximum - 1].rstrip() + "…"
 
 
