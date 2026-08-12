@@ -1,9 +1,9 @@
-"""Frozen five-tool MCP surface for Council of Translation V0.5."""
+"""Frozen five-tool MCP surface for Council of Translation V0.6."""
 
 from __future__ import annotations
 
 from importlib.metadata import PackageNotFoundError, version
-from typing import Any
+from typing import Any, Literal
 
 from fastmcp import Context
 
@@ -27,7 +27,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12_000
-DIAGNOSTIC_BUILD = "outcome-first-decision-v3"
+DIAGNOSTIC_BUILD = "guided-deliberation-v4"
 
 
 def _installed_version() -> str:
@@ -47,7 +47,7 @@ def _server_info() -> dict[str, Any]:
         "package_version": _installed_version(),
         "module_version": __version__,
         "diagnostic_build": DIAGNOSTIC_BUILD,
-        "schema_version": "2.1",
+        "schema_version": "2.2",
         "default_output_mode": "review_only",
         "default_interactive_mode": "auto",
         "default_briefing_mode": "auto",
@@ -88,7 +88,7 @@ def _task_and_diagnostics(
     mode: str,
     output_mode: str,
     interactive_mode: str,
-    briefing_mode: str = "auto",
+    briefing_mode: Literal["auto", "always", "off"] = "auto",
     decision_fallback: str,
     trace_level: str,
     history_mode: str,
@@ -152,7 +152,7 @@ def _error(exc: Exception) -> dict[str, str]:
 
 @mcp.tool()
 def get_server_info() -> dict[str, Any]:
-    """Return V0.5 version, capability, budget, and frozen-tool diagnostics."""
+    """Return V0.6 version, capability, budget, and frozen-tool diagnostics."""
     return _server_info()
 
 
@@ -169,7 +169,7 @@ async def review_translation(
     mode: str = "standard",
     output_mode: str = "review_only",
     interactive_mode: str = "auto",
-    briefing_mode: str = "auto",
+    briefing_mode: Literal["auto", "always", "off"] = "auto",
     decision_fallback: str = "council_adjudication",
     trace_level: str = "summary",
     history_mode: str = "full",

@@ -151,7 +151,11 @@ def build_effective_brief(
         provenance[key] = "user_briefing"
 
     supplied = _provided_context_count(updated)
-    confidence = "full" if supplied >= 4 else "partial" if supplied >= 1 else "minimal"
+    confidence = (
+        "full" if supplied >= 4 or len(answers) >= 4
+        else "partial" if supplied >= 1 or answers
+        else "minimal"
+    )
     assumptions: list[str] = []
     if content_value == "unspecified":
         assumptions.append("内容类型未知；Council 采用通用本地化审校视角。")
@@ -183,7 +187,7 @@ def normalize_briefing_answers(fields: list[str], data: Any) -> dict[str, str] |
             return None
         if name == "content_type" and value not in CONTENT_VALUES:
             return None
-        if value.strip() and not (name == "content_type" and value == INFER_VALUE):
+        if value.strip():
             answers[name] = value.strip()
     return answers
 

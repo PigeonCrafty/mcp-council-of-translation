@@ -32,6 +32,14 @@ _SAFE_ROLE_IDS = {
     "risk_ambiguity_reviewer",
     "fluency_reviewer",
 }
+_SAFE_BRIEF_FIELDS = {
+    "domain", "content_type", "audience", "tone_goal", "primary_focus", "usage_context"
+}
+_SAFE_CONTENT_TYPES = {"unspecified", "ui", "marketing", "technical_documentation", "legal_risk"}
+_SAFE_PHASE_DISPOSITIONS = {
+    "completed", "skipped", "degraded", "blocked", "accept", "decline", "cancel",
+    "unsupported", "malformed", "error", "pending", "可发布", "修改后可发布", "需人工复核",
+}
 
 
 class ReviewPersistenceError(RuntimeError):
@@ -133,13 +141,20 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         "status": record.status,
         "degraded": record.degraded,
         "effective_brief": {
-            "content_type": record.effective_brief.content_type,
+            "content_type": (
+                record.effective_brief.content_type
+                if record.effective_brief.content_type in _SAFE_CONTENT_TYPES
+                else "unspecified"
+            ),
             "context_confidence": record.effective_brief.context_confidence,
         },
         "briefing_interaction": {
             "requested": record.briefing_interaction.requested,
             "action": record.briefing_interaction.action,
-            "asked_fields": record.briefing_interaction.asked_fields,
+            "asked_fields": [
+                field for field in record.briefing_interaction.asked_fields
+                if field in _SAFE_BRIEF_FIELDS
+            ],
         },
         "context_gap_interaction": {
             "requested": record.context_gap_interaction.requested,
@@ -175,7 +190,13 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         },
         "phase_trace": {
             "phases": [
-                {"phase": phase.phase, "disposition": phase.disposition, "counts": phase.counts}
+                {
+                    "phase": phase.phase,
+                    "disposition": (
+                        phase.disposition if phase.disposition in _SAFE_PHASE_DISPOSITIONS else "degraded"
+                    ),
+                    "counts": phase.counts,
+                }
                 for phase in record.phase_trace.phases
             ]
         },

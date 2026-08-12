@@ -1,6 +1,6 @@
 # Council of Translation
 
-Council of Translation V0.5 is a Goose-first, review-only MCP server for structured localization QA. It reviews a source/candidate pair, returns a compact chief-editor decision, and stores a retrievable structured trace. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
+Council of Translation V0.6 is a Goose-first, review-only MCP server for guided localization QA. It reviews a source/candidate pair, returns a process-first compact report, and stores a retrievable structured trace. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
 
 ## Public MCP tools
 
@@ -12,19 +12,23 @@ The normal tool surface is frozen to exactly five tools:
 - `list_review_records(...)` returns bounded, privacy-safe record metadata.
 - `get_server_info()` reports version, defaults, budgets, and build diagnostics.
 
-The defaults are `output_mode="review_only"`, `interactive_mode="auto"`, `decision_fallback="council_adjudication"`, `trace_level="summary"`, and `history_mode="full"`. Only explicit `output_mode="full_rewrite"` permits a full suggested translation.
+The defaults are `output_mode="review_only"`, `interactive_mode="auto"`, `briefing_mode="auto"`, `decision_fallback="council_adjudication"`, `trace_level="summary"`, and `history_mode="full"`. `briefing_mode` also accepts `always` and `off`. Only explicit `output_mode="full_rewrite"` permits a full suggested translation.
 
 ## Review flow
 
 ```text
-deterministic preflight
+sampling-free briefing gate
+  -> deterministic preflight
   -> role-routed independent reviews
+  -> optional one-form context follow-up (maximum two questions)
+  -> affected-role context reconsideration
   -> issue clustering
   -> optional single bounded discussion round
   -> optional one-form user decision (maximum three points)
-  -> affected-role reconsideration
+  -> affected-role outcome reconsideration
   -> Policy Gate
   -> evidence-weighted chief-editor adjudication
+  -> process-first digest and bounded display report
 ```
 
 User choices are decisive only among valid outcomes. Reviewers classify findings as issues, concrete choices, or affirmations; action prose remains advice and is never used as a selectable value. A DecisionPoint appears only when at least two materially distinct valid local outcomes remain. A consistent bounded `candidate_span` supplies the issue-local current outcome; the whole candidate document is never used as an option label. The single standard Goose form batches at most three questions and normally has one submit button for the entire batch. Each field exposes at most four readable enum values (for example `保留：继续`, `改为：下一步`, and `暂不决定，由 Council 裁决`) which map per field to exact internal options. Internal option IDs and hash surrogates are not displayed.
@@ -33,7 +37,9 @@ Explicit Council delegation is a valid choice, not an interaction failure: the e
 
 Within an issue, duplicate or synonymous proposals collapse to one outcome, and repeated findings do not multiply a reviewer's Position Matrix influence. Only roles contrary to the selected outcome (or materially affected by it) are reconsidered; supporting roles are not sampled merely for agreeing. Requested, completed, skipped, and failed roles are recorded separately. Missing budget or a reconsideration failure sets `degraded=true`, emits bounded warnings, and returns a non-clean status. Reviewer sampling coverage is explicit and semantic, not merely syntactic JSON decoding: success requires string `role_feedback`, list `findings`, and safely validated finding objects. Valid clean/affirming reviewers count as coverage without manufacturing issues or checklist work. Partial or zero coverage conservatively returns `NEEDS_HUMAN_REVIEW`.
 
-Maximum sampling budgets are 6 calls for `lightweight`, 10 for `standard`, and 14 for `strict`. Clean input does not manufacture discussion or DecisionPoints.
+Source/candidate-only calls in `briefing_mode=auto` request a concise background form before sampling; rich caller context skips it, `always` requires it, and `off` proceeds with explicit assumptions. Reviewer envelopes may propose bounded material context gaps. Core deduplicates them, asks at most two in one follow-up, and reconsiders only affected roles. Briefing, context, and outcome interactions have separate telemetry, as do context and outcome reconsideration provenance.
+
+Maximum sampling budgets are 6 calls for `lightweight`, 13 for `standard`, and 18 for `strict`. A deep standard path fits six independent reviews, three context reconsiderations, one discussion, and three outcome reconsiderations exactly within 13. Clean input does not manufacture discussion or DecisionPoints.
 
 ## Persistence and privacy
 
@@ -43,9 +49,9 @@ Records use stable sortable V2 IDs and atomic writes under the platform data dir
 - `metadata`: allowlisted metadata only—no source, candidate, TB/SG packets, model/user/chief prose, or free text; safe status, publishability, and review-needed disposition are retained;
 - `off`: no write.
 
-New records use schema `2.1`. Readers also accept V2.0 and legacy V1 JSON records; missing `schema_version` is interpreted as V1.
+New records use schema `2.2`. Readers also accept V2.1, V2.0 and legacy V1 JSON records; missing `schema_version` is interpreted as V1.
 
-The compact response includes `effective_task`, `deliberation_summary`, `degraded`, `warnings`, the review ID, and a retrieval hint. Use `view_review_record(review_id, detail_level="full")` to inspect full structured evidence when `history_mode="full"`; no hidden chain-of-thought is requested or stored.
+The compact response includes `effective_task`, `deliberation_summary`, structured `process_digest`, bounded `display_report`, `degraded`, warnings, the review ID, and a retrieval hint. The digest order is case brief, assumptions/confidence, blind spots, role lenses, consensus, minority report, disagreements, context gaps/answers, user decisions, reconsideration changes, editor synthesis, and execution/final disposition. Use `view_review_record(review_id, detail_level="full")` to inspect full structured evidence when `history_mode="full"`; no hidden chain-of-thought is requested or stored.
 
 ## Development
 
@@ -64,4 +70,4 @@ For a fresh Goose test, pin the reviewed local commit so cached installs cannot 
 uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translation@<reviewed-commit> mcp_council_of_translation
 ```
 
-Call `get_server_info()` and verify version `0.5.0`, schema `2.1`, and diagnostic build `outcome-first-decision-v3` before interpreting the result.
+Call `get_server_info()` and verify version `0.6.0`, schema `2.2`, diagnostic build `guided-deliberation-v4`, and budgets 6/13/18 before interpreting the result.

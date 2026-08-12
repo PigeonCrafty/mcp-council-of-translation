@@ -1318,6 +1318,12 @@ async def continue_structured_review(
         else "COMPLETED"
     )
     record = parent.model_copy(deep=True)
+    record.schema_version = "2.2"
+    record.version_metadata = {
+        "package_version": "0.6.0",
+        "diagnostic_build": "guided-deliberation-v4",
+        "record_schema": "2.2",
+    }
     record.review_id = build_review_id()
     record.parent_review_id = parent.review_id
     record.created_at = datetime.now(timezone.utc)

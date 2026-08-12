@@ -104,3 +104,17 @@ def test_v22_full_metadata_and_off_round_trips_are_privacy_safe(tmp_path):
     off = _record(history_mode="off")
     assert ReviewStore(tmp_path / "off", include_legacy=False).save(off) is None
     assert not (tmp_path / "off").exists()
+
+
+def test_metadata_allowlist_normalizes_hostile_guided_labels(tmp_path):
+    record = _record(history_mode="metadata")
+    record.effective_brief.content_type = "SECRET-CONTENT-TYPE"
+    record.briefing_interaction.asked_fields = ["SECRET-FIELD-NAME"]
+    record.phase_trace.phases[0].disposition = "SECRET-PHASE-DISPOSITION"
+    path = ReviewStore(tmp_path, include_legacy=False).save(record)
+    raw = path.read_text(encoding="utf-8")
+    payload = json.loads(raw)
+    assert "SECRET" not in raw
+    assert payload["effective_brief"]["content_type"] == "unspecified"
+    assert payload["briefing_interaction"]["asked_fields"] == []
+    assert payload["phase_trace"]["phases"][0]["disposition"] == "degraded"
