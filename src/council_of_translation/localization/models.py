@@ -193,6 +193,8 @@ class IssueCluster(DomainModel):
     finding_ids: list[str] = Field(default_factory=list)
     participant_role_ids: list[str] = Field(default_factory=list)
     candidate_actions: list[str] = Field(default_factory=list)
+    current_outcome: str = ""
+    outcome_anchor: str = ""
     positions: list[RolePosition] = Field(default_factory=list)
     evidence: list[str] = Field(default_factory=list)
     immutable_hard_constraints: list[str] = Field(default_factory=list)
@@ -208,6 +210,9 @@ class IssueCluster(DomainModel):
         self.source_spans = [item[:240] for item in self.source_spans[:8]]
         self.candidate_spans = [item[:240] for item in self.candidate_spans[:8]]
         self.evidence = [item[:240] for item in self.evidence[:8]]
+        if len(self.current_outcome) > 500 or len(self.outcome_anchor) > 500:
+            self.current_outcome = ""
+            self.outcome_anchor = ""
         return self
 
 

@@ -160,7 +160,11 @@ def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) ->
                 option_id=option_id_for_action(cluster.issue_id, action),
                 outcome_value=action,
                 label=action,
-                description="保留当前候选译文" if index == 0 else f"采用候选结果：{action}",
+                description=(
+                    "保留当前候选译文"
+                    if cluster.current_outcome and action == outcome_key(cluster.current_outcome)
+                    else f"采用候选结果：{action}"
+                ),
                 support_role_ids=list(dict.fromkeys(
                     position.role_id
                     for position in cluster.positions
@@ -173,7 +177,10 @@ def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) ->
                     for evidence in position.evidence
                 )),
                 policy_basis=["policy_gate_valid"],
-                is_current_candidate=index == 0,
+                is_current_candidate=bool(
+                    cluster.current_outcome
+                    and action == outcome_key(cluster.current_outcome)
+                ),
             )
             for index, action in enumerate(actions[:3])
         ]

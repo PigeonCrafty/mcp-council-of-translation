@@ -146,7 +146,7 @@ def test_forced_lightweight_budget_shortfall_returns_truthful_degradation(tmp_pa
         for role in roles
     ]
     point = build_decision_points(
-        cluster_findings(findings, current_candidate="继续")
+        cluster_findings(findings)
     )[0]
     selected_value = next(
         value for value, option in _form_mapping(point).items()
@@ -156,7 +156,7 @@ def test_forced_lightweight_budget_shortfall_returns_truthful_degradation(tmp_pa
         json.dumps({"role_feedback": "checked", "findings": [finding.model_dump(mode="json")]})
         for finding in findings
     ]
-    reconsideration_cluster = cluster_findings(findings, current_candidate="继续")[0]
+    reconsideration_cluster = cluster_findings(findings)[0]
     reconsideration = _successful_response(reconsideration_cluster)
     telemetry = RuntimeTelemetry(sample_budget=6)
     record = run(run_structured_review(

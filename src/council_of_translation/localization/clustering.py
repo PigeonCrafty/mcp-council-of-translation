@@ -119,7 +119,26 @@ def _severity(findings: list[FindingV2]) -> str:
     return max((finding.severity for finding in findings), key=order.__getitem__, default="minor")
 
 
-def _model_cluster(group: list[FindingV2], current_candidate: str = "") -> IssueCluster:
+def _local_current_outcome(group: list[FindingV2]) -> tuple[str, str]:
+    """Return one bounded, materially consistent issue-local candidate anchor."""
+    raw_anchors = [
+        finding.candidate_span.strip()
+        for finding in group
+        if finding.candidate_span and finding.candidate_span.strip()
+    ]
+    if not raw_anchors or any(len(anchor) > 500 for anchor in raw_anchors):
+        return "", ""
+    normalized = [outcome_key(anchor) for anchor in raw_anchors]
+    if any(not anchor for anchor in normalized) or len(set(normalized)) != 1:
+        return "", ""
+    # Materially identical spans can establish the current outcome. Replacement
+    # additionally requires one exact raw anchor, so normalized-but-not-exact
+    # variants deliberately do not nominate a replacement anchor.
+    exact_anchors = list(dict.fromkeys(raw_anchors))
+    return normalized[0], exact_anchors[0] if len(exact_anchors) == 1 else ""
+
+
+def _model_cluster(group: list[FindingV2]) -> IssueCluster:
     first = next(
         (finding for finding in group if finding.finding_kind != "affirmation"),
         group[0],
@@ -132,21 +151,22 @@ def _model_cluster(group: list[FindingV2], current_candidate: str = "") -> Issue
         for finding in group
         if finding.finding_kind == "choice"
     )
-    # Preserve the accepted V2.0 direct clustering API only when no current
-    # candidate was supplied. V2.1 orchestration always supplies it and never
-    # promotes action advice into a selectable outcome.
+    # Preserve the accepted V2.0 direct clustering API for findings that do not
+    # contain concrete V2.1 proposals. Action prose never competes with a
+    # concrete proposed outcome.
     legacy_actions = _distinct_outcomes(
         finding.action for finding in group if finding.action
-    ) if not current_candidate and not proposals else []
-    current = _distinct_outcomes([current_candidate])
+    ) if not proposals else []
+    current_outcome, outcome_anchor = _local_current_outcome(group)
+    current = _distinct_outcomes([current_outcome])
     outcomes = _distinct_outcomes([*current, *proposals]) if proposals else legacy_actions
     position_groups: dict[tuple[str, str], list[FindingV2]] = defaultdict(list)
     for finding in group:
         position_value = (
             outcome_key(finding.proposed_value)
             if finding.finding_kind == "choice" and finding.proposed_value
-            else outcome_key(current_candidate)
-            if finding.finding_kind == "affirmation" and current_candidate
+            else current_outcome
+            if finding.finding_kind == "affirmation" and current_outcome
             else outcome_key(finding.action)
             if legacy_actions and finding.action
             else finding.problem
@@ -180,6 +200,8 @@ def _model_cluster(group: list[FindingV2], current_candidate: str = "") -> Issue
         finding_ids=[finding.finding_id for finding in group],
         participant_role_ids=list(dict.fromkeys(finding.agent_name for finding in group)),
         candidate_actions=outcomes,
+        current_outcome=current_outcome,
+        outcome_anchor=outcome_anchor,
         positions=positions,
         evidence=list(dict.fromkeys(finding.evidence for finding in group if finding.evidence)),
         severity=_severity(group),
@@ -221,13 +243,11 @@ def _preflight_clusters(preflight: PreflightResult) -> list[IssueCluster]:
 def cluster_findings(
     raw_findings: Iterable[FindingV2 | dict[str, Any]],
     preflight: PreflightResult | None = None,
-    *,
-    current_candidate: str = "",
 ) -> list[IssueCluster]:
     """Cluster findings around issues, never around named production examples."""
     findings = normalize_findings(raw_findings)
     clusters = [
-        _model_cluster(group, current_candidate=current_candidate)
+        _model_cluster(group)
         for group in _cluster_model_findings(findings)
         if any(finding.finding_kind != "affirmation" for finding in group)
     ]

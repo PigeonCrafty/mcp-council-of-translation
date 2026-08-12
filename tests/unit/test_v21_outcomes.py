@@ -27,7 +27,6 @@ def test_outcomes_use_proposed_values_include_current_and_collapse_duplicates():
             _choice("ux_copy_reviewer", "下一步", action="different advice"),
             _choice("terminology_reviewer", "下一步"),
         ],
-        current_candidate="继续",
     )
     assert len(clusters) == 1
     assert clusters[0].candidate_actions == ["继续", "下一步"]
@@ -48,7 +47,7 @@ def test_affirmations_create_no_cluster_or_decision_point():
         finding_kind="affirmation",
         problem="当前译文自然",
     )
-    clusters = cluster_findings([finding], current_candidate="继续")
+    clusters = cluster_findings([finding])
     assert clusters == []
     assert build_decision_points(clusters) == []
 
@@ -75,7 +74,6 @@ def test_affirmations_support_current_candidate_in_mixed_choice_cluster():
     ]
     cluster = cluster_findings(
         [*affirmations, _choice("brand_voice_reviewer", "下一步")],
-        current_candidate="继续",
     )[0]
     point = build_decision_points([cluster])[0]
     current = point.options[0]
@@ -98,13 +96,30 @@ def test_one_valid_outcome_and_action_prose_do_not_create_decision_point():
         finding_kind="issue",
     )
     choice = _choice("ux_copy_reviewer", "继续")
-    clusters = cluster_findings([issue, choice], current_candidate="继续")
+    clusters = cluster_findings([issue, choice])
     assert build_decision_points(clusters) == []
 
 
 def test_materially_distinct_punctuation_is_not_merged():
     clusters = cluster_findings(
         [_choice("ux_copy_reviewer", "下一步"), _choice("terminology_reviewer", "下一步！")],
-        current_candidate="继续",
     )
     assert clusters[0].candidate_actions == ["继续", "下一步", "下一步!"]
+
+
+def test_empty_contradictory_and_overlong_spans_do_not_invent_current_outcome():
+    cases = [
+        [_choice("ux_copy_reviewer", "下一步").model_copy(update={"candidate_span": ""}),
+         _choice("terminology_reviewer", "前进").model_copy(update={"candidate_span": ""})],
+        [_choice("ux_copy_reviewer", "下一步"),
+         _choice("terminology_reviewer", "前进").model_copy(update={"candidate_span": "前进"})],
+        [_choice("ux_copy_reviewer", "下一步").model_copy(update={"candidate_span": "长" * 501}),
+         _choice("terminology_reviewer", "前进").model_copy(update={"candidate_span": "长" * 501})],
+    ]
+    for findings in cases:
+        cluster = cluster_findings(findings)[0]
+        assert cluster.current_outcome == ""
+        assert cluster.outcome_anchor == ""
+        assert cluster.candidate_actions == ["下一步", "前进"]
+        point = build_decision_points([cluster])[0]
+        assert all(option.is_current_candidate is False for option in point.options)

@@ -32,7 +32,7 @@ def _finding(agent, action):
         "agent_name": agent,
         "role_perspective": agent,
         "source_span": "Continue button",
-        "candidate_span": "继续按钮",
+        "candidate_span": "继续",
         "issue_type": "terminology" if agent == "terminology_reviewer" else "fluency",
         "severity": "minor",
         "problem": "wording choice",

@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-import hashlib
 import json
 import re
 from time import perf_counter
@@ -147,14 +146,15 @@ def _review_findings(
     return role_feedback, findings, ""
 
 
-def _safe_form_value(decision_id: str, option_id: str) -> str:
-    digest = hashlib.sha256(f"{decision_id}\x1f{option_id}".encode("utf-8")).hexdigest()[:12]
-    return f"choice_{digest}"
-
-
 def _delegate_form_value(decision_id: str) -> str:
-    digest = hashlib.sha256(f"{decision_id}\x1fdelegate".encode("utf-8")).hexdigest()[:12]
-    return f"delegate_{digest}"
+    del decision_id
+    return "暂不决定，由 Council 裁决"
+
+
+def _bounded_form_value(prefix: str, label: str, suffix: str = "") -> str:
+    maximum = 64
+    available = max(1, maximum - len(prefix) - len(suffix))
+    return f"{prefix}{label[:available]}{suffix}"
 
 
 def _form_mapping(point: Any) -> dict[str, Any | None]:
@@ -162,10 +162,17 @@ def _form_mapping(point: Any) -> dict[str, Any | None]:
         [option for option in point.options if option.valid and not option.is_delegation],
         key=lambda option: not option.is_current_candidate,
     )[:3]
-    mapping = {
-        _safe_form_value(point.decision_id, option.option_id): option
-        for option in ordered
-    }
+    mapping: dict[str, Any | None] = {}
+    for option in ordered:
+        prefix = "保留：" if option.is_current_candidate else "改为："
+        label = (option.label or option.outcome_value or "未命名结果").strip()
+        value = _bounded_form_value(prefix, label)
+        collision = 2
+        while value in mapping:
+            suffix = f"（选项 {collision}）"
+            value = _bounded_form_value(prefix, label, suffix)
+            collision += 1
+        mapping[value] = option
     mapping[_delegate_form_value(point.decision_id)] = None
     return mapping
 
@@ -204,11 +211,9 @@ def _decisions_from_elicitation(decision_points: list, result: ElicitationResult
     points = decision_points[:3]
     if result.action == "accept":
         expected = {point.decision_id for point in points}
-        values = list(result.data.values())
         malformed = (
             set(result.data) != expected
-            or any(not isinstance(value, str) for value in values)
-            or len(values) != len(set(values))
+            or any(not isinstance(value, str) for value in result.data.values())
         )
         if not malformed:
             malformed = any(
@@ -246,19 +251,53 @@ def _fallback_decisions(decision_points: list, action: str) -> list[UserDecision
     return [UserDecision(decision_id=point.decision_id, elicitation_action=normalized) for point in decision_points]
 
 
+def _reconstruct_candidate(
+    task: ReviewTaskV2,
+    cluster: IssueCluster,
+    option: Any,
+) -> tuple[str | None, str]:
+    """Build the complete candidate for one issue-local option, or refuse safely."""
+    if option.is_current_candidate:
+        return task.candidate_translation, "unchanged_candidate"
+    anchor = cluster.outcome_anchor
+    if not anchor:
+        return None, "missing_candidate_anchor"
+    occurrences = task.candidate_translation.count(anchor)
+    if occurrences == 0:
+        return None, "missing_candidate_anchor"
+    if occurrences != 1:
+        return None, "ambiguous_candidate_anchor"
+    return task.candidate_translation.replace(anchor, option.outcome_value, 1), "reconstructed_candidate"
+
+
 def _validate_outcome_options(
     decision_points: list[Any],
     task: ReviewTaskV2,
+    clusters: list[IssueCluster],
 ) -> list[Any]:
     """Apply deterministic caller/preflight constraints to every outcome."""
     validated_points: list[Any] = []
+    clusters_by_issue = {cluster.issue_id: cluster for cluster in clusters}
     for point in decision_points[:3]:
+        cluster = clusters_by_issue.get(point.issue_id)
+        if cluster is None:
+            continue
         options = []
         for option in point.options[:3]:
-            outcome = option.outcome_value or option.label
+            candidate, reconstruction = _reconstruct_candidate(task, cluster, option)
+            if candidate is None:
+                options.append(option.model_copy(update={
+                    "valid": False,
+                    "invalid_reason": option.invalid_reason or reconstruction,
+                    "policy_basis": list(dict.fromkeys([
+                        *option.policy_basis,
+                        reconstruction,
+                    ])),
+                }))
+                continue
             result = run_preflight(
                 task.source_text,
-                outcome,
+                candidate,
                 do_not_translate=task.do_not_translate_literals,
                 hard_constraints=task.hard_constraints,
             )
@@ -273,6 +312,7 @@ def _validate_outcome_options(
                 or ("deterministic_constraint:" + ",".join(blocking_checks) if blocking_checks else ""),
                 "policy_basis": list(dict.fromkeys([
                     *option.policy_basis,
+                    reconstruction,
                     *(["deterministic_preflight_passed"] if not blocking_checks else blocking_checks),
                 ])),
             }))
@@ -616,7 +656,6 @@ async def run_structured_review(
     clusters = cluster_findings(
         all_findings,
         preflight,
-        current_candidate=task.candidate_translation,
     )
     discussion_issues = select_discussion_issues(clusters, task.mode) if plan.discussion_enabled else []
     discussion_rounds = []
@@ -637,6 +676,7 @@ async def run_structured_review(
     decision_points = _validate_outcome_options(
         build_decision_points(clusters, plan.max_decision_points),
         task,
+        clusters,
     )
     user_decisions: list[UserDecision] = []
     fallback_reason = ""
