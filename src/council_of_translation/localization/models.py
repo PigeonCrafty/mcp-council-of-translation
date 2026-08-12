@@ -21,6 +21,9 @@ ConstraintTier = Literal["hard", "contextual", "preference", "advisory"]
 Severity = Literal["critical", "major", "minor", "preference"]
 EvidenceOrigin = Literal["caller", "preflight", "model", "user", "system"]
 FindingKind = Literal["issue", "choice", "affirmation"]
+BriefingMode = Literal["auto", "always", "off"]
+ContextConfidence = Literal["full", "partial", "minimal"]
+FieldProvenance = Literal["caller", "user_briefing", "normalized_alias", "inferred_default"]
 
 
 def option_id_for_action(issue_id: str, action: str) -> str:
@@ -125,7 +128,7 @@ class CouncilPlan(DomainModel):
     active_role_ids: list[str] = Field(default_factory=list)
     discussion_enabled: bool = True
     interactive_enabled: bool = True
-    sample_budget: int = Field(default=10, ge=0, le=14)
+    sample_budget: int = Field(default=13, ge=0, le=18)
     max_discussion_rounds: int = Field(default=1, ge=0, le=1)
     max_decision_points: int = Field(default=3, ge=0, le=3)
 
@@ -344,6 +347,204 @@ class ReconsiderationProvenance(DomainModel):
         return self
 
 
+class ReviewBriefV2(DomainModel):
+    domain: str = "unspecified"
+    content_type: str = "unspecified"
+    location: str = ""
+    audience: str = ""
+    tone_goal: str = ""
+    primary_focus: str = ""
+    usage_context: str = ""
+    assumptions: list[str] = Field(default_factory=list)
+    context_confidence: ContextConfidence = "minimal"
+    field_provenance: dict[str, FieldProvenance] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def bound_brief(self) -> "ReviewBriefV2":
+        bounds = {
+            "domain": 120,
+            "content_type": 80,
+            "location": 160,
+            "audience": 160,
+            "tone_goal": 160,
+            "primary_focus": 160,
+            "usage_context": 240,
+        }
+        for name, limit in bounds.items():
+            setattr(self, name, getattr(self, name)[:limit])
+        self.assumptions = list(dict.fromkeys(item[:240] for item in self.assumptions if item))[:6]
+        allowed = set(bounds) | {"context_confidence"}
+        self.field_provenance = {
+            key: value for key, value in self.field_provenance.items() if key in allowed
+        }
+        return self
+
+
+class BriefingInteraction(DomainModel):
+    requested: bool = False
+    action: Literal["accept", "decline", "cancel", "unsupported", "malformed", "error", "skipped"] = "skipped"
+    asked_fields: list[str] = Field(default_factory=list)
+    accepted_answers: dict[str, str] = Field(default_factory=dict)
+    answer_provenance: dict[str, FieldProvenance] = Field(default_factory=dict)
+    retry_hint: str = ""
+
+    @model_validator(mode="after")
+    def bound_interaction(self) -> "BriefingInteraction":
+        self.asked_fields = list(dict.fromkeys(item[:64] for item in self.asked_fields if item))[:6]
+        allowed = set(self.asked_fields)
+        self.accepted_answers = {
+            key: value[:240]
+            for key, value in self.accepted_answers.items()
+            if key in allowed and isinstance(value, str) and value.strip()
+        }
+        self.answer_provenance = {
+            key: value for key, value in self.answer_provenance.items() if key in self.accepted_answers
+        }
+        self.retry_hint = self.retry_hint[:240]
+        return self
+
+
+class ContextGapV2(DomainModel):
+    gap_id: str
+    question: str
+    materiality: str
+    affected_role_ids: list[str] = Field(default_factory=list)
+    source_role_id: str = ""
+    provenance: Literal["model", "system"] = "model"
+    disposition: Literal["unanswered", "answered", "suppressed"] = "unanswered"
+    reason: str = ""
+    answer: str = ""
+
+    @model_validator(mode="after")
+    def bound_gap(self) -> "ContextGapV2":
+        self.gap_id = self.gap_id[:64]
+        self.question = self.question[:240]
+        self.materiality = self.materiality[:240]
+        self.affected_role_ids = list(dict.fromkeys(self.affected_role_ids))[:8]
+        self.source_role_id = self.source_role_id[:64]
+        self.reason = self.reason[:160]
+        self.answer = self.answer[:240]
+        if not self.question or not self.materiality:
+            self.disposition = "suppressed"
+            self.reason = self.reason or "invalid_gap"
+            self.answer = ""
+        if self.disposition != "answered":
+            self.answer = ""
+        return self
+
+
+class ContextGapInteraction(DomainModel):
+    requested: bool = False
+    action: Literal["accept", "decline", "cancel", "unsupported", "malformed", "error", "skipped"] = "skipped"
+    asked_gap_ids: list[str] = Field(default_factory=list)
+    answered_gap_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def bound_gap_interaction(self) -> "ContextGapInteraction":
+        self.asked_gap_ids = list(dict.fromkeys(self.asked_gap_ids))[:2]
+        self.answered_gap_ids = [item for item in dict.fromkeys(self.answered_gap_ids) if item in self.asked_gap_ids][:2]
+        return self
+
+
+class PhaseReconsiderationProvenance(ReconsiderationProvenance):
+    change_effects: list[str] = Field(default_factory=list)
+
+    @field_validator("change_effects")
+    @classmethod
+    def bound_effects(cls, value: list[str]) -> list[str]:
+        return list(dict.fromkeys(item[:240] for item in value if item))[:8]
+
+
+PhaseName = Literal[
+    "briefing", "preflight", "planning", "independent_review", "blind_spot_mapping",
+    "context_gap", "context_reconsideration", "discussion", "outcome_decision",
+    "outcome_reconsideration", "policy_gate", "adjudication", "digest_construction",
+]
+
+
+class PhaseRecord(DomainModel):
+    phase: PhaseName
+    disposition: str = "completed"
+    counts: dict[str, int] = Field(default_factory=dict)
+    summary: str = ""
+
+    @model_validator(mode="after")
+    def bound_phase(self) -> "PhaseRecord":
+        self.disposition = self.disposition[:64]
+        self.counts = {
+            key[:48]: max(0, min(int(value), 10_000))
+            for key, value in list(self.counts.items())[:8]
+            if isinstance(value, int) and not isinstance(value, bool)
+        }
+        self.summary = self.summary[:240]
+        return self
+
+
+class PhaseTrace(DomainModel):
+    phases: list[PhaseRecord] = Field(default_factory=list)
+
+    @field_validator("phases")
+    @classmethod
+    def bound_phases(cls, value: list[PhaseRecord]) -> list[PhaseRecord]:
+        return value[:13]
+
+
+class RoleLens(DomainModel):
+    role_id: str
+    perspective: str = ""
+    evidence: list[str] = Field(default_factory=list)
+    disposition: str = ""
+
+    @model_validator(mode="after")
+    def bound_lens(self) -> "RoleLens":
+        self.role_id = self.role_id[:64]
+        self.perspective = self.perspective[:240]
+        self.evidence = list(dict.fromkeys(item[:240] for item in self.evidence if item))[:4]
+        self.disposition = self.disposition[:120]
+        return self
+
+
+class MinorityReport(DomainModel):
+    dissent: str = ""
+    decisive_condition: str = ""
+    role_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def bound_minority(self) -> "MinorityReport":
+        self.dissent = self.dissent[:240]
+        self.decisive_condition = self.decisive_condition[:240]
+        self.role_ids = list(dict.fromkeys(self.role_ids))[:8]
+        return self
+
+
+class ProcessDigestV2(DomainModel):
+    case_brief: list[str] = Field(default_factory=list)
+    assumptions_context_confidence: list[str] = Field(default_factory=list)
+    blind_spots: list[str] = Field(default_factory=list)
+    role_lenses: list[RoleLens] = Field(default_factory=list)
+    consensus: list[str] = Field(default_factory=list)
+    minority_report: MinorityReport = Field(default_factory=MinorityReport)
+    material_disagreements: list[str] = Field(default_factory=list)
+    context_gaps_answers: list[str] = Field(default_factory=list)
+    user_decisions: list[str] = Field(default_factory=list)
+    reconsideration_changes: list[str] = Field(default_factory=list)
+    editor_synthesis: list[str] = Field(default_factory=list)
+    execution_checklist_final_disposition: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def bound_digest(self) -> "ProcessDigestV2":
+        list_fields = (
+            "case_brief", "assumptions_context_confidence", "blind_spots", "consensus",
+            "material_disagreements", "context_gaps_answers", "user_decisions",
+            "reconsideration_changes", "editor_synthesis", "execution_checklist_final_disposition",
+        )
+        for name in list_fields:
+            items = getattr(self, name)
+            setattr(self, name, list(dict.fromkeys(item[:240] for item in items if item))[:8])
+        self.role_lenses = self.role_lenses[:8]
+        return self
+
+
 class EffectiveTask(DomainModel):
     content_type: str = "unspecified"
     audience: str = ""
@@ -399,12 +600,18 @@ class RuntimeMetadata(DomainModel):
     parse_failures: int = Field(default=0, ge=0)
     fallbacks: list[str] = Field(default_factory=list)
     elapsed_ms: int = Field(default=0, ge=0)
-    sample_budget: int = Field(default=10, ge=0, le=14)
+    sample_budget: int = Field(default=13, ge=0, le=18)
     reviewer_samples_successful: int = Field(default=0, ge=0, le=8)
     reviewer_samples_unavailable: int = Field(default=0, ge=0, le=8)
     reviewer_coverage: Literal["full", "partial", "none", "not_applicable"] = "not_applicable"
-    package_version: str = "0.5.0"
-    diagnostic_build: str = "outcome-first-decision-v3"
+    briefing_elicitation_calls: int = Field(default=0, ge=0)
+    briefing_elicitation_actions: list[str] = Field(default_factory=list)
+    context_gap_elicitation_calls: int = Field(default=0, ge=0)
+    context_gap_elicitation_actions: list[str] = Field(default_factory=list)
+    outcome_elicitation_calls: int = Field(default=0, ge=0)
+    outcome_elicitation_actions: list[str] = Field(default_factory=list)
+    package_version: str = "0.6.0"
+    diagnostic_build: str = "guided-deliberation-v4"
 
 
 class ReviewTaskV2(DomainModel):
@@ -418,6 +625,7 @@ class ReviewTaskV2(DomainModel):
     mode: ReviewMode = "standard"
     output_mode: Literal["review_only", "with_snippets", "full_rewrite"] = "review_only"
     interactive_mode: Literal["auto", "off", "required"] = "auto"
+    briefing_mode: BriefingMode = "auto"
     decision_fallback: Literal["council_adjudication", "return_pending"] = "council_adjudication"
     trace_level: TraceLevel = "summary"
     history_mode: HistoryMode = "full"
@@ -465,7 +673,7 @@ class ChiefEditorDecisionV2(DomainModel):
 
 
 class ReviewRecordV2(DomainModel):
-    schema_version: Literal["2.0", "2.1"] = "2.1"
+    schema_version: Literal["2.0", "2.1", "2.2"] = "2.2"
     review_id: str
     parent_review_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -482,6 +690,12 @@ class ReviewRecordV2(DomainModel):
     user_decisions: list[UserDecision] = Field(default_factory=list)
     reconsiderations: list[Reconsideration] = Field(default_factory=list)
     reconsideration_provenance: ReconsiderationProvenance = Field(default_factory=ReconsiderationProvenance)
+    effective_brief: ReviewBriefV2 = Field(default_factory=ReviewBriefV2)
+    briefing_interaction: BriefingInteraction = Field(default_factory=BriefingInteraction)
+    context_gaps: list[ContextGapV2] = Field(default_factory=list)
+    context_gap_interaction: ContextGapInteraction = Field(default_factory=ContextGapInteraction)
+    context_reconsideration_provenance: PhaseReconsiderationProvenance = Field(default_factory=PhaseReconsiderationProvenance)
+    outcome_reconsideration_provenance: PhaseReconsiderationProvenance = Field(default_factory=PhaseReconsiderationProvenance)
     policy_gate_result: dict[str, Any] = Field(default_factory=dict)
     chief_editor_decision: ChiefEditorDecisionV2 = Field(default_factory=ChiefEditorDecisionV2)
     decision_trace: DecisionTrace = Field(default_factory=DecisionTrace)
@@ -493,10 +707,13 @@ class ReviewRecordV2(DomainModel):
     deliberation_summary: DeliberationSummary = Field(default_factory=DeliberationSummary)
     degraded: bool = False
     warnings: list[str] = Field(default_factory=list)
+    phase_trace: PhaseTrace = Field(default_factory=PhaseTrace)
+    process_digest: ProcessDigestV2 = Field(default_factory=ProcessDigestV2)
+    display_report: str = ""
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
-        "package_version": "0.5.0",
-        "diagnostic_build": "outcome-first-decision-v3",
-        "record_schema": "2.1",
+        "package_version": "0.6.0",
+        "diagnostic_build": "guided-deliberation-v4",
+        "record_schema": "2.2",
     })
 
     @field_validator("decision_points")
@@ -508,3 +725,13 @@ class ReviewRecordV2(DomainModel):
     @classmethod
     def bound_warnings(cls, value: list[str]) -> list[str]:
         return list(dict.fromkeys(item[:240] for item in value))[:8]
+
+    @field_validator("context_gaps")
+    @classmethod
+    def bound_context_gaps(cls, value: list[ContextGapV2]) -> list[ContextGapV2]:
+        return value[:16]
+
+    @field_validator("display_report")
+    @classmethod
+    def bound_display_report(cls, value: str) -> str:
+        return value[:8_000]

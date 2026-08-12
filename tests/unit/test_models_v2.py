@@ -121,7 +121,7 @@ def test_minimal_v2_record_validates_and_caps_decisions():
             DecisionPoint(decision_id=f"d-{i}", issue_id=f"i-{i}", question="q") for i in range(5)
         ],
     )
-    assert record.schema_version == "2.1"
+    assert record.schema_version == "2.2"
     assert len(record.decision_points) == 3
 
 

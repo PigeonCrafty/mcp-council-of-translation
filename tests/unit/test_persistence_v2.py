@@ -100,7 +100,7 @@ def test_full_write_is_atomic_and_round_trips(monkeypatch, tmp_path):
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
     assert loaded.task.source_text == "SECRET SOURCE"
-    assert loaded.schema_version == "2.1"
+    assert loaded.schema_version == "2.2"
 
 
 def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
@@ -144,7 +144,7 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.task.source_text == ""
     assert loaded.independent_reviews == []
     assert loaded.user_decisions == []
-    assert loaded.schema_version == "2.1"
+    assert loaded.schema_version == "2.2"
 
 
 def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
@@ -295,12 +295,12 @@ def test_reader_accepts_frozen_eight_character_v2_suffix(tmp_path):
     assert store.load(review_id).review_id == review_id
 
 
-def test_saving_readable_v20_model_writes_new_v21_schema(tmp_path):
+def test_saving_readable_v20_model_writes_new_v22_schema(tmp_path):
     store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
     record = _record(build_review_id()).model_copy(update={"schema_version": "2.0"})
     path = store.save(record)
 
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "2.1"
-    assert payload["version_metadata"]["record_schema"] == "2.1"
-    assert store.load(record.review_id).schema_version == "2.1"
+    assert payload["schema_version"] == "2.2"
+    assert payload["version_metadata"]["record_schema"] == "2.2"
+    assert store.load(record.review_id).schema_version == "2.2"
