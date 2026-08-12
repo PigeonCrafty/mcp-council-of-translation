@@ -15,6 +15,7 @@ from council_of_translation.localization.orchestration import (
 )
 from council_of_translation.localization.persistence import ReviewStore
 from council_of_translation.localization.runtime import ElicitationResult
+from council_of_translation.presentation import structured_payload
 from council_of_translation.tools.review import (
     DIAGNOSTIC_BUILD,
     _server_info,
@@ -203,6 +204,7 @@ def test_public_review_normalizes_atomic_write_failure_without_path(monkeypatch,
             ctx=RawJsonContext(),
         )
     )
-    assert result["error_type"] == "ReviewPersistenceError"
-    assert result["error"] == "review record write failed"
-    assert private_path not in str(result)
+    payload = structured_payload(result)
+    assert payload["error_type"] == "ReviewPersistenceError"
+    assert payload["error"] == "review record write failed"
+    assert private_path not in str(payload)

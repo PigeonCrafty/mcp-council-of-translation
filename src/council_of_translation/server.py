@@ -28,6 +28,10 @@ reasoning—and are available through view_review_record. Compact responses expo
 effective task context, a process-first digest, a bounded display report,
 degradation, and warnings.
 
+For review_translation, continue_review, and view_review_record, present the first
+primary Council text block to the user before optional structured diagnostics. The same
+result retains the complete compact or full dictionary as structured content.
+
 The public tool surface is frozen to exactly:
 1. review_translation — run a new review.
 2. continue_review — create a linked immutable revision from user decisions.

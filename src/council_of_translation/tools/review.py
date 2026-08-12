@@ -1,4 +1,4 @@
-"""Frozen five-tool MCP surface for Council of Translation V0.6."""
+"""Frozen five-tool MCP surface for Council of Translation V0.7."""
 
 from __future__ import annotations
 
@@ -6,6 +6,7 @@ from importlib.metadata import PackageNotFoundError, version
 from typing import Any, Literal
 
 from fastmcp import Context
+from fastmcp.tools.tool import ToolResult
 
 from council_of_translation import __version__
 from council_of_translation.localization.compatibility import ReviewRecordV1
@@ -22,6 +23,7 @@ from council_of_translation.localization.runtime import (
     RuntimeTelemetry,
 )
 from council_of_translation.localization.roles import SAMPLE_BUDGETS, normalize_mode
+from council_of_translation.presentation import dual_channel_result
 from council_of_translation.security import sanitize_text
 from council_of_translation.server import mcp
 
@@ -183,7 +185,7 @@ async def review_translation(
     reference_translations: str = "",
     known_exceptions: str = "",
     notes: str = "",
-) -> dict[str, Any]:
+) -> ToolResult:
     """Review an existing translation through bounded structured deliberation.
 
     This is review-only: it never edits translation files. The default response
@@ -192,9 +194,9 @@ async def review_translation(
     full_rewrite, and is never emitted by the default review_only path.
     """
     if not source_text.strip():
-        return {"error": "source_text is required"}
+        return dual_channel_result({"error": "source_text is required"})
     if not candidate_translation.strip():
-        return {"error": "candidate_translation is required"}
+        return dual_channel_result({"error": "candidate_translation is required"})
     try:
         task, diagnostics = _task_and_diagnostics(
             source_text=source_text,
@@ -232,9 +234,9 @@ async def review_translation(
         )
         response = record.model_dump(mode="json", exclude_none=True) if task.trace_level == "full" else compact_review_response(record)
         response["server_info"] = _server_info()
-        return response
+        return dual_channel_result(response)
     except (ValueError, ReviewPersistenceError) as exc:
-        return _error(exc)
+        return dual_channel_result(_error(exc))
 
 
 @mcp.tool()
@@ -242,7 +244,7 @@ async def continue_review(
     review_id: str,
     user_decisions: list[dict[str, Any]],
     ctx: Context,
-) -> dict[str, Any]:
+) -> ToolResult:
     """Create an immutable linked revision using decisions for active DecisionPoints.
 
     Only roles affected by those decisions are reconsidered. Independent review
@@ -252,7 +254,9 @@ async def continue_review(
     try:
         parent = store.load(review_id)
         if not isinstance(parent, ReviewRecordV2):
-            return {"error": "continue_review requires a V2 review record"}
+            return dual_channel_result(
+                {"error": "continue_review requires a V2 review record"}
+            )
         telemetry = RuntimeTelemetry(sample_budget=parent.council_plan.sample_budget)
         child = await continue_structured_review(
             parent,
@@ -262,23 +266,23 @@ async def continue_review(
         )
         response = compact_review_response(child)
         response["server_info"] = _server_info()
-        return response
+        return dual_channel_result(response)
     except (ValueError, ReviewPersistenceError) as exc:
-        return _error(exc)
+        return dual_channel_result(_error(exc))
 
 
 @mcp.tool()
-def view_review_record(review_id: str, detail_level: str = "full") -> dict[str, Any]:
+def view_review_record(review_id: str, detail_level: str = "full") -> ToolResult:
     """Read a V1 or V2 record; use summary for a compact V2 projection."""
     try:
         record = ReviewStore().load(review_id)
         if isinstance(record, ReviewRecordV2) and detail_level == "summary":
-            return compact_review_response(record)
+            return dual_channel_result(compact_review_response(record))
         if detail_level not in {"full", "summary"}:
-            return {"error": "detail_level must be full or summary"}
-        return record.model_dump(mode="json")
+            return dual_channel_result({"error": "detail_level must be full or summary"})
+        return dual_channel_result(record.model_dump(mode="json"))
     except ReviewPersistenceError as exc:
-        return _error(exc)
+        return dual_channel_result(_error(exc))
 
 
 @mcp.tool()
