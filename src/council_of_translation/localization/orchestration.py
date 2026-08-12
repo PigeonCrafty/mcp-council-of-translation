@@ -8,7 +8,7 @@ import re
 from time import perf_counter
 from typing import Any, Iterable, Literal
 
-from pydantic import Field, create_model
+from pydantic import Field, ValidationError, create_model
 
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.deliberation import (
@@ -98,16 +98,26 @@ async def _sample_json(
         return None
 
 
-def _review_findings(raw: dict[str, Any] | None, role_id: str) -> tuple[str, list[FindingV2]]:
+def _review_findings(
+    raw: dict[str, Any] | None,
+    role_id: str,
+) -> tuple[str, list[FindingV2], str]:
+    """Validate one reviewer envelope; any malformed entry invalidates the sample."""
     if raw is None:
-        return "评审采样不可用；未将缺失输出升级为阻断项。", []
-    role_feedback = str(raw.get("role_feedback", ""))[:2_000]
+        return "评审采样不可用；未将缺失输出升级为阻断项。", [], "runtime_unavailable"
+    if "role_feedback" not in raw or not isinstance(raw["role_feedback"], str):
+        return "评审响应结构无效；未将其视为完成评审。", [], "invalid_role_feedback"
+    if "findings" not in raw or not isinstance(raw["findings"], list):
+        return "评审响应结构无效；未将其视为完成评审。", [], "invalid_findings_container"
+    if len(raw["findings"]) > 5:
+        return "评审响应包含过多 findings；未将其视为完成评审。", [], "too_many_findings"
+
+    role_feedback = raw["role_feedback"][:2_000]
     findings: list[FindingV2] = []
-    value = raw.get("findings", [])
-    if isinstance(value, list):
-        for index, item in enumerate(value[:5]):
-            if not isinstance(item, dict):
-                continue
+    for item in raw["findings"]:
+        if not isinstance(item, dict):
+            return "评审响应包含无效 finding；已丢弃该样本的全部 findings。", [], "invalid_finding_entry"
+        try:
             finding = FindingV2.model_validate(
                 {
                     **item,
@@ -118,9 +128,15 @@ def _review_findings(raw: dict[str, Any] | None, role_id: str) -> tuple[str, lis
                     "blocking": False,
                 }
             )
-            if finding.problem or finding.action:
-                findings.append(finding)
-    return role_feedback, findings
+        except (ValidationError, TypeError, ValueError):
+            return "评审响应包含无效 finding；已丢弃该样本的全部 findings。", [], "invalid_finding_value"
+        if not (finding.problem or finding.action):
+            return "评审响应包含空 finding；已丢弃该样本的全部 findings。", [], "inert_finding"
+        findings.append(finding)
+
+    if not findings and not role_feedback.strip():
+        return "评审响应缺少有效反馈；未将其视为完成评审。", [], "empty_reviewer_response"
+    return role_feedback, findings, ""
 
 
 def _interaction_form(decision_points: list) -> type:
@@ -275,14 +291,18 @@ async def run_structured_review(
             build_v2_reviewer_prompt(ROLE_REGISTRY[role_id], task, preflight),
             max_tokens=1_400,
         )
-        feedback, findings = _review_findings(raw, role_id)
-        sample_status = "structured_success" if raw is not None else "unavailable"
-        successful_reviewers += int(raw is not None)
+        feedback, findings, sample_error = _review_findings(raw, role_id)
+        sample_status = "structured_success" if not sample_error else "unavailable"
+        if raw is not None and sample_error:
+            telemetry.record(RuntimeEvent("parse_failure", "reviewer_schema_invalid", detail=sample_error))
+            telemetry.record(RuntimeEvent("fallback", f"reviewer_{sample_error}"))
+        successful_reviewers += int(not sample_error)
         all_findings.extend(findings)
         independent_reviews.append(
             {
                 "agent_name": role_id,
                 "sample_status": sample_status,
+                "sample_error": sample_error,
                 "role_feedback": feedback,
                 "findings": [finding.model_dump(mode="json") for finding in findings],
             }
