@@ -43,9 +43,9 @@ def test_exact_frozen_public_tool_surface():
 
 def test_server_info_and_versioned_defaults():
     info = _server_info()
-    assert info["package_version"] == "0.7.0"
-    assert info["module_version"] == "0.7.0"
-    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "concise-council-display-v5"
+    assert info["package_version"] == "0.7.1"
+    assert info["module_version"] == "0.7.1"
+    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "concise-council-display-v5.1"
     assert info["schema_version"] == "2.2"
     assert info["default_interactive_mode"] == "auto"
     assert info["default_briefing_mode"] == "auto"

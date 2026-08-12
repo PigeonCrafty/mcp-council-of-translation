@@ -147,23 +147,27 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.schema_version == "2.2"
 
 
-def test_metadata_write_persists_truthful_v07_runtime_and_version_identifiers(tmp_path):
+@pytest.mark.parametrize("history_mode", ["full", "metadata"])
+def test_new_write_persists_truthful_v071_runtime_and_version_identifiers(tmp_path, history_mode):
     store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
-    record = _record(build_review_id(), history_mode="metadata")
-    path = store.save(record, history_mode="metadata")
+    record = ReviewRecordV2(
+        review_id=build_review_id(),
+        task=ReviewTaskV2(source_text="Save", candidate_translation="保存", history_mode=history_mode),
+    )
+    path = store.save(record, history_mode=history_mode)
 
     payload = json.loads(path.read_text(encoding="utf-8"))
     expected = {
-        "package_version": "0.7.0",
-        "diagnostic_build": "concise-council-display-v5",
+        "package_version": "0.7.1",
+        "diagnostic_build": "concise-council-display-v5.1",
     }
     assert {key: payload["runtime_metadata"][key] for key in expected} == expected
     assert {key: payload["version_metadata"][key] for key in expected} == expected
     assert payload["version_metadata"]["record_schema"] == "2.2"
 
     loaded = store.load(record.review_id)
-    assert loaded.runtime_metadata.package_version == "0.7.0"
-    assert loaded.runtime_metadata.diagnostic_build == "concise-council-display-v5"
+    assert loaded.runtime_metadata.package_version == "0.7.1"
+    assert loaded.runtime_metadata.diagnostic_build == "concise-council-display-v5.1"
     assert loaded.version_metadata == {**expected, "record_schema": "2.2"}
 
 

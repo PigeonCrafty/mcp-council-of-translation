@@ -40,8 +40,8 @@ _SAFE_PHASE_DISPOSITIONS = {
     "completed", "skipped", "degraded", "blocked", "accept", "decline", "cancel",
     "unsupported", "malformed", "error", "pending", "可发布", "修改后可发布", "需人工复核",
 }
-_CURRENT_PACKAGE_VERSION = "0.7.0"
-_CURRENT_DIAGNOSTIC_BUILD = "concise-council-display-v5"
+_CURRENT_PACKAGE_VERSION = "0.7.1"
+_CURRENT_DIAGNOSTIC_BUILD = "concise-council-display-v5.1"
 
 
 class ReviewPersistenceError(RuntimeError):

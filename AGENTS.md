@@ -16,8 +16,8 @@ Council-of-Translation is a review-only MCP server for localization translation 
 - Default decision fallback: `council_adjudication`
 - Default trace level: `summary`
 - Default history mode: `full`
-- Current expected diagnostic build: `concise-council-display-v5`
-- Current version: `0.7.0`
+- Current expected diagnostic build: `concise-council-display-v5.1`
+- Current version: `0.7.1`
 
 Normal callers should call `review_translation` directly. `get_server_info` is only for cache/version checks; `review_translation` already returns `server_info`.
 
@@ -94,9 +94,9 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 If Goose appears stale, call `get_server_info()` and verify:
 
-- `package_version`: `0.7.0`
-- `module_version`: `0.7.0`
-- `diagnostic_build`: `concise-council-display-v5`
+- `package_version`: `0.7.1`
+- `module_version`: `0.7.1`
+- `diagnostic_build`: `concise-council-display-v5.1`
 
 ## Repository Hygiene
 

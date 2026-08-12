@@ -2,7 +2,7 @@ from fastmcp import FastMCP
 
 
 INSTRUCTIONS = """
-Council of Translation V0.7 is a review-only MCP server for guided structured
+Council of Translation V0.7.1 is a review-only MCP server for guided structured
 localization translation QA. It never edits translation files and does not own
 translation memory, terminology/style-guide retrieval, project context, or final
 edit application; the calling agent supplies the relevant packet and applies the
@@ -31,9 +31,10 @@ is always the last substantive line.
 
 For review_translation, continue_review, and view_review_record, present the first
 primary Council text block directly to the user before optional structured diagnostics.
-It already contains the concise Council process, six role lenses, consensus or
-uncertainty, and the final disposition; do not require a second history lookup merely
-to show the review. The same result retains the complete compact or full dictionary as
+It already contains six role lenses, consensus or uncertainty, material risks and the
+final disposition without procedural adjudication counters or redundant clean-role
+evidence; do not require a second history lookup merely to show the review. The same
+result retains the complete compact or full dictionary as
 structured content for programmatic consumers.
 
 The public tool surface is frozen to exactly:

@@ -1,4 +1,4 @@
-"""Frozen five-tool MCP surface for Council of Translation V0.7."""
+"""Frozen five-tool MCP surface for Council of Translation V0.7.1."""
 
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12_000
-DIAGNOSTIC_BUILD = "concise-council-display-v5"
+DIAGNOSTIC_BUILD = "concise-council-display-v5.1"
 
 
 def _installed_version() -> str:
