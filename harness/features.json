@@ -1,0 +1,157 @@
+{
+  "schema_version": "1.0",
+  "project": "mcp-council-of-translation",
+  "target_version": "0.4.0",
+  "active_campaign": "CAMPAIGN-001-r5",
+  "acceptance_authority": "FOREMAN",
+  "source_baseline": "34d41946717f1993b8954260afc893737198a3bb",
+  "features": [
+    {
+      "id": "F-001",
+      "name": "Versioned V2 domain models",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "FindingV2, IssueCluster, RolePosition, DiscussionTurn, DecisionPoint, UserDecision, Reconsideration, DecisionTrace and ReviewRecordV2 validate conservatively",
+        "Missing schema_version is interpreted as a V1 record",
+        "Invalid model enums or missing fields cannot create blockers or hard constraints"
+      ]
+    },
+    {
+      "id": "F-002",
+      "name": "Input diagnostics and durable persistence",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "Truncation and original/reviewed lengths are explicit",
+        "Review IDs are collision-resistant and legacy IDs remain readable",
+        "history_mode off, metadata and full are supported with full as default",
+        "Writes are atomic and tests use injected temporary storage"
+      ]
+    },
+    {
+      "id": "F-003",
+      "name": "Executable RoleDefinition and CouncilPlan",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "Reviewer permissions, evidence policy, blockers and discussion participation are data-backed",
+        "Chief editor is an adjudicator rather than a reviewer",
+        "Mode and content routing is deterministic and tested"
+      ]
+    },
+    {
+      "id": "F-004",
+      "name": "Model and user interaction runtime abstraction",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "Council Core has no direct FastMCP Context dependency",
+        "FastMCP adapters support sample and form elicitation",
+        "Mocks cover success, malformed output, failure, unsupported, decline and cancel"
+      ]
+    },
+    {
+      "id": "F-005",
+      "name": "Conservative deterministic preflight",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "High-confidence placeholder, token, tag, URL and explicit DNT checks are deterministic",
+        "Numeric and Markdown differences are non-blocking without explicit constraints",
+        "Preflight blockers cannot be authored by sampled reviewer output"
+      ]
+    },
+    {
+      "id": "F-006",
+      "name": "Hybrid issue clustering",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "Findings are normalized and grouped by issue rather than reviewer",
+        "Hard-coded permissions and named-term conflict cases are removed from the production engine",
+        "False merge and false split regression cases are covered"
+      ]
+    },
+    {
+      "id": "F-007",
+      "name": "Targeted bounded deliberation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "Only affected roles see relevant issue packets and positions",
+        "No substantive conflict produces no manufactured discussion",
+        "Discussion records structured claims and evidence without hidden chain-of-thought",
+        "Mode-specific model-call budgets are enforced"
+      ]
+    },
+    {
+      "id": "F-008",
+      "name": "Policy gate and traceable adjudication",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "Invalid options are removed before user choice or Council adjudication",
+        "Fallback uses a Position Matrix and evidence hierarchy rather than vote counts",
+        "Chief-editor decisions trace to constraints, evidence, roles and user input",
+        "Indistinguishable valid alternatives request human review"
+      ]
+    },
+    {
+      "id": "F-009",
+      "name": "Default interactive decisions with graceful fallback",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "interactive_mode auto is the default",
+        "At most three meaningful DecisionPoints are collected in one elicitation form",
+        "User choice is decisive among valid options",
+        "Unsupported, declined and cancelled interactions complete safely through the configured fallback or return pending"
+      ]
+    },
+    {
+      "id": "F-010",
+      "name": "Continue and targeted reconsideration",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-001-r5",
+      "criteria": [
+        "continue_review is the only new public MCP tool",
+        "A continuation creates an immutable revision linked to its parent",
+        "Context updates and preferences trigger only affected roles",
+        "Default responses are compact and the full trace remains retrievable"
+      ]
+    }
+  ],
+  "quality_gates": [
+    {
+      "id": "Q-001",
+      "name": "Golden and regression corpus",
+      "status": "accepted"
+    },
+    {
+      "id": "Q-002",
+      "name": "Unit, integration and mocked multi-round coverage",
+      "status": "accepted"
+    },
+    {
+      "id": "Q-003",
+      "name": "Goose Desktop and interactive CLI evidence",
+      "status": "pending_live_validation"
+    },
+    {
+      "id": "Q-004",
+      "name": "Sampling, elicitation, latency and fallback telemetry",
+      "status": "accepted"
+    },
+    {
+      "id": "Q-005",
+      "name": "Authoritative documentation and tool contract alignment",
+      "status": "accepted"
+    },
+    {
+      "id": "Q-006",
+      "name": "Legacy Council removal after test migration",
+      "status": "accepted"
+    }
+  ]
+}
