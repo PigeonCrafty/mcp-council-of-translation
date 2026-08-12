@@ -273,10 +273,60 @@ def _reconstruct_candidate(
     return task.candidate_translation.replace(anchor, option.outcome_value, 1), "reconstructed_candidate"
 
 
+_DECISION_SUPPRESSION_REASONS = {
+    "missing_candidate_anchor",
+    "ambiguous_candidate_anchor",
+}
+
+
+def _bounded_decision_suppressions(values: Any) -> list[dict[str, str]]:
+    """Keep only bounded, content-free reconstruction suppression provenance."""
+    if not isinstance(values, list):
+        return []
+    suppressions: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
+    for value in values:
+        if not isinstance(value, dict):
+            continue
+        issue_id = value.get("issue_id", "")
+        decision_id = value.get("decision_id", "")
+        reason_code = value.get("reason_code", "")
+        if (
+            not isinstance(issue_id, str)
+            or not isinstance(decision_id, str)
+            or not isinstance(reason_code, str)
+            or reason_code not in _DECISION_SUPPRESSION_REASONS
+            or re.fullmatch(r"issue_[0-9a-f]{12}", issue_id) is None
+            or re.fullmatch(r"decision_[0-9a-f]{12}", decision_id) is None
+        ):
+            continue
+        key = (issue_id, decision_id, reason_code)
+        if key in seen:
+            continue
+        seen.add(key)
+        suppressions.append({
+            "issue_id": issue_id,
+            "decision_id": decision_id,
+            "reason_code": reason_code,
+        })
+        if len(suppressions) >= 8:
+            break
+    return suppressions
+
+
+def _suppression_warnings(suppressions: list[dict[str, str]]) -> list[str]:
+    return list(dict.fromkeys(
+        f"decision_suppressed:{item['reason_code']}"
+        for item in suppressions
+    ))
+
+
 def _validate_outcome_options(
     decision_points: list[Any],
     task: ReviewTaskV2,
     clusters: list[IssueCluster],
+    *,
+    suppression_provenance: list[dict[str, str]] | None = None,
 ) -> list[Any]:
     """Apply deterministic caller/preflight constraints to every outcome."""
     validated_points: list[Any] = []
@@ -289,6 +339,17 @@ def _validate_outcome_options(
         for option in point.options[:3]:
             candidate, reconstruction = _reconstruct_candidate(task, cluster, option)
             if candidate is None:
+                if reconstruction in _DECISION_SUPPRESSION_REASONS:
+                    suppression = {
+                        "issue_id": point.issue_id,
+                        "decision_id": point.decision_id,
+                        "reason_code": reconstruction,
+                    }
+                    if suppression_provenance is not None:
+                        suppression_provenance[:] = _bounded_decision_suppressions([
+                            *suppression_provenance,
+                            suppression,
+                        ])
                 options.append(option.model_copy(update={
                     "valid": False,
                     "invalid_reason": option.invalid_reason or reconstruction,
@@ -676,10 +737,12 @@ async def run_structured_review(
         apply_discussion_updates(clusters, round_)
         discussion_rounds.append(round_)
 
+    decision_suppressions: list[dict[str, str]] = []
     decision_points = _validate_outcome_options(
         build_decision_points(clusters, plan.max_decision_points),
         task,
         clusters,
+        suppression_provenance=decision_suppressions,
     )
     user_decisions: list[UserDecision] = []
     fallback_reason = ""
@@ -718,13 +781,19 @@ async def run_structured_review(
         reconsiderations, reconsideration_provenance, reconsideration_warnings = await _reconsider(
             task, clusters, user_decisions, executor, telemetry, budget
         )
-    degraded = bool(
+    reconsideration_degraded = bool(
         reconsideration_provenance.skipped_role_ids
         or reconsideration_provenance.failed_role_ids
     )
-    if degraded:
+    decision_validation_degraded = bool(decision_suppressions)
+    degraded = reconsideration_degraded or decision_validation_degraded
+    if reconsideration_degraded:
         fallback_reason = ";".join(filter(None, (fallback_reason, "reconsideration_degraded")))
+    if decision_validation_degraded:
+        fallback_reason = ";".join(filter(None, (fallback_reason, "decision_validation_degraded")))
+        telemetry.record(RuntimeEvent("fallback", "decision_validation_degraded"))
     gate_result = policy_gate(decision_points, clusters)
+    gate_result["decision_suppressions"] = decision_suppressions
     chief, trace = build_chief_decision(clusters, decision_points, user_decisions)
     if reviewer_coverage != "full":
         coverage_reason = f"reviewer_coverage_{reviewer_coverage}"
@@ -792,7 +861,7 @@ async def run_structured_review(
             clusters, user_decisions, trace, reconsideration_provenance, reconsiderations
         ),
         degraded=degraded,
-        warnings=reconsideration_warnings,
+        warnings=[*reconsideration_warnings, *_suppression_warnings(decision_suppressions)],
     )
     (store or ReviewStore()).save(record, history_mode=task.history_mode)
     return record
@@ -878,10 +947,15 @@ async def continue_structured_review(
             f"{chief.decision_rationale} 延续父记录的独立评审覆盖率；"
             "未将后续用户决定视为缺失评审证据的替代。"
         ).strip()
-    degraded = bool(
+    decision_suppressions = _bounded_decision_suppressions(
+        parent.policy_gate_result.get("decision_suppressions", [])
+    )
+    reconsideration_degraded = bool(
         reconsideration_provenance.skipped_role_ids
         or reconsideration_provenance.failed_role_ids
     )
+    decision_validation_degraded = bool(decision_suppressions)
+    degraded = reconsideration_degraded or decision_validation_degraded
     status = (
         "NEEDS_HUMAN_REVIEW"
         if chief.review_needed == "是"
@@ -899,6 +973,7 @@ async def continue_structured_review(
     record.reconsideration_provenance = reconsideration_provenance
     record.issue_clusters = clusters
     record.policy_gate_result = policy_gate(parent.decision_points, clusters)
+    record.policy_gate_result["decision_suppressions"] = decision_suppressions
     record.chief_editor_decision = chief
     record.decision_trace = trace
     record.effective_task = _effective_task(task)
@@ -914,12 +989,16 @@ async def continue_structured_review(
     )
     record.status = status
     record.degraded = degraded
-    record.warnings = reconsideration_warnings
+    record.warnings = [
+        *reconsideration_warnings,
+        *_suppression_warnings(decision_suppressions),
+    ]
     record.fallback_reason = ";".join(filter(None, (
         f"reviewer_coverage_{reviewer_coverage}"
         if reviewer_coverage in {"partial", "none"}
         else "",
-        "reconsideration_degraded" if degraded else "",
+        "reconsideration_degraded" if reconsideration_degraded else "",
+        "decision_validation_degraded" if decision_validation_degraded else "",
     )))
     (store or ReviewStore()).save(record, history_mode=task.history_mode)
     return record

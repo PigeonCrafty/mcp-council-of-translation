@@ -52,8 +52,8 @@ def _standard_script(*, discussion=None, reconsider=False):
         from council_of_translation.localization.deliberation import build_decision_points
 
         findings = [
-            FindingV2(agent_name="terminology_reviewer", source_span="Continue button", candidate_span="继续", issue_type="terminology", problem="wording choice", evidence="both preserve meaning", action="继续", confidence=0.8),
-            FindingV2(agent_name="fluency_reviewer", source_span="Continue button", candidate_span="继续", issue_type="fluency", problem="wording choice", evidence="both preserve meaning", action="下一步", confidence=0.8),
+            FindingV2(agent_name="terminology_reviewer", source_span="Continue button", candidate_span="继续", issue_type="terminology", problem="wording choice", evidence="both preserve meaning", action="继续", finding_kind="choice", proposed_value="继续", confidence=0.8),
+            FindingV2(agent_name="fluency_reviewer", source_span="Continue button", candidate_span="继续", issue_type="fluency", problem="wording choice", evidence="both preserve meaning", action="下一步", finding_kind="choice", proposed_value="下一步", confidence=0.8),
         ]
         point = build_decision_points(cluster_findings(findings))[0]
         selected = point.options[1].option_id
@@ -114,8 +114,8 @@ def test_production_discussion_change_updates_matrix_used_by_fallback(tmp_path):
     from council_of_translation.localization.clustering import cluster_findings
 
     issue = cluster_findings([
-        FindingV2(agent_name="terminology_reviewer", source_span="Continue button", candidate_span="继续", issue_type="terminology", problem="wording choice", evidence="both preserve meaning", action="继续", confidence=0.8),
-        FindingV2(agent_name="fluency_reviewer", source_span="Continue button", candidate_span="继续", issue_type="fluency", problem="wording choice", evidence="both preserve meaning", action="下一步", confidence=0.8),
+        FindingV2(agent_name="terminology_reviewer", source_span="Continue button", candidate_span="继续", issue_type="terminology", problem="wording choice", evidence="both preserve meaning", action="继续", finding_kind="choice", proposed_value="继续", confidence=0.8),
+        FindingV2(agent_name="fluency_reviewer", source_span="Continue button", candidate_span="继续", issue_type="fluency", problem="wording choice", evidence="both preserve meaning", action="下一步", finding_kind="choice", proposed_value="下一步", confidence=0.8),
     ])[0]
     discussion[0]["issue_id"] = issue.issue_id
     telemetry = RuntimeTelemetry(sample_budget=10)

@@ -1,6 +1,6 @@
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.deliberation import build_decision_points
-from council_of_translation.localization.models import FindingV2
+from council_of_translation.localization.models import FindingV2, option_id_for_action
 from council_of_translation.localization.policy import adjudicate_decision_point
 
 
@@ -123,3 +123,53 @@ def test_empty_contradictory_and_overlong_spans_do_not_invent_current_outcome():
         assert cluster.candidate_actions == ["下一步", "前进"]
         point = build_decision_points([cluster])[0]
         assert all(option.is_current_candidate is False for option in point.options)
+
+
+def test_issue_invalid_and_incomplete_choice_actions_never_become_outcomes():
+    action = "请结合完整页面流程执行一段很长的内部评审指令"
+    base = {
+        "agent_name": "ux_copy_reviewer",
+        "source_span": "Continue",
+        "candidate_span": "继续",
+        "issue_type": "ux",
+        "problem": "wording issue",
+        "action": action,
+    }
+    findings = [
+        FindingV2.model_validate(base),
+        FindingV2.model_validate({**base, "finding_kind": "issue"}),
+        FindingV2.model_validate({**base, "finding_kind": "invalid-kind"}),
+        FindingV2.model_validate({**base, "finding_kind": "choice", "proposed_value": ""}),
+        FindingV2.model_validate({**base, "finding_kind": "choice", "proposed_value": 123}),
+        FindingV2.model_validate({**base, "finding_kind": "choice", "proposed_value": "长" * 501}),
+    ]
+    for finding in findings:
+        cluster = cluster_findings([finding])[0]
+        assert cluster.candidate_actions == ["继续"]
+        assert option_id_for_action(cluster.issue_id, action) not in {
+            position.option_id for position in cluster.positions
+        }
+        assert build_decision_points([cluster]) == []
+
+
+def test_valid_choice_with_issue_and_affirmation_keeps_only_concrete_outcomes():
+    choice = _choice("ux_copy_reviewer", "下一步")
+    issue = choice.model_copy(update={
+        "agent_name": "product_context_reviewer",
+        "finding_kind": "issue",
+        "proposed_value": "",
+        "action": "结合页面流程进一步判断",
+    })
+    affirmation = choice.model_copy(update={
+        "agent_name": "fluency_reviewer",
+        "finding_kind": "affirmation",
+        "proposed_value": "",
+        "action": "保留自然度说明",
+    })
+    cluster = cluster_findings([choice, issue, affirmation])[0]
+    assert cluster.candidate_actions == ["继续", "下一步"]
+    assert build_decision_points([cluster])[0].options[0].is_current_candidate is True
+    assert all(
+        action not in cluster.candidate_actions
+        for action in (issue.action, affirmation.action)
+    )
