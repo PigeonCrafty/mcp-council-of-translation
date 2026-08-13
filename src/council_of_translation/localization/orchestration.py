@@ -71,11 +71,16 @@ from council_of_translation.localization.roles import (
     normalize_content_type,
 )
 from council_of_translation.localization.runtime import (
+    CorrelatedSampleResult,
+    CorrelatedSampleWork,
     ElicitationResult,
     ModelExecutor,
+    ModelExecutionResult,
     RuntimeEvent,
     RuntimeTelemetry,
     UserInteractionGateway,
+    resolve_review_concurrency,
+    sample_correlated_batch,
 )
 
 
@@ -120,6 +125,13 @@ async def _sample_json(
 ) -> dict[str, Any] | None:
     budget.consume()
     result = await executor.sample(prompt, temperature=0.2, max_tokens=max_tokens)
+    return _sample_result_json(result, telemetry)
+
+
+def _sample_result_json(
+    result: ModelExecutionResult,
+    telemetry: RuntimeTelemetry,
+) -> dict[str, Any] | None:
     if result.status != "success":
         telemetry.record(RuntimeEvent("fallback", f"sample_{result.status}", detail=result.error))
         return None
@@ -916,14 +928,47 @@ async def run_structured_review(
     sampled_context_gaps: list[ContextGapV2] = []
     invalid_context_gap_count = 0
     successful_reviewers = 0
-    for role_id in plan.active_role_ids:
-        raw = await _sample_json(
-            executor,
-            telemetry,
-            budget,
-            build_v2_reviewer_prompt(ROLE_REGISTRY[role_id], effective_task, preflight, effective_brief),
+    concurrency = resolve_review_concurrency()
+    telemetry.independent_review_concurrency_limit = concurrency.effective_limit
+    telemetry.independent_review_concurrency_disposition = concurrency.disposition
+    if concurrency.disposition == "invalid_fallback":
+        telemetry.record(RuntimeEvent("fallback", "review_concurrency_invalid"))
+    review_work = [
+        CorrelatedSampleWork(
+            role_id=role_id,
+            prompt=build_v2_reviewer_prompt(
+                ROLE_REGISTRY[role_id], effective_task, preflight, effective_brief
+            ),
             max_tokens=1_400,
         )
+        for role_id in plan.active_role_ids
+    ]
+    try:
+        budget.consume(len(review_work))
+    except RuntimeError:
+        telemetry.record(RuntimeEvent("fallback", "independent_batch_budget_unavailable"))
+        review_results = [
+            CorrelatedSampleResult(
+                item.role_id,
+                ModelExecutionResult(status="error", error="independent batch budget unavailable"),
+            )
+            for item in review_work
+        ]
+        batch_stats = None
+    else:
+        review_results, batch_stats = await sample_correlated_batch(
+            executor,
+            review_work,
+            limit=concurrency.effective_limit,
+            telemetry=telemetry,
+        )
+    if batch_stats is not None:
+        telemetry.independent_review_peak_concurrency = batch_stats.peak_concurrency
+        telemetry.independent_review_batch_count = batch_stats.batch_count
+        telemetry.independent_review_wall_clock_ms = batch_stats.wall_clock_ms
+    for correlated in review_results:
+        role_id = correlated.role_id
+        raw = _sample_result_json(correlated.result, telemetry)
         feedback, findings, context_gaps, invalid_gaps, sample_error = _review_findings(raw, role_id)
         sample_status = "structured_success" if not sample_error else "unavailable"
         if raw is not None and sample_error:
