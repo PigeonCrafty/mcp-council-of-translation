@@ -4,10 +4,10 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-006-r1`
-- Campaign state: `DESIGN_FROZEN / ASSIGNED`
-- Campaign baseline: `755aea681b64283a4cb369817d17b3e52c0973a0`
-- Last updated: 2026-08-12 Asia/Shanghai
+- Campaign: `CAMPAIGN-006-r3`
+- Campaign state: `ACCEPTED / AWAITING_PUBLICATION_AND_Q010`
+- Campaign baseline: `f3e9bde1b74ff4591d91b66a38558b8bebe6efab`
+- Last updated: 2026-08-13 Asia/Shanghai
 - Completion authority: Foreman only
 
 ## Accepted state
@@ -151,15 +151,25 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Campaign 006 assignment
 
-- Contract: `harness/contracts/CAMPAIGN-006-r1.md`
+- Active contract: `harness/contracts/CAMPAIGN-006-r3.md`
+- r2 decision: `CHANGES_REQUESTED` by `harness/evaluations/CAMPAIGN-006-r2-review.md`
+- r2 implementation HEAD: `8ed8d866076acab9dc22a57c6fd31d4ff6792fe4`
+- Preserved r2 evidence: PKG-033 through PKG-036; PKG-032 material-impact grammar/bounds except caller-context-aware `already_answered`; exact 23-path scope, compile, 217 tests, six-role/deep-budget/presentation/runtime probes and fresh artifacts
+- r3 correction: suppress official glossary/reference questions when the corresponding caller packet is already supplied; suppress brand-versus-functional questions only when caller usage is unambiguous, while preserving questions for missing or conflicting marketing/UI context
+- r3 decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-006-r3-review.md`
+- Accepted implementation HEAD: `f3e9bde1b74ff4591d91b66a38558b8bebe6efab`
+- F-030 through F-034: accepted by `CAMPAIGN-006-r3`
+- Independent final evidence: exact four-file/one-commit correction scope, all protected hashes exact, compile pass, 39 focused passes, 220 full passes, Chinese/English direct-answer truth table, exact five tools/version/schema/defaults/budgets and six-role marketing route
+- Preserved r2 evidence: deep 13/13 call path, context-first conservative status, concise presentation, literal V2.2 invariants, fresh 0.8.0 artifacts and installed FastMCP 3.4.7 wheel behavior
+- Superseded contract: `harness/contracts/CAMPAIGN-006-r1.md`; PR #10 published its Foreman assets and thereby advanced `main`, so its earlier baseline must not be executed
 - Target: package/module `0.8.0`; diagnostic build `context-coherent-council-v6`; schema remains `2.2`
 - Package graph: PKG-032 context-gap classification; PKG-033 context precedence/status; PKG-034 marketing role routing; PKG-035 presentation/invariants; PKG-036 migration/build/docs
 - Frozen marketing route: standard and strict use fidelity, terminology, product context, brand voice, risk/ambiguity and fluency; lightweight remains narrow
 - Public invariants: exact five tools, review-only, current defaults and budgets 6/13/18
 - Main Worker: Codex in a separate conversation; implementation subagents forbidden because the packages share guided/orchestration/role/digest boundaries
-- Commit policy: three to five scoped local commits; no push, PR, release, deployment, credentials or live provider calls
-- Required report: `harness/reports/CAMPAIGN-006-r1-worker.md`; required ledger: `harness/reports/CAMPAIGN-006-r1-ledger.md`
+- Commit policy for r3: one scoped local commit; no push, PR, release, deployment, credentials or live provider calls
+- Required report: `harness/reports/CAMPAIGN-006-r3-worker.md`; no new ledger required
 
 ## Next step
 
-Start a separate Codex Main Worker conversation at exact baseline `755aea681b64283a4cb369817d17b3e52c0973a0`. Execute only `harness/contracts/CAMPAIGN-006-r1.md`, preserve Foreman/user assets, write the required ledger/report, make only scoped local commits and stop at `READY_FOR_REVIEW` or `BLOCKED` without pushing.
+Archive and publish the accepted implementation plus Campaign 006 Harness evidence through the protected-main workflow. After publication, run Q-010 against the exact published commit using both the clean explicit marketing-slogan case and the deliberately mixed marketing-versus-functional-UI case. Do not mark Q-010 accepted until normal Goose returns literal structured evidence consistent with the server record.

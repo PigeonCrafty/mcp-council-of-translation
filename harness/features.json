@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.7.1",
-  "active_campaign": "CAMPAIGN-005-r1",
+  "target_version": "0.8.0",
+  "active_campaign": "CAMPAIGN-006-r3",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "2bf090ac368c7b8af24b51ff534a145f88752ad0",
+  "source_baseline": "f3e9bde1b74ff4591d91b66a38558b8bebe6efab",
   "features": [
     {
       "id": "F-001",
@@ -333,8 +333,8 @@
     {
       "id": "F-030",
       "name": "Relevant panoramic marketing Council",
-      "status": "planned",
-      "accepted_by": null,
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-006-r3",
       "criteria": [
         "Standard marketing activates exactly six relevant lenses: fidelity, terminology, product context, brand voice, risk ambiguity and fluency",
         "Lightweight remains explicitly narrower and strict never loses a standard marketing lens",
@@ -344,8 +344,8 @@
     {
       "id": "F-031",
       "name": "Material context before wording outcomes",
-      "status": "planned",
-      "accepted_by": null,
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-006-r3",
       "criteria": [
         "Brand-versus-functional usage and binding slogan or terminology questions are selected as material even when reviewer prose varies",
         "Material context elicitation and affected-role reconsideration occur before discussion and outcome selection",
@@ -355,8 +355,8 @@
     {
       "id": "F-032",
       "name": "Context confidence and disposition coherence",
-      "status": "planned",
-      "accepted_by": null,
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-006-r3",
       "criteria": [
         "Unresolved material context lowers effective confidence and cannot produce an unqualified publishable completion",
         "Declined, unsupported, malformed or assumption-only context prevents premature wording elicitation and requires human review",
@@ -366,8 +366,8 @@
     {
       "id": "F-033",
       "name": "Context-first process presentation integrity",
-      "status": "planned",
-      "accepted_by": null,
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-006-r3",
       "criteria": [
         "Primary text shows unresolved material context as a blind spot or required confirmation, not as a completed user decision",
         "Issue labels and punctuation are natural Chinese with no raw ux token or doubled full-stop-semicolon sequence",
@@ -377,8 +377,8 @@
     {
       "id": "F-034",
       "name": "V0.8 context-coherent Council migration",
-      "status": "planned",
-      "accepted_by": null,
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-006-r3",
       "criteria": [
         "Package/module 0.8.0 and diagnostic build context-coherent-council-v6 preserve schema 2.2, five tools and 6/13/18 budgets",
         "Fresh artifacts, full regression and current FastMCP installed-wheel smoke pass",
