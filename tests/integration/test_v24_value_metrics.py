@@ -127,3 +127,36 @@ def test_preflight_issue_remains_visible_when_technical_review_is_unavailable(tm
     assert "覆盖风险" in record.display_report
     assert "未发现新增实质问题" not in record.display_report
     assert record.chief_editor_decision.publishability != "可发布"
+
+
+def test_required_literal_issue_stays_visible_with_unavailable_technical_sample(tmp_path):
+    telemetry = RuntimeTelemetry(sample_budget=6)
+    record = asyncio.run(run_structured_review(
+        ReviewTaskV2(
+            source_text="Launch",
+            candidate_translation="启动",
+            content_type="ui",
+            mode="lightweight",
+            briefing_mode="off",
+            interactive_mode="off",
+            hard_constraints=["required_literal:Acme"],
+        ),
+        ScriptedModelExecutor(
+            [RuntimeError("technical sample failed"), *[_envelope() for _ in range(3)]],
+            telemetry,
+        ),
+        ScriptedUserInteractionGateway([], telemetry=telemetry),
+        store=ReviewStore(tmp_path, include_legacy=False),
+    ))
+
+    technical = next(
+        item for item in record.council_value_metrics.role_contributions
+        if item.role_id == "technical_safety_reviewer"
+    )
+    assert technical.contribution_kind == "unavailable"
+    assert technical.unique_issue_count == 1
+    assert record.council_value_metrics.unique_material_issue_count == 1
+    assert record.council_value_metrics.unavailable_role_count == 1
+    assert "覆盖风险" in record.display_report
+    assert "未发现新增实质问题" not in record.display_report
+    assert record.chief_editor_decision.publishability != "可发布"
