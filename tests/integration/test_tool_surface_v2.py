@@ -41,16 +41,38 @@ def test_exact_frozen_public_tool_surface():
     }
 
 
-def test_server_info_and_versioned_defaults():
+def test_server_info_and_versioned_defaults(monkeypatch):
+    monkeypatch.delenv("COUNCIL_REVIEW_CONCURRENCY", raising=False)
     info = _server_info()
     assert info["package_version"] == "0.8.0"
     assert info["module_version"] == "0.8.0"
     assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "context-coherent-council-v6"
-    assert info["schema_version"] == "2.2"
+    assert info["schema_version"] == "2.3"
     assert info["default_interactive_mode"] == "auto"
     assert info["default_briefing_mode"] == "auto"
     assert info["default_history_mode"] == "full"
     assert info["sample_budgets"] == {"lightweight": 6, "standard": 13, "strict": 18}
+    assert info["independent_review_concurrency_limit"] == 3
+    assert info["max_independent_review_concurrency"] == 3
+    assert info["independent_review_concurrency_disposition"] == "default"
+
+
+@pytest.mark.parametrize("configured", ["1", "2", "3"])
+def test_server_info_reports_valid_concurrency_configuration(monkeypatch, configured):
+    monkeypatch.setenv("COUNCIL_REVIEW_CONCURRENCY", configured)
+    info = _server_info()
+    assert info["independent_review_concurrency_limit"] == int(configured)
+    assert info["max_independent_review_concurrency"] == 3
+    assert info["independent_review_concurrency_disposition"] == "configured"
+
+
+@pytest.mark.parametrize("configured", ["", "0", "4", "many"])
+def test_server_info_reports_invalid_concurrency_fallback(monkeypatch, configured):
+    monkeypatch.setenv("COUNCIL_REVIEW_CONCURRENCY", configured)
+    info = _server_info()
+    assert info["independent_review_concurrency_limit"] == 1
+    assert info["max_independent_review_concurrency"] == 3
+    assert info["independent_review_concurrency_disposition"] == "invalid_fallback"
 
 
 def test_public_input_modes_normalize_conservatively():
