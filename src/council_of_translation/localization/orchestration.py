@@ -868,7 +868,6 @@ async def run_structured_review(
 
     if effective_task.briefing_mode == "always" and request_brief and brief_action != "accept":
         telemetry.elapsed_ms = max(telemetry.elapsed_ms, int((perf_counter() - started) * 1_000))
-        telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
         early_chief = ChiefEditorDecisionV2(
             publishability="需人工复核",
             review_needed="是",
@@ -927,6 +926,8 @@ async def run_structured_review(
                 fallback_reason=f"briefing_{brief_action}",
             ),
         )
+        telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
+        record.runtime_metadata = telemetry.snapshot()
         (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
         return record
 
@@ -967,7 +968,6 @@ async def run_structured_review(
     if batch_stats is not None:
         telemetry.independent_review_peak_concurrency = batch_stats.peak_concurrency
         telemetry.independent_review_batch_count = batch_stats.batch_count
-        telemetry.independent_review_wall_clock_ms = batch_stats.wall_clock_ms
     for correlated in review_results:
         role_id = correlated.role_id
         raw = _sample_result_json(correlated.result, telemetry)
@@ -1216,7 +1216,6 @@ async def run_structured_review(
         status = "COMPLETED"
 
     telemetry.elapsed_ms = max(telemetry.elapsed_ms, int((perf_counter() - started) * 1_000))
-    telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
     runtime_metadata = telemetry.snapshot().model_copy(
         update={
             "reviewer_samples_successful": successful_reviewers,
@@ -1317,6 +1316,14 @@ async def run_structured_review(
         warnings=record.warnings,
         fallback_reason=record.fallback_reason,
     )
+    telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
+    record.runtime_metadata = telemetry.snapshot().model_copy(
+        update={
+            "reviewer_samples_successful": successful_reviewers,
+            "reviewer_samples_unavailable": unavailable_reviewers,
+            "reviewer_coverage": reviewer_coverage,
+        }
+    )
     (store or ReviewStore()).save(record, history_mode=effective_task.history_mode)
     return record
 
@@ -1370,6 +1377,7 @@ async def continue_structured_review(
     *,
     store: ReviewStore | None = None,
 ) -> ReviewRecordV2:
+    started = perf_counter()
     decisions = normalize_continuation_decisions(parent, user_decision_values)
     task = parent.task.model_copy(deep=True)
     plan = parent.council_plan.model_copy(deep=True)
@@ -1379,6 +1387,18 @@ async def continue_structured_review(
         if hasattr(executor, "telemetry"):
             setattr(executor, "telemetry", telemetry)
     telemetry.sample_budget = plan.sample_budget
+    telemetry.independent_review_concurrency_limit = (
+        parent.runtime_metadata.independent_review_concurrency_limit
+    )
+    telemetry.independent_review_peak_concurrency = (
+        parent.runtime_metadata.independent_review_peak_concurrency
+    )
+    telemetry.independent_review_batch_count = (
+        parent.runtime_metadata.independent_review_batch_count
+    )
+    telemetry.independent_review_concurrency_disposition = (
+        parent.runtime_metadata.independent_review_concurrency_disposition
+    )
     budget = SampleBudget(
         task.mode,
         used=min(parent.runtime_metadata.sampling_calls, plan.sample_budget),
@@ -1505,6 +1525,14 @@ async def continue_structured_review(
         outcome_provenance=outcome_provenance,
         suppressions=decision_suppressions,
         chief=chief,
+    )
+    telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
+    record.runtime_metadata = telemetry.snapshot().model_copy(
+        update={
+            "reviewer_samples_successful": parent.runtime_metadata.reviewer_samples_successful,
+            "reviewer_samples_unavailable": parent.runtime_metadata.reviewer_samples_unavailable,
+            "reviewer_coverage": reviewer_coverage,
+        }
     )
     (store or ReviewStore()).save(record, history_mode=task.history_mode)
     return record
