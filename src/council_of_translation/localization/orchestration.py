@@ -959,6 +959,7 @@ async def run_structured_review(
         sampled_context_gaps,
         effective_brief,
         active_role_ids=plan.active_role_ids,
+        task=effective_task,
     )
     context_action = "skipped"
     answered_gap_ids: list[str] = []

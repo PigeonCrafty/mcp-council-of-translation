@@ -266,7 +266,60 @@ def parse_context_gaps(raw: Any, role_id: str) -> tuple[list[ContextGapV2], int]
     return parsed, invalid
 
 
-def _gap_is_answered(gap: ContextGapV2, brief: ReviewBriefV2) -> bool:
+def _asks_for_supplied_reference(question: str, task: ReviewTaskV2) -> bool:
+    designation = any(token in question for token in (
+        "官方", "批准", "核准", "认可", "指定", "约束", "强制",
+        "official", "approved", "designated", "binding",
+    ))
+    existence = any(token in question for token in (
+        "是否存在", "是否有", "有没有", "有无", "是否提供", "是否已提供",
+        "is there", "do we have", "available", "provided",
+    ))
+    glossary = any(token in question for token in (
+        "词表", "术语表", "术语库", "glossary", "termbase", "terminology",
+    ))
+    reference = any(token in question for token in (
+        "参考译", "参考翻译", "既有译法", "参考版本",
+        "reference translation", "approved translation",
+    ))
+    return designation and existence and (
+        (glossary and bool(task.term_glossary.strip()))
+        or (reference and bool(task.reference_translations.strip()))
+    )
+
+
+def _compound_usage_is_answered(question: str, brief: ReviewBriefV2) -> bool:
+    compound_alternative = (
+        any(token in question for token in ("还是", "或是", "versus", " vs ", " or "))
+        and any(token in question for token in ("品牌", "标语", "slogan", "brand"))
+        and any(token in question for token in ("按钮", "功能", "界面", "ui", "functional"))
+    )
+    if not compound_alternative:
+        return False
+    usage = brief.usage_context.casefold().strip()
+    if not usage:
+        return False
+    brand_context = any(token in usage for token in (
+        "品牌宣传标语", "品牌标语", "品牌口号", "宣传标语", "宣传口号",
+        "brand slogan", "brand tagline", "marketing slogan",
+    ))
+    functional_context = any(token in usage for token in (
+        "功能按钮", "操作按钮", "主操作", "次操作", "设置向导", "流程按钮",
+        "界面按钮", "ui button", "functional button", "primary action",
+    ))
+    normalized_content = normalize_content_type(brief.content_type)
+    return (
+        normalized_content == "marketing" and brand_context and not functional_context
+    ) or (
+        normalized_content == "ui" and functional_context and not brand_context
+    )
+
+
+def _gap_is_answered(
+    gap: ContextGapV2,
+    brief: ReviewBriefV2,
+    task: ReviewTaskV2 | None = None,
+) -> bool:
     question = gap.question.casefold()
     compound_alternative = (
         any(token in question for token in ("还是", "或是", "versus", " vs ", " or "))
@@ -274,7 +327,9 @@ def _gap_is_answered(gap: ContextGapV2, brief: ReviewBriefV2) -> bool:
         and any(token in question for token in ("按钮", "功能", "界面", "ui", "functional"))
     )
     if compound_alternative:
-        return False
+        return _compound_usage_is_answered(question, brief)
+    if task is not None and _asks_for_supplied_reference(question, task):
+        return True
     checks = (
         (("audience", "受众", "读者", "用户"), bool(brief.audience)),
         (("context", "场景", "页面", "组件", "位置"), bool(brief.usage_context)),
@@ -313,6 +368,7 @@ def _gap_has_material_impact(gap: ContextGapV2) -> bool:
 def select_context_gaps(
     gaps: list[ContextGapV2], brief: ReviewBriefV2,
     *, active_role_ids: list[str] | None = None,
+    task: ReviewTaskV2 | None = None,
 ) -> tuple[list[ContextGapV2], list[ContextGapV2]]:
     """Select at most two material unanswered gaps with stable semantic dedupe."""
     selected: list[ContextGapV2] = []
@@ -328,7 +384,7 @@ def select_context_gaps(
         update: dict[str, str] = {}
         if normalized in seen:
             update = {"disposition": "suppressed", "reason": "duplicate_gap"}
-        elif _gap_is_answered(gap, brief):
+        elif _gap_is_answered(gap, brief, task):
             update = {"disposition": "suppressed", "reason": "already_answered"}
         elif any(term in gap.question.casefold() for term in generic):
             update = {"disposition": "suppressed", "reason": "generic_curiosity"}

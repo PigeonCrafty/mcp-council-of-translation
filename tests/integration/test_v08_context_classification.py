@@ -93,3 +93,66 @@ def test_answered_duplicate_limit_and_invalid_roles_remain_bounded():
     assert "already_answered" in reasons
     assert "duplicate_gap" in reasons
     assert "question_limit" in reasons
+
+
+def _classify(task, item):
+    brief, effective_task = build_effective_brief(task)
+    selected, all_gaps = select_context_gaps(
+        _parsed([item])[0], brief, active_role_ids=ACTIVE, task=effective_task
+    )
+    return len(selected), all_gaps[0].disposition, all_gaps[0].reason
+
+
+def test_caller_reference_packets_answer_only_corresponding_existence_questions():
+    glossary_question = _item(
+        "是否存在官方批准且具有约束力的标语词表？",
+        "官方词表会改变允许采用的品牌措辞",
+        ["terminology_reviewer", "brand_voice_reviewer"],
+    )
+    reference_question = _item(
+        "是否有批准的参考译法？",
+        "批准译法会改变允许采用的选项",
+        ["terminology_reviewer"],
+    )
+    truth_table = [
+        (ReviewTaskV2(content_type="marketing", term_glossary="标语词表"), glossary_question, 0, "already_answered"),
+        (ReviewTaskV2(content_type="marketing"), glossary_question, 1, ""),
+        (ReviewTaskV2(content_type="marketing", reference_translations="批准译法"), reference_question, 0, "already_answered"),
+        (ReviewTaskV2(content_type="marketing"), reference_question, 1, ""),
+        (ReviewTaskV2(content_type="marketing", style_guide="品牌风格"), glossary_question, 1, ""),
+        (ReviewTaskV2(content_type="marketing", project_rules="遵循规则"), reference_question, 1, ""),
+        (ReviewTaskV2(content_type="marketing", term_glossary="标语词表"), _item(
+            "目标受众是谁？", "受众会改变品牌建议", ["brand_voice_reviewer"]
+        ), 1, ""),
+        (ReviewTaskV2(content_type="marketing", term_glossary="标语词表"), _item(
+            "官方术语在这里是否语义正确？", "语义会改变建议", ["terminology_reviewer"]
+        ), 1, ""),
+    ]
+    for task, item, expected_selected, expected_reason in truth_table:
+        selected, disposition, reason = _classify(task, item)
+        assert selected == expected_selected
+        assert disposition == ("suppressed" if expected_reason else "unanswered")
+        assert reason == expected_reason
+
+
+def test_brand_or_functional_usage_requires_matching_explicit_single_side_context():
+    compound = _item(
+        "该文案是品牌标语还是功能按钮？",
+        "用途会改变角色路由与建议选项",
+        ["brand_voice_reviewer", "product_context_reviewer"],
+    )
+    truth_table = [
+        (ReviewTaskV2(content_type="marketing", context="官网首页品牌宣传标语"), 0, "already_answered"),
+        (ReviewTaskV2(content_type="ui", context="多步骤设置向导底部主操作按钮"), 0, "already_answered"),
+        (ReviewTaskV2(content_type="marketing"), 1, ""),
+        (ReviewTaskV2(context="官网首页品牌宣传标语"), 1, ""),
+        (ReviewTaskV2(content_type="marketing", context="官网首页"), 1, ""),
+        (ReviewTaskV2(content_type="marketing", context="多步骤设置向导底部主操作按钮"), 1, ""),
+        (ReviewTaskV2(content_type="marketing", context="品牌标语用于设置向导主操作按钮"), 1, ""),
+        (ReviewTaskV2(content_type="ui", context="官网首页品牌宣传标语"), 1, ""),
+    ]
+    for task, expected_selected, expected_reason in truth_table:
+        selected, disposition, reason = _classify(task, compound)
+        assert selected == expected_selected
+        assert disposition == ("suppressed" if expected_reason else "unanswered")
+        assert reason == expected_reason
