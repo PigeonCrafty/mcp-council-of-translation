@@ -7,8 +7,10 @@ while the scripted implementations make orchestration tests deterministic.
 
 from __future__ import annotations
 
+import asyncio
 from collections import deque
 from dataclasses import dataclass, field
+import os
 from time import perf_counter
 from typing import Any, Callable, Literal, Protocol, cast, runtime_checkable
 
@@ -23,6 +25,8 @@ ElicitationAction = Literal[
 MAX_RUNTIME_TEXT = 16_000
 MAX_EVENT_DETAIL = 240
 MAX_TELEMETRY_EVENTS = 64
+MAX_REVIEW_CONCURRENCY = 3
+REVIEW_CONCURRENCY_ENV = "COUNCIL_REVIEW_CONCURRENCY"
 
 
 @dataclass(frozen=True)
@@ -30,6 +34,33 @@ class ModelExecutionResult:
     status: SampleStatus
     text: str = ""
     error: str = ""
+
+
+@dataclass(frozen=True)
+class ReviewConcurrencyConfig:
+    effective_limit: int
+    disposition: Literal["default", "configured", "invalid_fallback"]
+
+
+@dataclass(frozen=True)
+class CorrelatedSampleWork:
+    role_id: str
+    prompt: str
+    max_tokens: int = 1_400
+
+
+@dataclass(frozen=True)
+class CorrelatedSampleResult:
+    role_id: str
+    result: ModelExecutionResult
+
+
+@dataclass(frozen=True)
+class SamplingBatchStats:
+    effective_limit: int
+    peak_concurrency: int
+    batch_count: int
+    wall_clock_ms: int
 
 
 @dataclass(frozen=True)
@@ -76,6 +107,63 @@ class RuntimeEvent:
 
 
 TelemetryHook = Callable[[RuntimeEvent], None]
+
+
+def resolve_review_concurrency(raw: str | None = None) -> ReviewConcurrencyConfig:
+    """Resolve one review's bounded operator concurrency configuration."""
+    value = os.environ.get(REVIEW_CONCURRENCY_ENV) if raw is None else raw
+    if value is None:
+        return ReviewConcurrencyConfig(MAX_REVIEW_CONCURRENCY, "default")
+    if value in {"1", "2", "3"}:
+        return ReviewConcurrencyConfig(int(value), "configured")
+    return ReviewConcurrencyConfig(1, "invalid_fallback")
+
+
+async def sample_correlated_batch(
+    executor: ModelExecutor,
+    work: list[CorrelatedSampleWork],
+    *,
+    limit: int,
+    telemetry: RuntimeTelemetry | None = None,
+) -> tuple[list[CorrelatedSampleResult], SamplingBatchStats]:
+    """Attempt role-correlated samples once, bounded and returned in input order."""
+    if not work:
+        return [], SamplingBatchStats(0, 0, 0, 0)
+    effective_limit = max(1, min(int(limit), MAX_REVIEW_CONCURRENCY, len(work)))
+    semaphore = asyncio.Semaphore(effective_limit)
+    active = 0
+    peak = 0
+    started = perf_counter()
+
+    async def run_one(item: CorrelatedSampleWork) -> CorrelatedSampleResult:
+        nonlocal active, peak
+        async with semaphore:
+            active += 1
+            peak = max(peak, active)
+            try:
+                try:
+                    result = await executor.sample(
+                        item.prompt,
+                        temperature=0.2,
+                        max_tokens=item.max_tokens,
+                    )
+                except Exception as exc:
+                    result = ModelExecutionResult(status="error", error=_bounded_error(exc))
+                    if telemetry is not None:
+                        telemetry.record(RuntimeEvent("sampling", "error", detail=result.error))
+                return CorrelatedSampleResult(item.role_id, result)
+            finally:
+                active -= 1
+
+    results = await asyncio.gather(*(run_one(item) for item in work))
+    wall_clock_ms = _elapsed_ms(started)
+    batch_count = (len(work) + effective_limit - 1) // effective_limit
+    return results, SamplingBatchStats(
+        effective_limit=effective_limit,
+        peak_concurrency=peak,
+        batch_count=batch_count,
+        wall_clock_ms=wall_clock_ms,
+    )
 
 
 class RuntimeTelemetry:
