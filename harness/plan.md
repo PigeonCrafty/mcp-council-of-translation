@@ -1,11 +1,11 @@
-# Council of Translation V0.8 Harness Plan
+# Council of Translation V0.9 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-007-r2` (`ACCEPTED / PUBLICATION_REQUIRED / Q011_PENDING`)
+- Active Campaign: `CAMPAIGN-007` (`ACCEPTED / PUBLISHED / Q011_ACCEPTED / CLOSED`)
 - Source baseline: `f9651ed64daf86dd5fabac5e7437b9de8b3186bc`
 - Product target: `0.9.0`
 - Diagnostic build target: `bounded-parallel-council-v7`
@@ -1096,3 +1096,11 @@ CAMPAIGN-007-r6 is accepted at
 includes 20/20 isolated continuation passes, 23 timing-focused passes and 246 complete
 passes. The correction is test-only; publication still requires a fresh all-green PR
 #15 matrix before merge.
+
+Publication completed on `main` at
+`641ef46b6fdde380463b40d39a654cf8eb1248c2` with protected-main CI green. Q-011 is
+accepted by `harness/evaluations/CAMPAIGN-007-q011-live-review.md`: six literal normal-
+Goose records preserved full 6/6 coverage and clean protocol behavior, sequential
+limit/peak/batches `1/1/6`, parallel `3/3/2`, and reduced median server wall time from
+16,363 ms to 5,712 ms (`65.09%`, `2.86x`). Campaign 007 is closed. The sequential
+operator override remains available for providers with stricter rate limits.

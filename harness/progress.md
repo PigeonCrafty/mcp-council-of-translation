@@ -4,9 +4,9 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-007-r2`
-- Campaign state: `ACCEPTED / PUBLICATION_REQUIRED / Q011_PENDING`
-- Campaign baseline: `61252ae27823467d74c38efaa59aa1521b006752`
+- Campaign: `CAMPAIGN-007`
+- Campaign state: `ACCEPTED / PUBLISHED / Q011_ACCEPTED / CLOSED`
+- Campaign baseline: `641ef46b6fdde380463b40d39a654cf8eb1248c2`
 - Last updated: 2026-08-13 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -190,17 +190,14 @@ The Worker may create only the active Campaign ledger and report under `harness/
   exact five tools, review-only and budgets 6/13/18 preserved
 - Runtime: default independent-review concurrency 3; operator values 1/2/3; invalid
   values safely use sequential limit 1; later Council phases remain ordered
-- Q-011: pending publication and normal-Goose comparison because the isolated in-memory
-  FastMCP callback serialized provider callbacks
+- Q-011: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-007-q011-live-review.md`; six normal-Goose records
+  retained full coverage and clean protocol behavior, with sequential `1/1/6`, parallel
+  `3/3/2`, and median wall time reduced from 16,363 ms to 5,712 ms (`65.09%`, `2.86x`)
 
 ## Next step
 
-CAMPAIGN-007-r6 is `ACCEPTED` at
-`516db0ea88ec69cdd7df5e3490eb8aa08b74eca3` with 20/20 independent Windows Python 3.12
-continuation passes, 23 timing-focused passes and 246 complete passes. Archive its
-evidence, update PR #15 and require all six checks to pass. After merge, run Q-011 in
-normal Goose against the
-exact published commit: compare the same standard six-role, briefing-off case at
-`COUNCIL_REVIEW_CONCURRENCY=1` and `3`; record server-reported wall, sampling wait,
-effective/peak concurrency, batch count, coverage/status/warnings and primary report.
-Do not accept outer-agent reconstructed telemetry as literal evidence.
+CAMPAIGN-007 is closed at published `main`
+`641ef46b6fdde380463b40d39a654cf8eb1248c2`. Retain default concurrency three and the
+documented sequential override. Select the next product opportunity from user experience
+or a new audit; no Campaign 007 Worker assignment remains active.
