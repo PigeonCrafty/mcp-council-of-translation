@@ -216,6 +216,59 @@ def test_distinct_placeholder_url_and_caller_literals_do_not_overmerge():
     assert literal_metrics.unique_material_issue_count == 2
 
 
+def test_cross_family_model_clusters_keep_production_identity_at_same_span():
+    roles = ["fidelity_reviewer", "terminology_reviewer"]
+    findings = [
+        FindingV2(
+            agent_name=roles[0], issue_type="accuracy", severity="major",
+            source_span="Continue", candidate_span="继续", problem="Meaning risk",
+            evidence="semantic comparison", action="Correct the meaning",
+        ),
+        FindingV2(
+            agent_name=roles[1], issue_type="terminology", severity="major",
+            source_span="Continue", candidate_span="继续", problem="Term policy",
+            evidence="terminology policy", action="Apply the approved term",
+        ),
+    ]
+    clusters = cluster_findings(findings)
+    metrics = compute_council_value_metrics(
+        active_role_ids=roles,
+        independent_reviews=[_review(role) for role in roles],
+        clusters=clusters,
+        discussion_rounds=[],
+    )
+
+    assert len(clusters) == 2
+    assert {cluster.category for cluster in clusters} == {"correctness", "language_choice"}
+    assert metrics.unique_material_issue_count == 2
+    assert metrics.corroborated_issue_count == 0
+    assert [item.contribution_kind for item in metrics.role_contributions] == [
+        "unique_material", "unique_material"
+    ]
+    assert [item.unique_issue_count for item in metrics.role_contributions] == [1, 1]
+
+
+def test_same_family_model_findings_keep_production_corroboration_identity():
+    roles = ["fidelity_reviewer", "risk_ambiguity_reviewer"]
+    clusters = cluster_findings([
+        _finding(roles[0]),
+        _finding(roles[1], problem="The same reversal creates a material risk"),
+    ])
+    metrics = compute_council_value_metrics(
+        active_role_ids=roles,
+        independent_reviews=[_review(role) for role in roles],
+        clusters=clusters,
+        discussion_rounds=[],
+    )
+
+    assert len(clusters) == 1
+    assert metrics.unique_material_issue_count == 0
+    assert metrics.corroborated_issue_count == 1
+    assert [item.contribution_kind for item in metrics.role_contributions] == [
+        "corroborating", "corroborating"
+    ]
+
+
 def test_rephrased_discussion_claim_alone_has_no_marginal_value():
     roles = ["fidelity_reviewer", "risk_ambiguity_reviewer"]
     clusters = cluster_findings([_finding(roles[0]), _finding(roles[1])])
