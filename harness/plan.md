@@ -5,7 +5,7 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / PUBLISHED / Q010_PARTIAL_REVALIDATION_REQUIRED`)
+- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / PUBLISHED / Q010_ACCEPTED / CLOSED`)
 - Source baseline: `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
 - Product target: `0.8.0`
 - Diagnostic build target: `context-coherent-council-v6`
@@ -873,6 +873,16 @@ material-gap detection but not the unresolved branch: Goose submitted non-assump
 answers copied from caller context despite the instruction to pause, then reconstructed
 impossible role/status/coverage fields. Q-010 therefore has partial live evidence and
 requires one `interactive_mode=off` revalidation with literal full-record JSON.
+
+The `interactive_mode=off` revalidation is reviewed in
+`harness/evaluations/CAMPAIGN-006-q010-r2-live-review.md` and accepts Q-010. Its primary
+Goose report visibly lowered context confidence, retained two unanswered material blind
+spots, omitted user outcomes, required confirmation before adjudication and ended in
+human review. Goose exposed only the Markdown channel to its outer model even though the
+server returns the unchanged record in FastMCP `structured_content`; invalid prose
+reconstructions are rejected rather than treated as raw telemetry. Campaign 006 is
+closed. Bounded concurrent independent sampling is a separate future latency opportunity,
+not an unresolved Campaign 006 defect.
 
 ### Live counterexample and evidence boundary
 

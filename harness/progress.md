@@ -5,7 +5,7 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-006-r3`
-- Campaign state: `ACCEPTED / PUBLISHED / Q010_PARTIAL_REVALIDATION_REQUIRED`
+- Campaign state: `ACCEPTED / PUBLISHED / Q010_ACCEPTED / CLOSED`
 - Campaign baseline: `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
 - Last updated: 2026-08-13 Asia/Shanghai
 - Completion authority: Foreman only
@@ -164,8 +164,9 @@ The Worker may create only the active Campaign ledger and report under `harness/
 - Publication: protected-main PR #11 merged at `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`; all six required Windows/Linux Python checks passed
 - Publication mapping: accepted implementation `f3e9bde1b74ff4591d91b66a38558b8bebe6efab` maps to rebased remote implementation `fbe0eb1de63b6d26b4ffbf96e5e05b76fe4b86f8`; accepted archive tree and published tree are exactly `f832035855fd60ff7f3bf0b0dea4caf17d4df877`
 - Q-009: accepted by the clean V0.8 Goose first response, which directly showed six concise marketing lenses, consensus and a verdict-last disposition
-- Q-010: `partial_live_evidence` by `harness/evaluations/CAMPAIGN-006-q010-live-review.md`; clean behavior and mixed material-gap detection are live-proven, but Goose auto-submitted non-assumption answers and reconstructed invalid literal fields
-- Live latency finding: independent role samples and context/outcome reconsiderations are sequential; the clean path requires six provider round trips and the observed mixed path at least eight, so provider sampling dominates local MCP processing
+- Q-010: accepted by `harness/evaluations/CAMPAIGN-006-q010-r2-live-review.md`; the off-mode mixed case visibly lowered context confidence, preserved two unanswered blind spots, omitted outcome selection and ended in required human review
+- Structured-channel boundary: the server returns Markdown plus unchanged `structured_content`; Goose exposed only Markdown to its outer model and then reconstructed invalid literal fields, so those prose telemetry claims remain rejected
+- Live latency finding: the off-mode six-role path took 15.31 seconds; independent role samples and context/outcome reconsiderations are sequential, and the prior mixed path required at least eight provider round trips, so provider sampling dominates local MCP processing
 - Superseded contract: `harness/contracts/CAMPAIGN-006-r1.md`; PR #10 published its Foreman assets and thereby advanced `main`, so its earlier baseline must not be executed
 - Target: package/module `0.8.0`; diagnostic build `context-coherent-council-v6`; schema remains `2.2`
 - Package graph: PKG-032 context-gap classification; PKG-033 context precedence/status; PKG-034 marketing role routing; PKG-035 presentation/invariants; PKG-036 migration/build/docs
@@ -177,4 +178,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Re-run only the mixed Q-010 case against exact published commit `1f8e6981b9fdef08f42a35fc52c7a216b123a94a` with `interactive_mode=off`. Require the full record as literal JSON and verify unanswered selected gaps, unsupported context interaction, zero outcome elicitation/user decisions, lowered confidence, `material_context_unresolved`, `NEEDS_HUMAN_REVIEW` and chief human-review disposition. Do not accept renamed, translated or prose-reconstructed telemetry.
+Campaign 006 has no remaining acceptance gate. A future Campaign may target bounded
+concurrency for the six independent reviewer samples, but it must preserve phase order,
+budgets, provider compatibility, panoramic role coverage and deterministic traces. No
+latency implementation contract is currently active.
