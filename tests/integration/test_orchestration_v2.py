@@ -1,5 +1,6 @@
 import asyncio
 import json
+from time import perf_counter
 
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.deliberation import build_decision_points
@@ -30,8 +31,10 @@ class DelayedContinuationExecutor:
     async def sample(self, prompt, *, temperature=0.2, max_tokens=1_400):
         del prompt, temperature, max_tokens
         self.calls += 1
+        started = perf_counter()
         await asyncio.sleep(0.02)
-        self.telemetry.record(RuntimeEvent("sampling", "success", 20))
+        elapsed_ms = max(1, int((perf_counter() - started) * 1_000))
+        self.telemetry.record(RuntimeEvent("sampling", "success", elapsed_ms))
         return ModelExecutionResult(status="success", text=self.response)
 
 
@@ -233,8 +236,12 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     assert child.runtime_metadata.elicitation_calls == 0
     assert child.runtime_metadata.sample_budget == 13
     assert continuation_executor.calls == 1
-    assert child.runtime_metadata.sampling_wait_ms == 20
-    assert 15 <= child.runtime_metadata.wall_clock_ms < 2_000
+    assert (
+        0
+        < child.runtime_metadata.sampling_wait_ms
+        <= child.runtime_metadata.wall_clock_ms
+        < 2_000
+    )
     assert (
         child.runtime_metadata.independent_review_concurrency_limit,
         child.runtime_metadata.independent_review_peak_concurrency,
