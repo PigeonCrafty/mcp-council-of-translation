@@ -115,13 +115,18 @@ def _logical_issue_groups(clusters: list[IssueCluster]) -> list[list[IssueCluste
             groups[first][0].update(other_keys)
             groups[first][1].extend(other_clusters)
 
+    deterministic_group_count = len(groups)
     # A reviewer cluster may support each deterministic issue whose exact anchor
     # it carries, but it cannot bridge two otherwise distinct deterministic issues.
     # Model-only clusters remain separate because production clustering already
     # owns their issue identity and semantic deduplication.
     for cluster in reviewer:
         keys = _structured_issue_keys(cluster)
-        matching = [index for index, (known, _) in enumerate(groups) if keys and known & keys]
+        matching = [
+            index
+            for index, (known, _) in enumerate(groups[:deterministic_group_count])
+            if keys and known & keys
+        ]
         if matching:
             for index in matching:
                 groups[index][1].append(cluster)
