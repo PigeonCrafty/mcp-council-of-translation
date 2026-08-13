@@ -329,15 +329,6 @@ def _is_canonical_procedural_synthesis(value: str) -> bool:
     )
 
 
-def _is_clean_role_lens(lens: RoleLens) -> bool:
-    perspective = re.sub(r"\s+", " ", lens.perspective or lens.disposition).strip()
-    return (
-        (perspective.startswith("围绕") and "确认当前译文可接受" in perspective)
-        or perspective.startswith("未发现职责范围内的实质问题")
-        or perspective.startswith("结构化评审不可用")
-    )
-
-
 def _whole_optional_evidence(values: list[str], maximum: int = 80) -> str:
     """Return one complete evidence item or omit it; never create a fragment."""
     for value in values:
@@ -348,34 +339,37 @@ def _whole_optional_evidence(values: list[str], maximum: int = 80) -> str:
     return ""
 
 
+def _compatibility_evidence_is_redundant(lens: RoleLens) -> bool:
+    """Suppress repetitive clean evidence without assigning a contribution kind."""
+    perspective = re.sub(r"\s+", " ", lens.perspective).strip()
+    return (
+        (perspective.startswith("围绕") and "确认当前译文可接受" in perspective)
+        or perspective.startswith("未发现职责范围内的实质问题")
+    )
+
+
 def _fallback_value_metrics(digest: ProcessDigestV2) -> CouncilValueMetrics:
-    """Keep direct renderer callers conservative until a V2.4 record is available."""
+    """Account for legacy lenses without inferring structured facts from prose."""
     from council_of_translation.localization.models import RoleContribution
 
     contributions = []
     for lens in digest.role_lenses:
-        kind = (
-            "unavailable"
-            if "不可用" in lens.perspective or "不可用" in lens.disposition
-            else "confirmation_only"
-            if _is_clean_role_lens(lens)
-            else "unique_material"
-        )
         contributions.append(RoleContribution(
             role_id=lens.role_id,
-            contribution_kind=kind,
-            unique_issue_count=1 if kind == "unique_material" else 0,
-            material_finding_count=1 if kind == "unique_material" else 0,
+            contribution_kind="confirmation_only",
         ))
     return CouncilValueMetrics(
         role_contributions=contributions,
-        unique_material_issue_count=sum(item.unique_issue_count for item in contributions),
-        confirmation_only_role_count=sum(item.contribution_kind == "confirmation_only" for item in contributions),
-        unavailable_role_count=sum(item.contribution_kind == "unavailable" for item in contributions),
+        confirmation_only_role_count=len(contributions),
     )
 
 
-def _coverage_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> list[str]:
+def _coverage_lines(
+    digest: ProcessDigestV2,
+    metrics: CouncilValueMetrics,
+    *,
+    compatibility_fallback: bool = False,
+) -> list[str]:
     by_role = {lens.role_id: lens for lens in digest.role_lenses}
     order = {"unique_material": 0, "corroborating": 1, "confirmation_only": 2, "unavailable": 3}
     contributions = sorted(
@@ -391,7 +385,10 @@ def _coverage_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> li
         label = role.display_name if role else "未识别专业角色"
         evidence = (
             _whole_optional_evidence(lens.evidence)
-            if contribution.contribution_kind in {"unique_material", "corroborating"}
+            if (
+                compatibility_fallback
+                and not _compatibility_evidence_is_redundant(lens)
+            ) or contribution.contribution_kind in {"unique_material", "corroborating"}
             else ""
         )
         suffix = f"；依据：{evidence}" if evidence else ""
@@ -400,7 +397,11 @@ def _coverage_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> li
         elif contribution.contribution_kind == "corroborating":
             summary = f"交叉印证 {contribution.corroborated_issue_count} 个问题；{lens.perspective}"
         elif contribution.contribution_kind == "confirmation_only":
-            summary = "完成确认性覆盖，未提交实质问题。"
+            summary = (
+                f"兼容记录未提供结构化贡献分类；{lens.perspective}"
+                if compatibility_fallback
+                else "完成确认性覆盖，未提交实质问题。"
+            )
         else:
             summary = "结构化评审不可用；该专业范围保留为盲区。"
         perspective_limit = max(40, 150 - len(label) - 1 - len(suffix))
@@ -411,7 +412,12 @@ def _coverage_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> li
     return lines
 
 
-def _value_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> list[str]:
+def _value_lines(
+    digest: ProcessDigestV2,
+    metrics: CouncilValueMetrics,
+    *,
+    compatibility_fallback: bool = False,
+) -> list[str]:
     by_role = {lens.role_id: lens for lens in digest.role_lenses}
     values = _dedupe([
         by_role[item.role_id].perspective
@@ -421,7 +427,14 @@ def _value_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> list[
     lines = [f"新增问题：{_human_line(value)}" for value in values]
     if metrics.corroborated_issue_count:
         lines.append(f"交叉印证：{metrics.corroborated_issue_count} 个问题得到多个专业视角支持。")
-    if not lines:
+    if not lines and metrics.unique_material_issue_count:
+        lines.append(
+            f"结构化检查识别 {metrics.unique_material_issue_count} 个独立问题；"
+            "相关角色不可用时仍保留该问题与证据。"
+        )
+    if compatibility_fallback:
+        lines = ["兼容记录未包含结构化贡献指标；不据角色自然语言推断新增价值。"]
+    elif not lines:
         lines.append(
             f"未发现新增实质问题；{metrics.confirmation_only_role_count} 个角色完成确认性覆盖。"
         )
@@ -449,6 +462,7 @@ def render_display_report(
     fallback_reason: str = "",
 ) -> str:
     """Render the frozen value-first five-section primary Council report."""
+    compatibility_fallback = metrics is None
     value_metrics = metrics or _fallback_value_metrics(digest)
     background = _material(digest.case_brief, maximum=4)
     background.extend(_material(digest.assumptions_context_confidence, maximum=2))
@@ -492,8 +506,18 @@ def render_display_report(
         )
     sections = [
         _section("审校背景", background or ["审校背景未完整提供；结论限于当前输入。"]),
-        _section("Council 新增视角", _value_lines(digest, value_metrics)),
-        _section("角色覆盖与分工", _coverage_lines(digest, value_metrics) or ["尚无可展示的角色覆盖。"]),
+        _section(
+            "Council 新增视角",
+            _value_lines(digest, value_metrics, compatibility_fallback=compatibility_fallback),
+        ),
+        _section(
+            "角色覆盖与分工",
+            _coverage_lines(
+                digest,
+                value_metrics,
+                compatibility_fallback=compatibility_fallback,
+            ) or ["尚无可展示的角色覆盖。"],
+        ),
         _section("共识、分歧与盲区", [_human_line(value) for value in deliberation] or ["无可展示结论。"]),
         _section("主编结论", [*conclusion[:5], _human_line(final)]),
     ]

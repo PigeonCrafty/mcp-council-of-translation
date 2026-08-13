@@ -1,6 +1,7 @@
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.deliberation import apply_discussion_updates, normalize_discussion_round
 from council_of_translation.localization.models import FindingV2
+from council_of_translation.localization.preflight import run_preflight
 from council_of_translation.localization.value_metrics import compute_council_value_metrics
 
 
@@ -58,6 +59,51 @@ def test_corroboration_and_unavailable_priority_are_deterministic():
         "corroborating", "unavailable", "confirmation_only"
     ]
     assert metrics.corroborated_issue_count == 1
+    assert metrics.unavailable_role_count == 1
+
+
+def test_preflight_placeholder_is_material_and_correlates_exact_model_support_once():
+    role = "technical_safety_reviewer"
+    preflight = run_preflight("Delete {count} files", "删除文件")
+    findings = [FindingV2(
+        agent_name=role,
+        issue_type="technical",
+        severity="critical",
+        source_span="{count}",
+        candidate_span="",
+        problem="Required placeholder is missing",
+        evidence="{count}",
+        action="Restore the placeholder",
+    )]
+    clusters = cluster_findings(findings, preflight)
+    metrics = compute_council_value_metrics(
+        active_role_ids=[role],
+        independent_reviews=[_review(role)],
+        clusters=clusters,
+        discussion_rounds=[],
+    )
+
+    contribution = metrics.role_contributions[0]
+    assert len(clusters) == 2
+    assert contribution.contribution_kind == "unique_material"
+    assert contribution.unique_issue_count == contribution.material_finding_count == 1
+    assert metrics.unique_material_issue_count == 1
+
+
+def test_preflight_markup_is_material_when_technical_sample_is_unavailable():
+    role = "technical_safety_reviewer"
+    clusters = cluster_findings([], run_preflight("Click <b>Save</b>", "点击保存"))
+    metrics = compute_council_value_metrics(
+        active_role_ids=[role],
+        independent_reviews=[_review(role, status="unavailable")],
+        clusters=clusters,
+        discussion_rounds=[],
+    )
+
+    contribution = metrics.role_contributions[0]
+    assert contribution.contribution_kind == "unavailable"
+    assert contribution.unique_issue_count == contribution.material_finding_count == 1
+    assert metrics.unique_material_issue_count == 1
     assert metrics.unavailable_role_count == 1
 
 

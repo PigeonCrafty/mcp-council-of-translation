@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from collections import defaultdict
+import re
+import unicodedata
 from typing import Any, Iterable
 
 from council_of_translation.localization.clustering import outcome_key
@@ -12,6 +14,16 @@ from council_of_translation.localization.models import (
     IssueCluster,
     RoleContribution,
     option_id_for_action,
+)
+
+
+_STRUCTURED_TOKEN = re.compile(
+    r"(?<!\{)\{[A-Za-z_][\w.-]*(?:![rsa])?(?::[^{}]+)?\}(?!\})"
+    r"|%(?!%)(?:\d+\$)?[-+#0 ']*(?:\d+|\*)?(?:\.(?:\d+|\*))?[hlLzjt]*[diuoxXfFeEgGaAcspn]"
+    r"|\$\{[A-Za-z_][A-Za-z0-9_]*\}|\$[A-Za-z_][A-Za-z0-9_]*"
+    r"|</?[A-Za-z][A-Za-z0-9:-]*\b[^>]*>"
+    r"|https?://[^\s<>\]\[\"']+"
+    r"|(?<![\w-])--[A-Za-z][\w-]*|(?<!\w)/[A-Za-z][\w-]*(?!\w)"
 )
 
 
@@ -28,13 +40,52 @@ def _sample_statuses(independent_reviews: Iterable[dict[str, Any]]) -> dict[str,
 
 def _material_roles(cluster: IssueCluster, active_roles: set[str]) -> set[str]:
     """Return issue-local roles once, independent of duplicate finding volume."""
-    if not cluster.finding_ids:
-        return set()
     return {
         role_id
         for role_id in cluster.participant_role_ids
         if role_id in active_roles
     }
+
+
+def _structured_issue_keys(cluster: IssueCluster) -> set[tuple[str, str]]:
+    """Return bounded exact identities; never classify using natural-language prose."""
+    values = [*cluster.source_spans, *cluster.candidate_spans]
+    keys: set[tuple[str, str]] = set()
+    for value in values:
+        bounded = unicodedata.normalize("NFKC", str(value)).strip()[:240]
+        for match in _STRUCTURED_TOKEN.finditer(bounded):
+            token = " ".join(match.group(0).casefold().split())
+            if token:
+                keys.add((cluster.category, token))
+                tag = re.fullmatch(r"</?([a-z][a-z0-9:-]*)\b[^>]*>", token)
+                slash = re.fullmatch(r"/([a-z][\w-]*)", token)
+                # The preflight command scanner also sees an HTML closing tag as
+                # ``/name``.  This bounded structural alias joins that duplicate
+                # diagnostic to the actual tag check without reading issue prose.
+                if tag:
+                    keys.add((cluster.category, f"markup-name:{tag.group(1)}"))
+                elif slash:
+                    keys.add((cluster.category, f"markup-name:{slash.group(1)}"))
+    return keys
+
+
+def _logical_issue_groups(clusters: list[IssueCluster]) -> list[list[IssueCluster]]:
+    """Correlate only exact structured anchors while retaining all evidence records."""
+    groups: list[tuple[set[tuple[str, str]], list[IssueCluster]]] = []
+    for cluster in clusters:
+        keys = _structured_issue_keys(cluster)
+        matching = [index for index, (known, _) in enumerate(groups) if keys and known & keys]
+        if not matching:
+            groups.append((set(keys), [cluster]))
+            continue
+        first = matching[0]
+        groups[first][0].update(keys)
+        groups[first][1].append(cluster)
+        for index in reversed(matching[1:]):
+            other_keys, other_clusters = groups.pop(index)
+            groups[first][0].update(other_keys)
+            groups[first][1].extend(other_clusters)
+    return [members for _, members in groups]
 
 
 def _discussion_deltas(
@@ -112,16 +163,17 @@ def compute_council_value_metrics(
     corroborated_by_role: dict[str, set[str]] = defaultdict(set)
     unique_issues: set[str] = set()
     corroborated_issues: set[str] = set()
-    for cluster in clusters_list:
-        roles = _material_roles(cluster, active_set)
+    for group in _logical_issue_groups(clusters_list):
+        issue_identity = min(cluster.issue_id for cluster in group)
+        roles = set().union(*(_material_roles(cluster, active_set) for cluster in group))
         if len(roles) == 1:
             role_id = next(iter(roles))
-            unique_by_role[role_id].add(cluster.issue_id)
-            unique_issues.add(cluster.issue_id)
+            unique_by_role[role_id].add(issue_identity)
+            unique_issues.add(issue_identity)
         elif len(roles) > 1:
-            corroborated_issues.add(cluster.issue_id)
+            corroborated_issues.add(issue_identity)
             for role_id in roles:
-                corroborated_by_role[role_id].add(cluster.issue_id)
+                corroborated_by_role[role_id].add(issue_identity)
 
     contributions: list[RoleContribution] = []
     for role_id in active_roles:
