@@ -46,13 +46,17 @@ def test_process_first_digest_has_frozen_order_six_lenses_and_bounded_display(tm
         "context_gaps_answers", "user_decisions", "reconsideration_changes",
         "editor_synthesis", "execution_checklist_final_disposition",
     ]
-    headers = ["## 审校背景", "## 专业视角", "## 共识、分歧与盲区", "## 主编结论"]
+    headers = [
+        "## 审校背景", "## Council 新增视角", "## 角色覆盖与分工",
+        "## 共识、分歧与盲区", "## 主编结论",
+    ]
     offsets = [record.display_report.index(header) for header in headers]
     assert offsets == sorted(offsets)
     assert "## 你的决定与复议" not in record.display_report
-    assert len(record.display_report) <= 1_800
+    assert len(record.display_report) <= 1_200
     assert record.display_report.splitlines()[-1].startswith("- 最终处置：")
     assert compact["process_digest"] == record.process_digest.model_dump(mode="json")
+    assert compact["council_value_metrics"] == record.council_value_metrics.model_dump(mode="json")
     assert compact["display_report"] == record.display_report
     assert "suggested_translation" not in compact["chief_editor"]
     assert [phase.phase for phase in record.phase_trace.phases] == [

@@ -927,6 +927,12 @@ async def run_structured_review(
             ),
             display_report=render_display_report(
                 early_digest,
+                metrics=compute_council_value_metrics(
+                    active_role_ids=plan.active_role_ids,
+                    independent_reviews=[],
+                    clusters=[],
+                    discussion_rounds=[],
+                ),
                 status="RETURNED_PENDING",
                 degraded=True,
                 warnings=[f"briefing_not_accepted:{brief_action}"],
@@ -1324,6 +1330,7 @@ async def run_structured_review(
     )
     record.display_report = render_display_report(
         process_digest,
+        metrics=record.council_value_metrics,
         status=record.status,
         degraded=record.degraded,
         warnings=record.warnings,
@@ -1525,6 +1532,7 @@ async def continue_structured_review(
     )
     record.display_report = render_display_report(
         record.process_digest,
+        metrics=record.council_value_metrics,
         status=record.status,
         degraded=record.degraded,
         warnings=record.warnings,
@@ -1582,6 +1590,7 @@ def compact_review_response(record: ReviewRecordV2) -> dict[str, Any]:
         "effective_task": record.effective_task.model_dump(mode="json"),
         "deliberation_summary": record.deliberation_summary.model_dump(mode="json"),
         "process_digest": record.process_digest.model_dump(mode="json"),
+        "council_value_metrics": record.council_value_metrics.model_dump(mode="json"),
         "display_report": record.display_report,
         "degraded": record.degraded,
         "warnings": record.warnings,
