@@ -5,8 +5,8 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / AWAITING_PUBLICATION_AND_Q010`)
-- Source baseline: `f3e9bde1b74ff4591d91b66a38558b8bebe6efab`
+- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / PUBLISHED / AWAITING_Q010`)
+- Source baseline: `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
 - Product target: `0.8.0`
 - Diagnostic build target: `context-coherent-council-v6`
 - Acceptance authority: Foreman only
@@ -857,6 +857,14 @@ exact four-file r3 correction scope, 39 focused passes, 220 full passes, the dir
 positive/negative truth table, exact six-role marketing routing, five-tool/version/schema/
 budget probes and preserved r2 artifacts/current-FastMCP wheel smoke. Publication and
 live Q-010 validation remain separate from repository acceptance.
+
+Publication completed through protected-main PR #11. All six Windows/Linux Python
+checks passed, and remote commit `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
+has the same Git tree (`f832035855fd60ff7f3bf0b0dea4caf17d4df877`) as local
+accepted archive commit `91b71d7b980a2933e5a98840dc46af4ae37273e5`. The
+accepted implementation commit `f3e9bde1b74ff4591d91b66a38558b8bebe6efab` maps to
+published rebase commit `fbe0eb1de63b6d26b4ffbf96e5e05b76fe4b86f8`. Q-010 is
+the only remaining Campaign 006 gate.
 
 ### Live counterexample and evidence boundary
 

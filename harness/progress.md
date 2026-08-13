@@ -5,8 +5,8 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-006-r3`
-- Campaign state: `ACCEPTED / AWAITING_PUBLICATION_AND_Q010`
-- Campaign baseline: `f3e9bde1b74ff4591d91b66a38558b8bebe6efab`
+- Campaign state: `ACCEPTED / PUBLISHED / AWAITING_Q010`
+- Campaign baseline: `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
 - Last updated: 2026-08-13 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -161,6 +161,8 @@ The Worker may create only the active Campaign ledger and report under `harness/
 - F-030 through F-034: accepted by `CAMPAIGN-006-r3`
 - Independent final evidence: exact four-file/one-commit correction scope, all protected hashes exact, compile pass, 39 focused passes, 220 full passes, Chinese/English direct-answer truth table, exact five tools/version/schema/defaults/budgets and six-role marketing route
 - Preserved r2 evidence: deep 13/13 call path, context-first conservative status, concise presentation, literal V2.2 invariants, fresh 0.8.0 artifacts and installed FastMCP 3.4.7 wheel behavior
+- Publication: protected-main PR #11 merged at `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`; all six required Windows/Linux Python checks passed
+- Publication mapping: accepted implementation `f3e9bde1b74ff4591d91b66a38558b8bebe6efab` maps to rebased remote implementation `fbe0eb1de63b6d26b4ffbf96e5e05b76fe4b86f8`; accepted archive tree and published tree are exactly `f832035855fd60ff7f3bf0b0dea4caf17d4df877`
 - Superseded contract: `harness/contracts/CAMPAIGN-006-r1.md`; PR #10 published its Foreman assets and thereby advanced `main`, so its earlier baseline must not be executed
 - Target: package/module `0.8.0`; diagnostic build `context-coherent-council-v6`; schema remains `2.2`
 - Package graph: PKG-032 context-gap classification; PKG-033 context precedence/status; PKG-034 marketing role routing; PKG-035 presentation/invariants; PKG-036 migration/build/docs
@@ -172,4 +174,4 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive and publish the accepted implementation plus Campaign 006 Harness evidence through the protected-main workflow. After publication, run Q-010 against the exact published commit using both the clean explicit marketing-slogan case and the deliberately mixed marketing-versus-functional-UI case. Do not mark Q-010 accepted until normal Goose returns literal structured evidence consistent with the server record.
+Run Q-010 against exact published commit `1f8e6981b9fdef08f42a35fc52c7a216b123a94a` using both the clean explicit marketing-slogan case and the deliberately mixed marketing-versus-functional-UI case. Do not mark Q-010 accepted until normal Goose returns literal structured evidence consistent with the server record.
