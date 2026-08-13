@@ -1458,7 +1458,7 @@ async def continue_structured_review(
         else "COMPLETED"
     )
     record = parent.model_copy(deep=True)
-    record.schema_version = "2.3"
+    record.schema_version = "2.4"
     record.version_metadata = {
         "package_version": __version__,
         "diagnostic_build": __diagnostic_build__,

@@ -96,10 +96,10 @@ def default_reviews_dir() -> Path:
 
 
 def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
-    """Create a valid V2.3 allowlist projection without user or model prose."""
+    """Create a valid V2.4 allowlist projection without user or model prose."""
     task = record.task
     return {
-        "schema_version": "2.3",
+        "schema_version": "2.4",
         "review_id": record.review_id,
         "parent_review_id": record.parent_review_id,
         "created_at": record.created_at.isoformat(),
@@ -209,11 +209,20 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
                 for phase in record.phase_trace.phases
             ]
         },
-        "council_value_metrics": record.council_value_metrics.model_dump(mode="json"),
+        "council_value_metrics": {
+            **record.council_value_metrics.model_dump(
+                mode="json", exclude={"role_contributions"}
+            ),
+            "role_contributions": [
+                contribution.model_dump(mode="json")
+                for contribution in record.council_value_metrics.role_contributions
+                if contribution.role_id in _SAFE_ROLE_IDS
+            ],
+        },
         "version_metadata": {
             "package_version": _CURRENT_PACKAGE_VERSION,
             "diagnostic_build": _CURRENT_DIAGNOSTIC_BUILD,
-            "record_schema": "2.3",
+            "record_schema": "2.4",
         },
     }
 
@@ -275,10 +284,10 @@ class ReviewStore:
             raise InvalidReviewIdError("new V2 records require a sortable V2 review ID")
         write_record = validated.model_copy(
             update={
-                "schema_version": "2.3",
+                "schema_version": "2.4",
                 "version_metadata": {
                     **validated.version_metadata,
-                    "record_schema": "2.3",
+                    "record_schema": "2.4",
                 },
             }
         )

@@ -736,7 +736,7 @@ class ChiefEditorDecisionV2(DomainModel):
 
 
 class ReviewRecordV2(DomainModel):
-    schema_version: Literal["2.0", "2.1", "2.2", "2.3", "2.4"] = "2.3"
+    schema_version: Literal["2.0", "2.1", "2.2", "2.3", "2.4"] = "2.4"
     review_id: str
     parent_review_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))

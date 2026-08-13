@@ -108,7 +108,7 @@ def test_full_write_is_atomic_and_round_trips(monkeypatch, tmp_path):
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
     assert loaded.task.source_text == "SECRET SOURCE"
-    assert loaded.schema_version == "2.3"
+    assert loaded.schema_version == "2.4"
     assert loaded.runtime_metadata.wall_clock_ms == 321
     assert loaded.runtime_metadata.sampling_wait_ms == 654
     assert loaded.runtime_metadata.independent_review_peak_concurrency == 2
@@ -155,7 +155,7 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.task.source_text == ""
     assert loaded.independent_reviews == []
     assert loaded.user_decisions == []
-    assert loaded.schema_version == "2.3"
+    assert loaded.schema_version == "2.4"
     assert loaded.runtime_metadata.wall_clock_ms == 321
     assert loaded.runtime_metadata.sampling_wait_ms == 654
     assert loaded.runtime_metadata.independent_review_concurrency_limit == 3
@@ -175,17 +175,17 @@ def test_new_write_persists_truthful_v071_runtime_and_version_identifiers(tmp_pa
 
     payload = json.loads(path.read_text(encoding="utf-8"))
     expected = {
-        "package_version": "0.9.0",
-        "diagnostic_build": "bounded-parallel-council-v7",
+        "package_version": "0.10.0",
+        "diagnostic_build": "evidence-value-council-v8",
     }
     assert {key: payload["runtime_metadata"][key] for key in expected} == expected
     assert {key: payload["version_metadata"][key] for key in expected} == expected
-    assert payload["version_metadata"]["record_schema"] == "2.3"
+    assert payload["version_metadata"]["record_schema"] == "2.4"
 
     loaded = store.load(record.review_id)
-    assert loaded.runtime_metadata.package_version == "0.9.0"
-    assert loaded.runtime_metadata.diagnostic_build == "bounded-parallel-council-v7"
-    assert loaded.version_metadata == {**expected, "record_schema": "2.3"}
+    assert loaded.runtime_metadata.package_version == "0.10.0"
+    assert loaded.runtime_metadata.diagnostic_build == "evidence-value-council-v8"
+    assert loaded.version_metadata == {**expected, "record_schema": "2.4"}
 
 
 def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
@@ -342,6 +342,6 @@ def test_saving_readable_v20_model_writes_new_v22_schema(tmp_path):
     path = store.save(record)
 
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "2.3"
-    assert payload["version_metadata"]["record_schema"] == "2.3"
-    assert store.load(record.review_id).schema_version == "2.3"
+    assert payload["schema_version"] == "2.4"
+    assert payload["version_metadata"]["record_schema"] == "2.4"
+    assert store.load(record.review_id).schema_version == "2.4"
