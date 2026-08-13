@@ -1,20 +1,163 @@
 [
-  {"case_id":"placeholder_loss","category":"technical_blocker","expected":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":4,"sample_budget":6,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":4,"sample_budget":6,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"broken_markup","category":"technical_blocker","expected":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":4,"sample_budget":6,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":4,"sample_budget":6,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"meaning_reversal","category":"semantic_blocker","expected":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"negation_error","category":"semantic_blocker","expected":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material","risk_ambiguity_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material","risk_ambiguity_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"modality_shift","category":"semantic_major","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"corroborating","risk_ambiguity_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"corroborating","risk_ambiguity_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"critical_omission","category":"semantic_blocker","expected":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"hard_tb_violation","category":"caller_rule_blocker","expected":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"terminology_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"blocked_by_policy","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":true,"false_positive_free":true,"contribution_kinds":{"terminology_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"blocked_by_policy","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"natural_but_inaccurate","category":"accuracy","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material","fluency_reviewer":"confirmation_only"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"unique_material","fluency_reviewer":"confirmation_only"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"accurate_but_unnatural","category":"fluency","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"confirmation_only","fluency_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"confirmation_only","fluency_reviewer":"unique_material"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"ui_context_mismatch","category":"context","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"product_context_reviewer":"unique_material","ux_copy_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"product_context_reviewer":"unique_material","ux_copy_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"terminology_vs_fluency","category":"cross_role_conflict","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"terminology_reviewer":"corroborating","fluency_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"valid_choice_respected","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"material"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"terminology_reviewer":"corroborating","fluency_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"valid_choice_respected","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"material"}},
-  {"case_id":"consent_authorization_ambiguity","category":"risk_conflict","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"risk_ambiguity_reviewer":"unique_material","fidelity_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"context_requested","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"low"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"risk_ambiguity_reviewer":"unique_material","fidelity_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"context_requested","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"low"}},
-  {"case_id":"brand_only_preference","category":"preference","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"brand_voice_reviewer":"unique_material"},"conflict_detected":true,"user_authority":"valid_choice_respected","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"none"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"brand_voice_reviewer":"unique_material"},"conflict_detected":true,"user_authority":"valid_choice_respected","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"none"}},
-  {"case_id":"clean_translation","category":"clean","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"confirmation_only","fidelity_reviewer":"confirmation_only","terminology_reviewer":"confirmation_only","product_context_reviewer":"confirmation_only","ux_copy_reviewer":"confirmation_only","fluency_reviewer":"confirmation_only"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"confirmation_only","fidelity_reviewer":"confirmation_only","terminology_reviewer":"confirmation_only","product_context_reviewer":"confirmation_only","ux_copy_reviewer":"confirmation_only","fluency_reviewer":"confirmation_only"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"multiple_valid_candidates","category":"valid_choice","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"terminology_reviewer":"corroborating","ux_copy_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"valid_choice_respected","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"none"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"terminology_reviewer":"corroborating","ux_copy_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"valid_choice_respected","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"none"}},
-  {"case_id":"user_context_changes_decision","category":"context_update","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"product_context_reviewer":"unique_material","ux_copy_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"context_update_applied","chief_consistent":true,"sampling_calls":10,"sample_budget":13,"discussion_marginal_value":"material"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"product_context_reviewer":"unique_material","ux_copy_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"context_update_applied","chief_consistent":true,"sampling_calls":10,"sample_budget":13,"discussion_marginal_value":"material"}},
-  {"case_id":"user_preference_conflicts_blocker","category":"authority_boundary","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"unique_material","ux_copy_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"blocked_by_policy","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"technical_safety_reviewer":"unique_material","ux_copy_reviewer":"corroborating"},"conflict_detected":true,"user_authority":"blocked_by_policy","chief_consistent":true,"sampling_calls":6,"sample_budget":13,"discussion_marginal_value":"not_applicable"}},
-  {"case_id":"no_real_conflict","category":"agreement","expected":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"corroborating","fluency_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"none"},"observed":{"critical_issue_recalled":false,"false_positive_free":true,"contribution_kinds":{"fidelity_reviewer":"corroborating","fluency_reviewer":"corroborating"},"conflict_detected":false,"user_authority":"not_applicable","chief_consistent":true,"sampling_calls":7,"sample_budget":13,"discussion_marginal_value":"none"}}
+  {
+    "case_id": "placeholder_loss",
+    "category": "technical_blocker",
+    "task": {"source_text": "Delete {count} files", "candidate_translation": "删除文件", "mode": "lightweight"},
+    "reviewers": {},
+    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "broken_markup",
+    "category": "technical_blocker",
+    "task": {"source_text": "Click <b>Save</b>", "candidate_translation": "点击保存", "mode": "lightweight"},
+    "reviewers": {},
+    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "meaning_reversal",
+    "category": "semantic_blocker",
+    "task": {"source_text": "Enable sync", "candidate_translation": "禁用同步"},
+    "reviewers": {"fidelity_reviewer": {"role_feedback": "meaning checked", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Enable sync", "candidate_span": "禁用同步", "problem": "Meaning is reversed", "evidence": "enable differs from disable", "action": "Restore source meaning", "confidence": 0.99}]}},
+    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "negation_error",
+    "category": "semantic_blocker",
+    "task": {"source_text": "Do not delete", "candidate_translation": "删除"},
+    "reviewers": {
+      "fidelity_reviewer": {"role_feedback": "negation checked", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Do not delete", "candidate_span": "删除", "problem": "Negation is omitted", "evidence": "not is absent", "action": "Restore negation", "confidence": 0.99}]},
+      "fluency_reviewer": {"role_feedback": "negation corroborated", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Do not delete", "candidate_span": "删除", "problem": "Negation is omitted", "evidence": "candidate states the opposite action", "action": "Restore negation", "confidence": 0.9}]}
+    },
+    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "modality_shift",
+    "category": "semantic_major",
+    "task": {"source_text": "You may cancel", "candidate_translation": "您必须取消", "content_type": "marketing"},
+    "reviewers": {
+      "fidelity_reviewer": {"role_feedback": "modality checked", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "may and must differ", "action": "Restore modality", "confidence": 0.9}]},
+      "risk_ambiguity_reviewer": {"role_feedback": "risk corroborated", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "obligation changes user rights", "action": "Restore modality", "confidence": 0.9}]}
+    },
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "risk_ambiguity_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "critical_omission",
+    "category": "semantic_blocker",
+    "task": {"source_text": "Back up data before reset", "candidate_translation": "重置"},
+    "reviewers": {"fidelity_reviewer": {"role_feedback": "omission checked", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Back up data", "candidate_span": "", "problem": "Safety instruction is omitted", "evidence": "backup instruction is absent", "action": "Restore the instruction", "confidence": 0.99}]}},
+    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "hard_tb_violation",
+    "category": "caller_rule_blocker",
+    "task": {"source_text": "Open Acme Cloud", "candidate_translation": "打开云服务", "hard_constraints": ["required_literal:Acme"]},
+    "reviewers": {},
+    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "natural_but_inaccurate",
+    "category": "accuracy",
+    "task": {"source_text": "Archive", "candidate_translation": "删除"},
+    "reviewers": {"fidelity_reviewer": {"role_feedback": "accuracy checked", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "Archive", "candidate_span": "删除", "problem": "Action meaning is inaccurate", "evidence": "archive is not delete", "action": "Use the archive meaning", "confidence": 0.9}]}},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unique_material", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "accurate_but_unnatural",
+    "category": "fluency",
+    "task": {"source_text": "Try again", "candidate_translation": "进行再一次尝试"},
+    "reviewers": {"fluency_reviewer": {"role_feedback": "fluency checked", "findings": [{"issue_type": "fluency", "severity": "minor", "source_span": "Try again", "candidate_span": "进行再一次尝试", "problem": "Wording is unnatural", "evidence": "target-language convention", "action": "Use concise natural wording", "confidence": 0.9}]}},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "confirmation_only", "fluency_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "ui_context_mismatch",
+    "category": "context",
+    "task": {"source_text": "Continue", "candidate_translation": "继续"},
+    "reviewers": {
+      "product_context_reviewer": {"role_feedback": "context checked", "findings": [{"issue_type": "context", "severity": "major", "source_span": "Continue", "candidate_span": "继续", "problem": "Label mismatches the final step", "evidence": "component is the final action", "action": "Use a completion label", "confidence": 0.9}]},
+      "ux_copy_reviewer": {"role_feedback": "UX corroborated", "findings": [{"issue_type": "context", "severity": "major", "source_span": "Continue", "candidate_span": "继续", "problem": "Label mismatches the final step", "evidence": "user expects completion", "action": "Use a completion label", "confidence": 0.9}]}
+    },
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"product_context_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "terminology_vs_fluency",
+    "category": "cross_role_conflict",
+    "task": {"source_text": "Continue", "candidate_translation": "继续"},
+    "reviewers": {
+      "terminology_reviewer": {"role_feedback": "term option", "findings": [{"issue_type": "terminology", "severity": "minor", "finding_kind": "choice", "proposed_value": "继续", "source_span": "Continue", "candidate_span": "继续", "problem": "Two valid labels have different emphasis", "evidence": "term history supports current", "action": "Choose by product context", "confidence": 0.8}]},
+      "fluency_reviewer": {"role_feedback": "fluency option", "findings": [{"issue_type": "fluency", "severity": "minor", "finding_kind": "choice", "proposed_value": "下一步", "source_span": "Continue", "candidate_span": "继续", "problem": "Two valid labels have different emphasis", "evidence": "next step is explicit", "action": "Choose by product context", "confidence": 0.8}]}
+    },
+    "discussion": "material",
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"terminology_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 13, "discussion_marginal_value": "material"}
+  },
+  {
+    "case_id": "consent_authorization_ambiguity",
+    "category": "risk_conflict",
+    "task": {"source_text": "Authorize access", "candidate_translation": "授权访问", "content_type": "marketing"},
+    "reviewers": {"risk_ambiguity_reviewer": {"role_feedback": "authorization context missing", "findings": [{"issue_type": "risk", "severity": "major", "source_span": "Authorize access", "candidate_span": "授权访问", "problem": "Authorization scope is ambiguous", "evidence": "resource scope is not stated", "action": "Clarify the scope", "confidence": 0.8}], "context_gaps": [{"question": "此授权用于哪个产品场景？", "materiality": "答案会改变风险判断和发布决定", "affected_role_ids": ["risk_ambiguity_reviewer"]}]}},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "brand_only_preference",
+    "category": "preference",
+    "task": {"source_text": "Go further", "candidate_translation": "更进一步", "content_type": "marketing", "interactive_mode": "auto"},
+    "reviewers": {
+      "brand_voice_reviewer": {"role_feedback": "brand option", "findings": [{"issue_type": "style", "severity": "preference", "finding_kind": "choice", "proposed_value": "更进一步", "source_span": "Go further", "candidate_span": "更进一步", "problem": "Two on-brand variants are valid", "evidence": "brand tone allows both", "action": "Select preferred voice", "confidence": 0.7}]},
+      "fluency_reviewer": {"role_feedback": "natural option", "findings": [{"issue_type": "fluency", "severity": "preference", "finding_kind": "choice", "proposed_value": "不断前行", "source_span": "Go further", "candidate_span": "更进一步", "problem": "Two on-brand variants are valid", "evidence": "both are idiomatic", "action": "Select preferred voice", "confidence": 0.7}]}
+    },
+    "discussion": "none",
+    "interaction": {"choice_index": 1},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"brand_voice_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none"}
+  },
+  {
+    "case_id": "clean_translation",
+    "category": "clean",
+    "task": {"source_text": "Save", "candidate_translation": "保存"},
+    "reviewers": {},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "confirmation_only", "fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "multiple_valid_candidates",
+    "category": "valid_choice",
+    "task": {"source_text": "Start", "candidate_translation": "开始", "interactive_mode": "auto"},
+    "reviewers": {
+      "terminology_reviewer": {"role_feedback": "term option", "findings": [{"issue_type": "terminology", "severity": "minor", "finding_kind": "choice", "proposed_value": "开始", "source_span": "Start", "candidate_span": "开始", "problem": "Both labels are valid", "evidence": "term usage supports current", "action": "Choose by UI intent", "confidence": 0.8}]},
+      "ux_copy_reviewer": {"role_feedback": "UX option", "findings": [{"issue_type": "ux", "severity": "minor", "finding_kind": "choice", "proposed_value": "立即开始", "source_span": "Start", "candidate_span": "开始", "problem": "Both labels are valid", "evidence": "explicit action can aid users", "action": "Choose by UI intent", "confidence": 0.8}]}
+    },
+    "discussion": "none",
+    "interaction": {"choice_index": 1},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none"}
+  },
+  {
+    "case_id": "user_context_changes_decision",
+    "category": "context_update",
+    "task": {"source_text": "Done", "candidate_translation": "完成", "interactive_mode": "auto"},
+    "reviewers": {"product_context_reviewer": {"role_feedback": "product context needed", "findings": [{"issue_type": "context", "severity": "major", "source_span": "Done", "candidate_span": "完成", "problem": "Component purpose affects interpretation", "evidence": "status and action labels differ", "action": "Confirm component purpose", "confidence": 0.8}], "context_gaps": [{"question": "这是状态标签还是功能按钮？", "materiality": "答案会改变产品场景判断和推荐结果", "affected_role_ids": ["product_context_reviewer"]}]}},
+    "interaction": {"context_answer": "这是已完成状态标签"},
+    "context_reconsideration": {"change_effect": "changed", "findings": []},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"product_context_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_update_applied", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "user_preference_conflicts_blocker",
+    "category": "authority_boundary",
+    "task": {"source_text": "Continue", "candidate_translation": "继续", "interactive_mode": "auto", "decision_fallback": "return_pending", "hard_constraints": ["forbidden_literal:危险"]},
+    "reviewers": {
+      "terminology_reviewer": {"role_feedback": "term option", "findings": [{"issue_type": "terminology", "severity": "minor", "finding_kind": "choice", "proposed_value": "继续", "source_span": "Continue", "candidate_span": "继续", "problem": "Three wording preferences were proposed", "evidence": "term history supports current", "action": "Choose preferred wording", "confidence": 0.8}]},
+      "ux_copy_reviewer": {"role_feedback": "UX option", "findings": [{"issue_type": "ux", "severity": "minor", "finding_kind": "choice", "proposed_value": "下一步", "source_span": "Continue", "candidate_span": "继续", "problem": "Three wording preferences were proposed", "evidence": "next step is explicit", "action": "Choose preferred wording", "confidence": 0.8}]},
+      "fluency_reviewer": {"role_feedback": "invalid preference", "findings": [{"issue_type": "fluency", "severity": "preference", "finding_kind": "choice", "proposed_value": "危险", "source_span": "Continue", "candidate_span": "继续", "problem": "Three wording preferences were proposed", "evidence": "scripted preference conflicts with caller rule", "action": "Choose preferred wording", "confidence": 0.6}]}
+    },
+    "discussion": "none",
+    "interaction": {"initial_action": "decline"},
+    "continuation_probe": "reject_invalid_then_accept_valid",
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "blocked_by_policy", "chief_consistent": true, "sampling_calls": 9, "sample_budget": 13, "discussion_marginal_value": "none"}
+  },
+  {
+    "case_id": "no_real_conflict",
+    "category": "agreement",
+    "task": {"source_text": "Close", "candidate_translation": "关闭"},
+    "reviewers": {
+      "fidelity_reviewer": {"role_feedback": "same issue", "findings": [{"issue_type": "accuracy", "severity": "minor", "source_span": "Close", "candidate_span": "关闭", "problem": "Object is not explicit", "evidence": "source lacks an object", "action": "Confirm object from context", "confidence": 0.7}]},
+      "fluency_reviewer": {"role_feedback": "same issue corroborated", "findings": [{"issue_type": "accuracy", "severity": "minor", "source_span": "Close", "candidate_span": "关闭", "problem": "Object is not explicit", "evidence": "candidate also lacks an object", "action": "Confirm object from context", "confidence": 0.7}]}
+    },
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  }
 ]
