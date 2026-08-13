@@ -5,8 +5,8 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-006-r1` (`DESIGN_FROZEN / ASSIGNED`)
-- Source baseline: `755aea681b64283a4cb369817d17b3e52c0973a0`
+- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / AWAITING_PUBLICATION_AND_Q010`)
+- Source baseline: `f3e9bde1b74ff4591d91b66a38558b8bebe6efab`
 - Product target: `0.8.0`
 - Diagnostic build target: `context-coherent-council-v6`
 - Acceptance authority: Foreman only
@@ -835,6 +835,28 @@ local implementation/acceptance tree to remote commits `2580536`, `f34073f` and
 - Changing review logic, roles, Policy Gate, user authority, budgets, persistence schema or translation-application boundary.
 
 ## Campaign 006: Context-Coherent Panoramic Council
+
+`CAMPAIGN-006-r1` was published as Foreman history through PR #10, which advanced
+protected `main` after its baseline was written. Its product design remains unchanged,
+but its exact admission baseline is no longer the shared-worktree HEAD. It is superseded
+by `CAMPAIGN-006-r2`, which changed only the reachable baseline and versioned report/
+ledger paths. That correction has now been executed; r1 remains immutable history and
+r3 is the only active contract.
+
+`CAMPAIGN-006-r2` implemented the full V0.8 package graph and passed independent compile,
+217-test, routing, precedence, presentation and tool/version checks. Foreman review found
+one bounded direct-answer gap: a caller-supplied binding glossary/reference, or an
+unambiguous caller statement that the text is a brand slogan or functional UI element,
+is not visible to the current `already_answered` classifier and can trigger a redundant
+follow-up. `CAMPAIGN-006-r3` preserves every other r2 behavior and corrects only that
+caller-context recognition path.
+
+Campaign 006 is accepted by `harness/evaluations/CAMPAIGN-006-r3-review.md` at
+`f3e9bde1b74ff4591d91b66a38558b8bebe6efab`. Independent final evidence includes the
+exact four-file r3 correction scope, 39 focused passes, 220 full passes, the direct-answer
+positive/negative truth table, exact six-role marketing routing, five-tool/version/schema/
+budget probes and preserved r2 artifacts/current-FastMCP wheel smoke. Publication and
+live Q-010 validation remain separate from repository acceptance.
 
 ### Live counterexample and evidence boundary
 
