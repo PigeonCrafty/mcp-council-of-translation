@@ -13,6 +13,8 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from council_of_translation import __diagnostic_build__, __schema_version__, __version__
+
 
 ReviewMode = Literal["lightweight", "standard", "strict"]
 HistoryMode = Literal["off", "metadata", "full"]
@@ -623,8 +625,8 @@ class RuntimeMetadata(DomainModel):
     context_gap_elicitation_actions: list[str] = Field(default_factory=list)
     outcome_elicitation_calls: int = Field(default=0, ge=0)
     outcome_elicitation_actions: list[str] = Field(default_factory=list)
-    package_version: str = "0.8.0"
-    diagnostic_build: str = "context-coherent-council-v6"
+    package_version: str = __version__
+    diagnostic_build: str = __diagnostic_build__
 
 
 class ReviewTaskV2(DomainModel):
@@ -724,9 +726,9 @@ class ReviewRecordV2(DomainModel):
     process_digest: ProcessDigestV2 = Field(default_factory=ProcessDigestV2)
     display_report: str = ""
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
-        "package_version": "0.8.0",
-        "diagnostic_build": "context-coherent-council-v6",
-        "record_schema": "2.3",
+        "package_version": __version__,
+        "diagnostic_build": __diagnostic_build__,
+        "record_schema": __schema_version__,
     })
 
     @field_validator("decision_points")

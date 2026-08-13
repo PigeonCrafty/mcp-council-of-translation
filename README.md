@@ -1,6 +1,6 @@
 # Council of Translation
 
-Council of Translation V0.8 is a Goose-first, review-only MCP server for context-coherent localization QA. It reviews a source/candidate pair, returns a concise Council report as the primary MCP text, and retains the complete existing dictionary as structured content. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
+Council of Translation V0.9 is a Goose-first, review-only MCP server for context-coherent localization QA. It reviews a source/candidate pair, returns a concise Council report as the primary MCP text, and retains the complete existing dictionary as structured content. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
 
 ## Public MCP tools
 
@@ -19,7 +19,7 @@ The defaults are `output_mode="review_only"`, `interactive_mode="auto"`, `briefi
 ```text
 sampling-free briefing gate
   -> deterministic preflight
-  -> role-routed independent reviews
+  -> role-routed independent reviews (bounded concurrency, default 3)
   -> optional one-form context follow-up (maximum two questions)
   -> affected-role context reconsideration
   -> issue clustering
@@ -41,6 +41,16 @@ Source/candidate-only calls in `briefing_mode=auto` request a concise background
 
 Maximum sampling budgets are 6 calls for `lightweight`, 13 for `standard`, and 18 for `strict`. A deep standard path fits six independent reviews, three context reconsiderations, one discussion, and three outcome reconsiderations exactly within 13. Clean input does not manufacture discussion or DecisionPoints.
 
+Only the independent reviewer phase runs concurrently. `COUNCIL_REVIEW_CONCURRENCY`
+accepts the literal values `1`, `2`, or `3`; missing configuration defaults to `3`,
+while empty, non-numeric, or out-of-range values safely use sequential execution and
+record `invalid_fallback`. The full independent role count is reserved against the
+sampling budget before launch, every role is attempted exactly once, results are
+correlated back to plan order, and all interaction, reconsideration, discussion,
+Policy Gate, adjudication, digest, and persistence phases wait for the batch to settle.
+`get_server_info()` exposes the effective limit, maximum `3`, and disposition without
+exposing raw environment values.
+
 ## Persistence and privacy
 
 Records use stable sortable V2 IDs and atomic writes under the platform data directory (or `COUNCIL_REVIEWS_DIR` when explicitly configured). `history_mode` supports:
@@ -49,7 +59,7 @@ Records use stable sortable V2 IDs and atomic writes under the platform data dir
 - `metadata`: allowlisted metadata only—no source, candidate, TB/SG packets, model/user/chief prose, or free text; safe status, publishability, and review-needed disposition are retained;
 - `off`: no write.
 
-New records use schema `2.2`. Readers also accept V2.1, V2.0 and legacy V1 JSON records; missing `schema_version` is interpreted as V1.
+New records use schema `2.3`, including content-free wall-time and independent-review concurrency telemetry. Readers also accept V2.2, V2.1, V2.0 and legacy V1 JSON records; missing `schema_version` is interpreted as V1.
 
 `review_translation`, `continue_review`, and `view_review_record` return two MCP channels. The first text block is an adaptive Chinese report with at most five sections: review background, six concise role lenses, consensus/disagreement/blind spots, an interaction section only when needed, and the final editor disposition last. Clean reference output targets 1,800 Unicode code points or fewer; every primary report is capped at 3,200. Canonical adjudication counters and redundant evidence for clean roles are omitted from primary text, while blockers, material evidence, minority conditions, context or coverage gaps, warnings and degradation remain visible. Optional role evidence is shown whole or omitted whole, and implementation vocabulary is rendered in natural Chinese. The complete compact or full dictionary—including chief rationale, RoleLens evidence, `effective_task`, `deliberation_summary`, structured `process_digest`, status, warnings and retrieval metadata—remains unchanged in structured content. `list_review_records` and `get_server_info` retain their structured-only responses.
 
@@ -74,4 +84,4 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 For Q-010 after publication, replace `<reviewed-commit>` above with the exact accepted commit and run two pinned normal-user recipes. First, review a clean marketing slogan with explicit brand usage and any binding glossary/reference; expect the six marketing lenses in frozen order and a normal outcome only after context is sufficient. Second, deliberately combine marketing with functional-button context and omit whether the text is a slogan or UI action; expect the Council to ask that material question first, and if it remains unanswered, open no wording form and require human review. Audit literal structured JSON for role IDs, sample statuses, coverage and call counts; do not treat an outer agent's prose reconstruction as telemetry truth.
 
-The pinned build reports version `0.8.0`, schema `2.2`, diagnostic build `context-coherent-council-v6`, and budgets 6/13/18.
+The pinned build reports version `0.9.0`, schema `2.3`, diagnostic build `bounded-parallel-council-v7`, and budgets 6/13/18.

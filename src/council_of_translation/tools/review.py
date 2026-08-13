@@ -1,4 +1,4 @@
-"""Frozen five-tool MCP surface for Council of Translation V0.8."""
+"""Frozen five-tool MCP surface for Council of Translation V0.9."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from typing import Any, Literal
 from fastmcp import Context
 from fastmcp.tools.tool import ToolResult
 
-from council_of_translation import __version__
+from council_of_translation import __diagnostic_build__, __schema_version__, __version__
 from council_of_translation.localization.compatibility import ReviewRecordV1
 from council_of_translation.localization.models import InputDiagnostics, ReviewRecordV2, ReviewTaskV2
 from council_of_translation.localization.orchestration import (
@@ -31,7 +31,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12_000
-DIAGNOSTIC_BUILD = "context-coherent-council-v6"
+DIAGNOSTIC_BUILD = __diagnostic_build__
 
 
 def _installed_version() -> str:
@@ -52,7 +52,7 @@ def _server_info() -> dict[str, Any]:
         "package_version": _installed_version(),
         "module_version": __version__,
         "diagnostic_build": DIAGNOSTIC_BUILD,
-        "schema_version": "2.3",
+        "schema_version": __schema_version__,
         "default_output_mode": "review_only",
         "default_interactive_mode": "auto",
         "default_briefing_mode": "auto",
@@ -160,7 +160,7 @@ def _error(exc: Exception) -> dict[str, str]:
 
 @mcp.tool()
 def get_server_info() -> dict[str, Any]:
-    """Return V0.7 version, capability, budget, and frozen-tool diagnostics."""
+    """Return version, capability, budget, and frozen-tool diagnostics."""
     return _server_info()
 
 

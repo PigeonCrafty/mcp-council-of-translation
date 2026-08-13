@@ -10,6 +10,7 @@ from typing import Any, Iterable, Literal
 
 from pydantic import Field, ValidationError, create_model
 
+from council_of_translation import __diagnostic_build__, __schema_version__, __version__
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.digest import build_process_digest, render_display_report
 from council_of_translation.localization.deliberation import (
@@ -1419,9 +1420,9 @@ async def continue_structured_review(
     record = parent.model_copy(deep=True)
     record.schema_version = "2.3"
     record.version_metadata = {
-        "package_version": "0.8.0",
-        "diagnostic_build": "context-coherent-council-v6",
-        "record_schema": "2.3",
+        "package_version": __version__,
+        "diagnostic_build": __diagnostic_build__,
+        "record_schema": __schema_version__,
     }
     record.review_id = build_review_id()
     record.parent_review_id = parent.review_id
