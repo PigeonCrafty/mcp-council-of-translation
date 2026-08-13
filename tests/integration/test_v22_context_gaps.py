@@ -156,3 +156,40 @@ def test_lightweight_context_reconsideration_budget_insufficiency_is_truthful(tm
     assert len(record.context_reconsideration_provenance.skipped_role_ids) == 1
     assert record.degraded is True
     assert "context_reconsideration_degraded" in record.fallback_reason
+
+
+def test_caller_glossary_suppresses_only_the_answered_existence_gap_in_core(tmp_path):
+    gap = _gap(
+        question="是否存在官方批准且具有约束力的标语词表？",
+        materiality="官方词表会改变允许采用的品牌措辞",
+        roles=["terminology_reviewer", "brand_voice_reviewer"],
+    )
+    reviews = [_envelope(gaps=[gap]), *[_envelope() for _ in range(5)]]
+
+    def run_case(root, term_glossary):
+        telemetry = RuntimeTelemetry(sample_budget=13)
+        executor = ScriptedModelExecutor(reviews, telemetry)
+        gateway = ScriptedUserInteractionGateway([], supported=False, telemetry=telemetry)
+        record = asyncio.run(run_structured_review(
+            ReviewTaskV2(
+                source_text="Bigger", candidate_translation="更大", content_type="marketing",
+                term_glossary=term_glossary, briefing_mode="off", mode="standard",
+            ),
+            executor,
+            gateway,
+            store=ReviewStore(root, include_legacy=False),
+        ))
+        return record, gateway
+
+    supplied, supplied_gateway = run_case(tmp_path / "supplied", "官方标语词表")
+    assert supplied_gateway.requests == []
+    assert supplied.context_gap_interaction.action == "skipped"
+    assert supplied.context_gaps[0].disposition == "suppressed"
+    assert supplied.context_gaps[0].reason == "already_answered"
+
+    missing, missing_gateway = run_case(tmp_path / "missing", "")
+    assert missing_gateway.requests == []
+    assert missing.context_gap_interaction.action == "unsupported"
+    assert missing.context_gaps[0].disposition == "unanswered"
+    assert missing.runtime_metadata.outcome_elicitation_calls == 0
+    assert missing.status == "NEEDS_HUMAN_REVIEW"
