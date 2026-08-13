@@ -26,6 +26,10 @@ FindingKind = Literal["issue", "choice", "affirmation"]
 BriefingMode = Literal["auto", "always", "off"]
 ContextConfidence = Literal["full", "partial", "minimal"]
 FieldProvenance = Literal["caller", "user_briefing", "normalized_alias", "inferred_default"]
+ContributionKind = Literal[
+    "unique_material", "corroborating", "confirmation_only", "unavailable"
+]
+DiscussionMarginalValue = Literal["not_applicable", "none", "low", "material"]
 
 
 def option_id_for_action(issue_id: str, action: str) -> str:
@@ -552,6 +556,50 @@ class ProcessDigestV2(DomainModel):
         return self
 
 
+class RoleContribution(DomainModel):
+    """Content-free attribution for one active Council role."""
+
+    role_id: str
+    contribution_kind: ContributionKind = "unavailable"
+    unique_issue_count: int = Field(default=0, ge=0, le=1_000)
+    corroborated_issue_count: int = Field(default=0, ge=0, le=1_000)
+    material_finding_count: int = Field(default=0, ge=0, le=1_000)
+
+    @field_validator("role_id")
+    @classmethod
+    def bound_role_id(cls, value: str) -> str:
+        return value[:64]
+
+
+class CouncilValueMetrics(DomainModel):
+    """Deterministic Council value signals derived from structured trace data."""
+
+    role_contributions: list[RoleContribution] = Field(default_factory=list)
+    unique_material_issue_count: int = Field(default=0, ge=0, le=10_000)
+    corroborated_issue_count: int = Field(default=0, ge=0, le=10_000)
+    confirmation_only_role_count: int = Field(default=0, ge=0, le=8)
+    unavailable_role_count: int = Field(default=0, ge=0, le=8)
+    discussion_new_evidence_count: int = Field(default=0, ge=0, le=10_000)
+    discussion_position_change_count: int = Field(default=0, ge=0, le=10_000)
+    discussion_resolved_issue_count: int = Field(default=0, ge=0, le=10_000)
+    discussion_marginal_value: DiscussionMarginalValue = "not_applicable"
+    metric_basis: Literal["structured_findings_and_trace"] = "structured_findings_and_trace"
+
+    @field_validator("role_contributions")
+    @classmethod
+    def bound_role_contributions(cls, value: list[RoleContribution]) -> list[RoleContribution]:
+        seen: set[str] = set()
+        result: list[RoleContribution] = []
+        for contribution in value:
+            if not contribution.role_id or contribution.role_id in seen:
+                continue
+            seen.add(contribution.role_id)
+            result.append(contribution)
+            if len(result) == 8:
+                break
+        return result
+
+
 class EffectiveTask(DomainModel):
     content_type: str = "unspecified"
     audience: str = ""
@@ -688,7 +736,7 @@ class ChiefEditorDecisionV2(DomainModel):
 
 
 class ReviewRecordV2(DomainModel):
-    schema_version: Literal["2.0", "2.1", "2.2", "2.3"] = "2.3"
+    schema_version: Literal["2.0", "2.1", "2.2", "2.3", "2.4"] = "2.3"
     review_id: str
     parent_review_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -724,6 +772,7 @@ class ReviewRecordV2(DomainModel):
     warnings: list[str] = Field(default_factory=list)
     phase_trace: PhaseTrace = Field(default_factory=PhaseTrace)
     process_digest: ProcessDigestV2 = Field(default_factory=ProcessDigestV2)
+    council_value_metrics: CouncilValueMetrics = Field(default_factory=CouncilValueMetrics)
     display_report: str = ""
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
         "package_version": __version__,
