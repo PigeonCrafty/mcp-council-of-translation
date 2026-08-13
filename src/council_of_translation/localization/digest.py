@@ -9,6 +9,7 @@ from council_of_translation.localization.models import (
     ChiefEditorDecisionV2,
     ContextGapV2,
     CouncilPlan,
+    CouncilValueMetrics,
     IssueCluster,
     MinorityReport,
     PhaseReconsiderationProvenance,
@@ -347,30 +348,108 @@ def _whole_optional_evidence(values: list[str], maximum: int = 80) -> str:
     return ""
 
 
-def _role_lines(digest: ProcessDigestV2) -> list[str]:
+def _fallback_value_metrics(digest: ProcessDigestV2) -> CouncilValueMetrics:
+    """Keep direct renderer callers conservative until a V2.4 record is available."""
+    from council_of_translation.localization.models import RoleContribution
+
+    contributions = []
+    for lens in digest.role_lenses:
+        kind = (
+            "unavailable"
+            if "不可用" in lens.perspective or "不可用" in lens.disposition
+            else "confirmation_only"
+            if _is_clean_role_lens(lens)
+            else "unique_material"
+        )
+        contributions.append(RoleContribution(
+            role_id=lens.role_id,
+            contribution_kind=kind,
+            unique_issue_count=1 if kind == "unique_material" else 0,
+            material_finding_count=1 if kind == "unique_material" else 0,
+        ))
+    return CouncilValueMetrics(
+        role_contributions=contributions,
+        unique_material_issue_count=sum(item.unique_issue_count for item in contributions),
+        confirmation_only_role_count=sum(item.contribution_kind == "confirmation_only" for item in contributions),
+        unavailable_role_count=sum(item.contribution_kind == "unavailable" for item in contributions),
+    )
+
+
+def _coverage_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> list[str]:
+    by_role = {lens.role_id: lens for lens in digest.role_lenses}
+    order = {"unique_material": 0, "corroborating": 1, "confirmation_only": 2, "unavailable": 3}
+    contributions = sorted(
+        metrics.role_contributions,
+        key=lambda item: (order[item.contribution_kind], list(by_role).index(item.role_id) if item.role_id in by_role else 99),
+    )
     lines: list[str] = []
-    for lens in digest.role_lenses[:8]:
+    for contribution in contributions:
+        lens = by_role.get(contribution.role_id)
+        if lens is None:
+            continue
         role = ROLE_REGISTRY.get(lens.role_id)
         label = role.display_name if role else "未识别专业角色"
-        evidence = "" if _is_clean_role_lens(lens) else _whole_optional_evidence(lens.evidence)
+        evidence = (
+            _whole_optional_evidence(lens.evidence)
+            if contribution.contribution_kind in {"unique_material", "corroborating"}
+            else ""
+        )
         suffix = f"；依据：{evidence}" if evidence else ""
+        if contribution.contribution_kind == "unique_material":
+            summary = f"新增 {contribution.unique_issue_count} 个独立问题；{lens.perspective}"
+        elif contribution.contribution_kind == "corroborating":
+            summary = f"交叉印证 {contribution.corroborated_issue_count} 个问题；{lens.perspective}"
+        elif contribution.contribution_kind == "confirmation_only":
+            summary = "完成确认性覆盖，未提交实质问题。"
+        else:
+            summary = "结构化评审不可用；该专业范围保留为盲区。"
         perspective_limit = max(40, 150 - len(label) - 1 - len(suffix))
-        perspective = _human_line(lens.perspective or lens.disposition, perspective_limit)
+        perspective = _human_line(summary, perspective_limit)
         if suffix:
             perspective = perspective.rstrip("。；; ")
         lines.append(_human_line(f"{label}：{perspective}{suffix}", 150))
     return lines
 
 
+def _value_lines(digest: ProcessDigestV2, metrics: CouncilValueMetrics) -> list[str]:
+    by_role = {lens.role_id: lens for lens in digest.role_lenses}
+    values = _dedupe([
+        by_role[item.role_id].perspective
+        for item in metrics.role_contributions
+        if item.contribution_kind == "unique_material" and item.role_id in by_role
+    ], maximum=3)
+    lines = [f"新增问题：{_human_line(value)}" for value in values]
+    if metrics.corroborated_issue_count:
+        lines.append(f"交叉印证：{metrics.corroborated_issue_count} 个问题得到多个专业视角支持。")
+    if not lines:
+        lines.append(
+            f"未发现新增实质问题；{metrics.confirmation_only_role_count} 个角色完成确认性覆盖。"
+        )
+    if metrics.discussion_marginal_value != "not_applicable":
+        discussion = {
+            "none": "讨论未增加新的结构化证据，也未改变立场。",
+            "low": f"讨论补充 {metrics.discussion_new_evidence_count} 条新证据，未改变立场。",
+            "material": (
+                f"讨论新增证据 {metrics.discussion_new_evidence_count} 条、"
+                f"改变立场 {metrics.discussion_position_change_count} 次、"
+                f"解决问题 {metrics.discussion_resolved_issue_count} 个。"
+            ),
+        }[metrics.discussion_marginal_value]
+        lines.append(discussion)
+    return lines[:5]
+
+
 def render_display_report(
     digest: ProcessDigestV2,
     *,
+    metrics: CouncilValueMetrics | None = None,
     status: str = "",
     degraded: bool = False,
     warnings: list[str] | None = None,
     fallback_reason: str = "",
 ) -> str:
-    """Render an adaptive Chinese report while preserving the 12-field digest."""
+    """Render the frozen value-first five-section primary Council report."""
+    value_metrics = metrics or _fallback_value_metrics(digest)
     background = _material(digest.case_brief, maximum=4)
     background.extend(_material(digest.assumptions_context_confidence, maximum=2))
 
@@ -405,14 +484,19 @@ def render_display_report(
     if not final:
         final = "最终处置：需人工复核；需人工复核：是"
 
+    deliberation.extend(f"交互与复议：{value}" for value in interaction)
+    if value_metrics.unavailable_role_count:
+        deliberation.insert(
+            0,
+            f"覆盖风险：{value_metrics.unavailable_role_count} 个角色的结构化评审不可用。",
+        )
     sections = [
-        _section("审校背景", background),
-        _section("专业视角", _role_lines(digest)),
-        _section("共识、分歧与盲区", [_human_line(value) for value in deliberation]),
+        _section("审校背景", background or ["审校背景未完整提供；结论限于当前输入。"]),
+        _section("Council 新增视角", _value_lines(digest, value_metrics)),
+        _section("角色覆盖与分工", _coverage_lines(digest, value_metrics) or ["尚无可展示的角色覆盖。"]),
+        _section("共识、分歧与盲区", [_human_line(value) for value in deliberation] or ["无可展示结论。"]),
+        _section("主编结论", [*conclusion[:5], _human_line(final)]),
     ]
-    if interaction:
-        sections.append(_section("你的决定与复议", interaction))
-    sections.append(_section("主编结论", [*conclusion[:5], _human_line(final)]))
     report = "\n\n".join("\n".join(section) for section in sections if section)
     if len(report) <= 3_200:
         return report

@@ -37,20 +37,23 @@ def _digest(*, interactions: bool = False, hostile: bool = False) -> ProcessDige
     )
 
 
-def test_clean_report_has_four_chinese_sections_and_is_concise():
+def test_clean_report_has_frozen_five_chinese_sections_and_is_concise():
     report = render_display_report(_digest())
     headings = [line for line in report.splitlines() if line.startswith("## ")]
-    assert headings == ["## 审校背景", "## 专业视角", "## 共识、分歧与盲区", "## 主编结论"]
-    assert len(report) <= 1_800
+    assert headings == [
+        "## 审校背景", "## Council 新增视角", "## 角色覆盖与分工",
+        "## 共识、分歧与盲区", "## 主编结论",
+    ]
+    assert len(report) <= 1_200
     assert report.splitlines()[-1] == "- 最终处置：可发布；需人工复核：否"
 
 
-def test_interaction_section_is_conditional_and_precedes_conclusion():
+def test_interaction_content_is_folded_into_deliberation_before_conclusion():
     report = render_display_report(_digest(interactions=True))
     headings = [line for line in report.splitlines() if line.startswith("## ")]
     assert headings == [
-        "## 审校背景", "## 专业视角", "## 共识、分歧与盲区",
-        "## 你的决定与复议", "## 主编结论",
+        "## 审校背景", "## Council 新增视角", "## 角色覆盖与分工",
+        "## 共识、分歧与盲区", "## 主编结论",
     ]
     assert "用户选择：保留当前译文" in report
     assert "结果重审：结论未改变" in report
