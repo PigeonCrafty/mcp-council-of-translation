@@ -13,6 +13,7 @@ from typing import Any, Callable, Iterable
 
 from pydantic import ValidationError
 
+from council_of_translation import __diagnostic_build__, __version__
 from council_of_translation.localization.compatibility import (
     ReviewRecordV1,
     parse_review_record,
@@ -40,8 +41,8 @@ _SAFE_PHASE_DISPOSITIONS = {
     "completed", "skipped", "degraded", "blocked", "accept", "decline", "cancel",
     "unsupported", "malformed", "error", "pending", "可发布", "修改后可发布", "需人工复核",
 }
-_CURRENT_PACKAGE_VERSION = "0.8.0"
-_CURRENT_DIAGNOSTIC_BUILD = "context-coherent-council-v6"
+_CURRENT_PACKAGE_VERSION = __version__
+_CURRENT_DIAGNOSTIC_BUILD = __diagnostic_build__
 
 
 class ReviewPersistenceError(RuntimeError):

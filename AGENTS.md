@@ -16,8 +16,14 @@ Council-of-Translation is a review-only MCP server for localization translation 
 - Default decision fallback: `council_adjudication`
 - Default trace level: `summary`
 - Default history mode: `full`
-- Current expected diagnostic build: `context-coherent-council-v6`
-- Current version: `0.8.0`
+- Current expected diagnostic build: `bounded-parallel-council-v7`
+- Current version: `0.9.0`
+
+Only independent reviewer sampling is concurrent. The per-review default is three;
+`COUNCIL_REVIEW_CONCURRENCY` accepts only `1`, `2`, or `3`, and invalid values visibly
+fall back to sequential execution. Briefing precedes the batch, and context interaction,
+reconsideration, discussion, Policy Gate, adjudication, digest, and persistence remain
+phase-ordered after the complete batch settles. Sampling budgets remain 6/13/18.
 
 Normal callers should call `review_translation` directly. `get_server_info` is only for cache/version checks; `review_translation` already returns `server_info`.
 
@@ -94,9 +100,9 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 If Goose appears stale, call `get_server_info()` and verify:
 
-- `package_version`: `0.8.0`
-- `module_version`: `0.8.0`
-- `diagnostic_build`: `context-coherent-council-v6`
+- `package_version`: `0.9.0`
+- `module_version`: `0.9.0`
+- `diagnostic_build`: `bounded-parallel-council-v7`
 
 ## Repository Hygiene
 
