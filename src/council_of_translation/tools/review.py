@@ -1,4 +1,4 @@
-"""Frozen five-tool MCP surface for Council of Translation V0.9."""
+"""Frozen five-tool MCP surface for Council of Translation V0.10."""
 
 from __future__ import annotations
 
@@ -156,12 +156,6 @@ def _task_and_diagnostics(
 
 def _error(exc: Exception) -> dict[str, str]:
     return {"error": str(exc), "error_type": type(exc).__name__}
-
-
-@mcp.tool()
-def get_server_info() -> dict[str, Any]:
-    """Return version, capability, budget, and frozen-tool diagnostics."""
-    return _server_info()
 
 
 @mcp.tool()
@@ -326,3 +320,9 @@ def list_review_records(limit: int = 50) -> dict[str, Any]:
         return {"total_reviews": len(records), "reviews": records}
     except ReviewPersistenceError as exc:
         return _error(exc)
+
+
+@mcp.tool()
+def get_server_info() -> dict[str, Any]:
+    """Return version, capability, budget, and frozen-tool diagnostics."""
+    return _server_info()
