@@ -384,6 +384,61 @@
         "Fresh artifacts, full regression and current FastMCP installed-wheel smoke pass",
         "Pinned live recipes cover a clean marketing slogan and a deliberately mixed marketing-versus-UI context"
       ]
+    },
+    {
+      "id": "F-035",
+      "name": "Bounded concurrent independent review",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-007-r2",
+      "criteria": [
+        "Only the independent-review phase runs concurrently, with an effective limit between one and three and a default of three",
+        "Briefing, context handling, discussion, Policy Gate, adjudication and every reconsideration phase remain ordered and non-overlapping",
+        "Six-role standard reviews complete in two bounded waves when the effective limit is three"
+      ]
+    },
+    {
+      "id": "F-036",
+      "name": "Deterministic parallel budget and result integrity",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-007-r2",
+      "criteria": [
+        "The complete independent batch reserves budget before model side effects and never exceeds 6/13/18 mode limits",
+        "Results, role coverage and persisted role order follow CouncilPlan order regardless of completion order",
+        "One failed or malformed role cannot cancel, misassociate or duplicate another role call and no automatic retry spends hidden budget"
+      ]
+    },
+    {
+      "id": "F-037",
+      "name": "Truthful concurrency and wall-clock telemetry",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-007-r2",
+      "criteria": [
+        "V2.3 records distinguish end-to-end wall-clock duration from accumulated provider wait",
+        "Records expose the effective concurrency limit, actual peak independent-review concurrency and batch count without persisting prompts or model text",
+        "V1, V2.0, V2.1 and V2.2 records remain readable with conservative telemetry defaults"
+      ]
+    },
+    {
+      "id": "F-038",
+      "name": "Provider-safe concurrency control",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-007-r2",
+      "criteria": [
+        "COUNCIL_REVIEW_CONCURRENCY accepts only 1, 2 or 3; missing configuration defaults to three and invalid configuration falls back to one",
+        "get_server_info reports the effective limit and configuration disposition without adding a public MCP tool",
+        "Setting the limit to one preserves the established sequential behavior for provider troubleshooting"
+      ]
+    },
+    {
+      "id": "F-039",
+      "name": "V0.9 bounded-parallel migration",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-007-r2",
+      "criteria": [
+        "Package/module 0.9.0 and diagnostic build bounded-parallel-council-v7 write schema 2.3 while preserving exactly five tools and budgets 6/13/18",
+        "Fresh wheel and sdist plus isolated current-FastMCP smoke verify the installed concurrent path and sequential override",
+        "Documentation explains latency semantics, compatibility control and the post-publication Goose gate"
+      ]
     }
   ],
   "quality_gates": [
@@ -436,6 +491,11 @@
       "id": "Q-010",
       "name": "Context-coherent panoramic Council live evidence",
       "status": "accepted"
+    },
+    {
+      "id": "Q-011",
+      "name": "Bounded-parallel Goose compatibility and latency evidence",
+      "status": "planned"
     }
   ]
 }

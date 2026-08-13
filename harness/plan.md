@@ -5,10 +5,10 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / PUBLISHED / Q010_ACCEPTED / CLOSED`)
-- Source baseline: `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
-- Product target: `0.8.0`
-- Diagnostic build target: `context-coherent-council-v6`
+- Active Campaign: `CAMPAIGN-007-r2` (`ACCEPTED / PUBLICATION_REQUIRED / Q011_PENDING`)
+- Source baseline: `f9651ed64daf86dd5fabac5e7437b9de8b3186bc`
+- Product target: `0.9.0`
+- Diagnostic build target: `bounded-parallel-council-v7`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
@@ -983,3 +983,78 @@ subagents are forbidden for this tightly coupled correction.
 - Restoring literal majority voting, weakening valid user authority or allowing context
   answers to create deterministic hard constraints.
 - Broad role redesign outside the bounded standard/strict marketing route.
+
+## Campaign 007: Bounded Parallel Independent Review
+
+### Why this Campaign exists
+
+Live V0.8 evidence showed that the off-mode six-role path took 15.31 seconds and the
+answered mixed path required at least eight model calls. Local aggregation and history
+reads are small; the dominant latency is the sum of sequential provider round trips.
+The six initial role reviews share the same frozen task, brief and preflight and do not
+depend on one another, so that single phase can safely use bounded concurrency without
+turning the Council into a faster but less coherent pipeline.
+
+### Frozen design
+
+1. Only independent role review may overlap. Briefing finishes before the batch;
+   context-gap handling, affected-role reconsideration, discussion, outcome interaction,
+   outcome reconsideration, Policy Gate and adjudication remain sequential phase
+   boundaries.
+2. The default independent-review concurrency is three. Operators may set
+   `COUNCIL_REVIEW_CONCURRENCY` to `1`, `2` or `3`; missing configuration uses three and
+   invalid or out-of-range configuration conservatively uses one. This is an operator
+   control, not a new normal MCP tool or user-facing decision.
+3. The batch reserves its full role-call budget before starting any provider request.
+   Calls are attempted exactly once. There is no automatic sequential replay after a
+   concurrency error because replay could duplicate cost, exceed budget or obscure
+   provider behavior.
+4. Each result remains correlated to its role and is emitted in deterministic
+   `CouncilPlan.active_role_ids` order even when requests finish out of order. A single
+   error is normalized as that role's unavailable sample and cannot cancel siblings.
+5. Concurrency never changes role routing, prompts, token caps, context selection,
+   deliberation, user authority, Policy Gate, presentation, persistence privacy or the
+   6/13/18 call budgets.
+6. Runtime records distinguish end-to-end wall-clock duration from accumulated provider
+   wait and record the effective independent-review limit, actual peak concurrency and
+   batch count. Telemetry is bounded and content-free. Existing `elapsed_ms` remains
+   readable and is not silently reinterpreted.
+7. New records use schema `2.3`; V1 and V2.0 through V2.2 remain readable with safe
+   defaults for new telemetry. Package/module become `0.9.0`; build becomes
+   `bounded-parallel-council-v7`.
+8. The public tool count remains exactly five, the primary report stays concise and
+   review-only, and standard marketing retains the exact six accepted V0.8 lenses.
+
+### Package graph
+
+1. `PKG-037` — deterministic bounded sampling batch and configuration parser.
+2. `PKG-038` — independent-review orchestration integration, budget reservation,
+   stable ordering and failure isolation.
+3. `PKG-039` — V2.3 concurrency/wall-clock telemetry and backward-compatible record
+   parsing/persistence.
+4. `PKG-040` — FastMCP/server diagnostics, sequential override and phase-order
+   integration evidence.
+5. `PKG-041` — V0.9 metadata, documentation, artifacts and installed-wheel smoke.
+
+Packages are sequential because runtime, orchestration, metadata and compatibility
+interfaces overlap. The Main Worker must not delegate implementation subagents in the
+shared worktree. Q-011 remains a post-publication Foreman live gate: the same standard
+six-role Goose case will be compared with effective limits one and three, requiring full
+coverage and no protocol failure before latency improvement is accepted.
+
+CAMPAIGN-007-r1 delivered the bounded scheduler, independent-review integration, V2.3
+schema/compatibility, diagnostics and V0.9 artifacts. Foreman review preserved that
+evidence but requested one bounded correction: continuation children had recorded
+`wall_clock_ms=0` despite reconsideration sampling and reset retained independent-review
+concurrency provenance to `legacy`; normal records had also captured wall time before final
+digest/display construction. CAMPAIGN-007-r2 corrects only truthful record-finalization
+telemetry and must not redesign the accepted concurrent path.
+
+CAMPAIGN-007-r2 is accepted by
+`harness/evaluations/CAMPAIGN-007-r2-review.md` at
+`e835566a2c8d60ba153b68175d19685cb96185fe`. Fresh Foreman evidence includes the three
+corrected timing counterexamples, 83 focused passes, 246 full passes, compile, exact
+four-path correction scope, protected hashes and fresh artifacts. Combined r1+r2
+evidence accepts F-035 through F-039. Publication and Q-011 remain separate: live Goose
+must compare effective limits one and three because the isolated in-memory FastMCP
+callback serialized sampling callbacks and cannot prove provider overlap.

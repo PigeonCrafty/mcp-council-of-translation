@@ -4,9 +4,9 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-006-r3`
-- Campaign state: `ACCEPTED / PUBLISHED / Q010_ACCEPTED / CLOSED`
-- Campaign baseline: `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
+- Campaign: `CAMPAIGN-007-r2`
+- Campaign state: `ACCEPTED / PUBLICATION_REQUIRED / Q011_PENDING`
+- Campaign baseline: `61252ae27823467d74c38efaa59aa1521b006752`
 - Last updated: 2026-08-13 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -176,9 +176,28 @@ The Worker may create only the active Campaign ledger and report under `harness/
 - Commit policy for r3: one scoped local commit; no push, PR, release, deployment, credentials or live provider calls
 - Required report: `harness/reports/CAMPAIGN-006-r3-worker.md`; no new ledger required
 
+## Campaign 007 acceptance
+
+- r1 implementation HEAD: `61252ae27823467d74c38efaa59aa1521b006752`; r1 decision:
+  `CHANGES_REQUESTED` by `harness/evaluations/CAMPAIGN-007-r1-review.md`
+- r2 accepted HEAD: `e835566a2c8d60ba153b68175d19685cb96185fe`; decision:
+  `ACCEPTED` by `harness/evaluations/CAMPAIGN-007-r2-review.md`
+- F-035 through F-039: accepted by combined r1+r2 evidence
+- Independent final evidence: exact four-file/one-commit r2 correction, three delayed
+  counterexamples, 83 focused passes, 246 full passes, compile, protected hashes, fresh
+  wheel/sdist and preserved installed FastMCP 3.4.7 five-tool behavior
+- Product: package/module `0.9.0`, build `bounded-parallel-council-v7`, schema `2.3`;
+  exact five tools, review-only and budgets 6/13/18 preserved
+- Runtime: default independent-review concurrency 3; operator values 1/2/3; invalid
+  values safely use sequential limit 1; later Council phases remain ordered
+- Q-011: pending publication and normal-Goose comparison because the isolated in-memory
+  FastMCP callback serialized provider callbacks
+
 ## Next step
 
-Campaign 006 has no remaining acceptance gate. A future Campaign may target bounded
-concurrency for the six independent reviewer samples, but it must preserve phase order,
-budgets, provider compatibility, panoramic role coverage and deterministic traces. No
-latency implementation contract is currently active.
+Archive the accepted Campaign 007 Foreman/Worker assets and publish accepted HEAD
+`e835566a2c8d60ba153b68175d19685cb96185fe` through protected-main CI. Then run Q-011 in
+normal Goose against the exact published commit: compare the same standard six-role,
+briefing-off case at `COUNCIL_REVIEW_CONCURRENCY=1` and `3`; record server-reported wall,
+sampling wait, effective/peak concurrency, batch count, coverage/status/warnings and
+primary report. Do not accept outer-agent reconstructed telemetry as literal evidence.
