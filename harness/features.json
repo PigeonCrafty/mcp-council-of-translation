@@ -4,7 +4,7 @@
   "target_version": "0.8.0",
   "active_campaign": "CAMPAIGN-006-r3",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "f3e9bde1b74ff4591d91b66a38558b8bebe6efab",
+  "source_baseline": "1f8e6981b9fdef08f42a35fc52c7a216b123a94a",
   "features": [
     {
       "id": "F-001",
