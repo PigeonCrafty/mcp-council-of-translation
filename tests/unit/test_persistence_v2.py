@@ -43,7 +43,15 @@ def _record(review_id: str, *, history_mode: str = "full") -> ReviewRecordV2:
             content_type="SECRET CONTENT TYPE",
             history_mode=history_mode,
         ),
-        runtime_metadata=RuntimeMetadata(fallbacks=["SECRET RUNTIME TEXT"]),
+        runtime_metadata=RuntimeMetadata(
+            fallbacks=["SECRET RUNTIME TEXT"],
+            wall_clock_ms=321,
+            sampling_wait_ms=654,
+            independent_review_concurrency_limit=3,
+            independent_review_peak_concurrency=2,
+            independent_review_batch_count=3,
+            independent_review_concurrency_disposition="configured",
+        ),
         council_plan=CouncilPlan(
             content_type="SECRET PLAN CONTENT TYPE",
             active_role_ids=["SECRET ROLE TEXT"],
@@ -100,7 +108,10 @@ def test_full_write_is_atomic_and_round_trips(monkeypatch, tmp_path):
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
     assert loaded.task.source_text == "SECRET SOURCE"
-    assert loaded.schema_version == "2.2"
+    assert loaded.schema_version == "2.3"
+    assert loaded.runtime_metadata.wall_clock_ms == 321
+    assert loaded.runtime_metadata.sampling_wait_ms == 654
+    assert loaded.runtime_metadata.independent_review_peak_concurrency == 2
 
 
 def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
@@ -144,7 +155,13 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.task.source_text == ""
     assert loaded.independent_reviews == []
     assert loaded.user_decisions == []
-    assert loaded.schema_version == "2.2"
+    assert loaded.schema_version == "2.3"
+    assert loaded.runtime_metadata.wall_clock_ms == 321
+    assert loaded.runtime_metadata.sampling_wait_ms == 654
+    assert loaded.runtime_metadata.independent_review_concurrency_limit == 3
+    assert loaded.runtime_metadata.independent_review_peak_concurrency == 2
+    assert loaded.runtime_metadata.independent_review_batch_count == 3
+    assert loaded.runtime_metadata.independent_review_concurrency_disposition == "configured"
 
 
 @pytest.mark.parametrize("history_mode", ["full", "metadata"])
@@ -163,12 +180,12 @@ def test_new_write_persists_truthful_v071_runtime_and_version_identifiers(tmp_pa
     }
     assert {key: payload["runtime_metadata"][key] for key in expected} == expected
     assert {key: payload["version_metadata"][key] for key in expected} == expected
-    assert payload["version_metadata"]["record_schema"] == "2.2"
+    assert payload["version_metadata"]["record_schema"] == "2.3"
 
     loaded = store.load(record.review_id)
     assert loaded.runtime_metadata.package_version == "0.8.0"
     assert loaded.runtime_metadata.diagnostic_build == "context-coherent-council-v6"
-    assert loaded.version_metadata == {**expected, "record_schema": "2.2"}
+    assert loaded.version_metadata == {**expected, "record_schema": "2.3"}
 
 
 def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
@@ -325,6 +342,6 @@ def test_saving_readable_v20_model_writes_new_v22_schema(tmp_path):
     path = store.save(record)
 
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "2.2"
-    assert payload["version_metadata"]["record_schema"] == "2.2"
-    assert store.load(record.review_id).schema_version == "2.2"
+    assert payload["schema_version"] == "2.3"
+    assert payload["version_metadata"]["record_schema"] == "2.3"
+    assert store.load(record.review_id).schema_version == "2.3"

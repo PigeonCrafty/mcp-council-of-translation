@@ -96,6 +96,12 @@ def test_parallel_core_is_exact_once_reversed_completion_and_plan_order(tmp_path
     assert [item["agent_name"] for item in record.independent_reviews] == roles
     assert record.runtime_metadata.sampling_calls == 6
     assert record.runtime_metadata.reviewer_coverage == "full"
+    assert record.runtime_metadata.wall_clock_ms > 0
+    assert record.runtime_metadata.sampling_wait_ms >= 36
+    assert record.runtime_metadata.independent_review_concurrency_limit == 3
+    assert record.runtime_metadata.independent_review_peak_concurrency == 3
+    assert record.runtime_metadata.independent_review_batch_count == 2
+    assert record.runtime_metadata.independent_review_concurrency_disposition == "configured"
 
 
 def test_sequential_override_preserves_order_without_overlap(tmp_path, monkeypatch):
@@ -104,6 +110,9 @@ def test_sequential_override_preserves_order_without_overlap(tmp_path, monkeypat
     assert executor.completed == roles
     assert [item["agent_name"] for item in record.independent_reviews] == roles
     assert executor.calls == {role: 1 for role in roles}
+    assert record.runtime_metadata.independent_review_concurrency_limit == 1
+    assert record.runtime_metadata.independent_review_peak_concurrency == 1
+    assert record.runtime_metadata.independent_review_batch_count == 6
 
 
 def test_role_exception_is_partial_coverage_without_replay(tmp_path, monkeypatch):

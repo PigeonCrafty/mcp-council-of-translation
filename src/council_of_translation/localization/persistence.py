@@ -95,10 +95,10 @@ def default_reviews_dir() -> Path:
 
 
 def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
-    """Create a valid V2.2 allowlist projection without user or model prose."""
+    """Create a valid V2.3 allowlist projection without user or model prose."""
     task = record.task
     return {
-        "schema_version": "2.2",
+        "schema_version": "2.3",
         "review_id": record.review_id,
         "parent_review_id": record.parent_review_id,
         "created_at": record.created_at.isoformat(),
@@ -118,6 +118,12 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
             "elicitation_calls": record.runtime_metadata.elicitation_calls,
             "parse_failures": record.runtime_metadata.parse_failures,
             "elapsed_ms": record.runtime_metadata.elapsed_ms,
+            "wall_clock_ms": record.runtime_metadata.wall_clock_ms,
+            "sampling_wait_ms": record.runtime_metadata.sampling_wait_ms,
+            "independent_review_concurrency_limit": record.runtime_metadata.independent_review_concurrency_limit,
+            "independent_review_peak_concurrency": record.runtime_metadata.independent_review_peak_concurrency,
+            "independent_review_batch_count": record.runtime_metadata.independent_review_batch_count,
+            "independent_review_concurrency_disposition": record.runtime_metadata.independent_review_concurrency_disposition,
             "sample_budget": record.runtime_metadata.sample_budget,
             "reviewer_samples_successful": record.runtime_metadata.reviewer_samples_successful,
             "reviewer_samples_unavailable": record.runtime_metadata.reviewer_samples_unavailable,
@@ -205,7 +211,7 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         "version_metadata": {
             "package_version": _CURRENT_PACKAGE_VERSION,
             "diagnostic_build": _CURRENT_DIAGNOSTIC_BUILD,
-            "record_schema": "2.2",
+            "record_schema": "2.3",
         },
     }
 
@@ -267,10 +273,10 @@ class ReviewStore:
             raise InvalidReviewIdError("new V2 records require a sortable V2 review ID")
         write_record = validated.model_copy(
             update={
-                "schema_version": "2.2",
+                "schema_version": "2.3",
                 "version_metadata": {
                     **validated.version_metadata,
-                    "record_schema": "2.2",
+                    "record_schema": "2.3",
                 },
             }
         )

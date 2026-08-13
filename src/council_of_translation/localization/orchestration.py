@@ -817,6 +817,11 @@ async def run_structured_review(
     started = perf_counter()
     initial_budget = SampleBudget(task.mode)
     telemetry = _telemetry_for(executor, gateway, initial_budget.limit)
+    concurrency = resolve_review_concurrency()
+    telemetry.independent_review_concurrency_limit = concurrency.effective_limit
+    telemetry.independent_review_concurrency_disposition = concurrency.disposition
+    if concurrency.disposition == "invalid_fallback":
+        telemetry.record(RuntimeEvent("fallback", "review_concurrency_invalid"))
     fields = list(BRIEF_FIELDS) if task.briefing_mode == "always" else briefing_fields(task)
     request_brief = should_request_briefing(
         task, supported=gateway.capabilities().form_elicitation
@@ -862,6 +867,7 @@ async def run_structured_review(
 
     if effective_task.briefing_mode == "always" and request_brief and brief_action != "accept":
         telemetry.elapsed_ms = max(telemetry.elapsed_ms, int((perf_counter() - started) * 1_000))
+        telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
         early_chief = ChiefEditorDecisionV2(
             publishability="需人工复核",
             review_needed="是",
@@ -928,11 +934,6 @@ async def run_structured_review(
     sampled_context_gaps: list[ContextGapV2] = []
     invalid_context_gap_count = 0
     successful_reviewers = 0
-    concurrency = resolve_review_concurrency()
-    telemetry.independent_review_concurrency_limit = concurrency.effective_limit
-    telemetry.independent_review_concurrency_disposition = concurrency.disposition
-    if concurrency.disposition == "invalid_fallback":
-        telemetry.record(RuntimeEvent("fallback", "review_concurrency_invalid"))
     review_work = [
         CorrelatedSampleWork(
             role_id=role_id,
@@ -1214,6 +1215,7 @@ async def run_structured_review(
         status = "COMPLETED"
 
     telemetry.elapsed_ms = max(telemetry.elapsed_ms, int((perf_counter() - started) * 1_000))
+    telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
     runtime_metadata = telemetry.snapshot().model_copy(
         update={
             "reviewer_samples_successful": successful_reviewers,
@@ -1415,11 +1417,11 @@ async def continue_structured_review(
         else "COMPLETED"
     )
     record = parent.model_copy(deep=True)
-    record.schema_version = "2.2"
+    record.schema_version = "2.3"
     record.version_metadata = {
         "package_version": "0.8.0",
         "diagnostic_build": "context-coherent-council-v6",
-        "record_schema": "2.2",
+        "record_schema": "2.3",
     }
     record.review_id = build_review_id()
     record.parent_review_id = parent.review_id

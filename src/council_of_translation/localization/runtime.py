@@ -185,6 +185,12 @@ class RuntimeTelemetry:
         self.parse_failures = 0
         self.fallbacks: list[str] = []
         self.elapsed_ms = 0
+        self.wall_clock_ms = 0
+        self.sampling_wait_ms = 0
+        self.independent_review_concurrency_limit = 1
+        self.independent_review_peak_concurrency = 0
+        self.independent_review_batch_count = 0
+        self.independent_review_concurrency_disposition = "legacy"
         self.events: list[RuntimeEvent] = []
         self.phase_elicitation_actions: dict[str, list[str]] = {
             "briefing": [],
@@ -210,6 +216,7 @@ class RuntimeTelemetry:
         self.elapsed_ms += safe_event.elapsed_ms
         if safe_event.kind == "sampling":
             self.sampling_calls += 1
+            self.sampling_wait_ms += safe_event.elapsed_ms
         elif safe_event.kind == "elicitation":
             self.elicitation_calls += 1
             if len(self.elicitation_actions) < MAX_TELEMETRY_EVENTS:
@@ -236,6 +243,14 @@ class RuntimeTelemetry:
             parse_failures=self.parse_failures,
             fallbacks=self.fallbacks,
             elapsed_ms=self.elapsed_ms,
+            wall_clock_ms=self.wall_clock_ms,
+            sampling_wait_ms=self.sampling_wait_ms,
+            independent_review_concurrency_limit=self.independent_review_concurrency_limit,
+            independent_review_peak_concurrency=self.independent_review_peak_concurrency,
+            independent_review_batch_count=self.independent_review_batch_count,
+            independent_review_concurrency_disposition=(
+                self.independent_review_concurrency_disposition
+            ),
             sample_budget=self.sample_budget,
             briefing_elicitation_calls=len(self.phase_elicitation_actions["briefing"]),
             briefing_elicitation_actions=self.phase_elicitation_actions["briefing"],
