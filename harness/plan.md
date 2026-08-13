@@ -1058,3 +1058,28 @@ four-path correction scope, protected hashes and fresh artifacts. Combined r1+r2
 evidence accepts F-035 through F-039. Publication and Q-011 remain separate: live Goose
 must compare effective limits one and three because the isolated in-memory FastMCP
 callback serialized sampling callbacks and cannot prove provider overlap.
+
+Publication PR #15 exposed a packaging-only admission defect: the accepted V0.9 source
+metadata was not propagated to the root project entry in `uv.lock`, so every CI matrix
+job stops at `uv sync --locked --group dev` before compile or tests. This does not reopen
+F-035 through F-039. CAMPAIGN-007-r3 is a strict lockfile-only correction; it may update
+the root package version from 0.8.0 to 0.9.0 but must stop on any dependency graph drift.
+
+CAMPAIGN-007-r3 stopped correctly because the locally installed uv 0.6.13 rewrote the
+newer revision-3 lock format. Foreman isolation proved the CI-pinned uv 0.12.3 changes
+only the editable root version. CAMPAIGN-007-r4 therefore freezes uv 0.12.3 plus
+repository-local cache and tool directories; lock-generation contracts must pin the
+same generator used by CI instead of relying on an ambient `uv` executable.
+
+CAMPAIGN-007-r4 exposed the remaining incremental-lock rule: plain uv 0.12.3 preserves
+a semantically current revision-1 lock and does not reconstruct discarded artifact
+metadata. Foreman proved that pinned `uv lock --refresh` deterministically restores
+revision 3 and all 586 upload-time entries, keeps all 78 resolved packages unchanged,
+and yields the exact expected V0.9 lock with only the editable-root version diff.
+CAMPAIGN-007-r5 authorizes that exact refresh and freezes its expected SHA-256.
+
+CAMPAIGN-007-r5 is accepted at
+`28817d6ea7a0d547ae89579d4597cea0fbae0b2b`. Independent Foreman verification confirms
+the one-line root-version diff, exact target lock hash, locked CI-version sync, compile,
+246 tests and all V0.9 public invariants. The local publication defect is cleared;
+protected-main CI and Q-011 remain external gates.

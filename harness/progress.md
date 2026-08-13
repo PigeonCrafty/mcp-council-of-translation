@@ -195,9 +195,12 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted Campaign 007 Foreman/Worker assets and publish accepted HEAD
-`e835566a2c8d60ba153b68175d19685cb96185fe` through protected-main CI. Then run Q-011 in
-normal Goose against the exact published commit: compare the same standard six-role,
-briefing-off case at `COUNCIL_REVIEW_CONCURRENCY=1` and `3`; record server-reported wall,
-sampling wait, effective/peak concurrency, batch count, coverage/status/warnings and
-primary report. Do not accept outer-agent reconstructed telemetry as literal evidence.
+CAMPAIGN-007-r5 is `ACCEPTED` at
+`28817d6ea7a0d547ae89579d4597cea0fbae0b2b`; it clears the stale-lock defect with an
+exact one-line root-version correction and fresh 246-test Foreman verification. Archive
+the r3-r5 evidence, update publication PR #15 with the accepted lock and Harness state,
+and require all six checks to pass. After merge, run Q-011 in normal Goose against the
+exact published commit: compare the same standard six-role, briefing-off case at
+`COUNCIL_REVIEW_CONCURRENCY=1` and `3`; record server-reported wall, sampling wait,
+effective/peak concurrency, batch count, coverage/status/warnings and primary report.
+Do not accept outer-agent reconstructed telemetry as literal evidence.
