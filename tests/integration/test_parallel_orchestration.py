@@ -1,6 +1,8 @@
 import asyncio
 import json
+import time
 
+import council_of_translation.localization.orchestration as orchestration
 from council_of_translation.localization.models import ReviewTaskV2
 from council_of_translation.localization.orchestration import run_structured_review
 from council_of_translation.localization.persistence import ReviewStore
@@ -10,6 +12,8 @@ from council_of_translation.localization.runtime import (
     ModelExecutionResult,
     RuntimeEvent,
     RuntimeTelemetry,
+    ScriptedModelExecutor,
+    ScriptedUserInteractionGateway,
 )
 
 
@@ -102,6 +106,33 @@ def test_parallel_core_is_exact_once_reversed_completion_and_plan_order(tmp_path
     assert record.runtime_metadata.independent_review_peak_concurrency == 3
     assert record.runtime_metadata.independent_review_batch_count == 2
     assert record.runtime_metadata.independent_review_concurrency_disposition == "configured"
+
+
+def test_normal_review_wall_clock_includes_late_display_finalization(tmp_path, monkeypatch):
+    monkeypatch.setenv("COUNCIL_REVIEW_CONCURRENCY", "3")
+    original_render = orchestration.render_display_report
+
+    def delayed_render(*args, **kwargs):
+        time.sleep(0.025)
+        return original_render(*args, **kwargs)
+
+    monkeypatch.setattr(orchestration, "render_display_report", delayed_render)
+    telemetry = RuntimeTelemetry(sample_budget=13)
+    clean = json.dumps({"role_feedback": "clean review", "findings": []})
+    store = ReviewStore(tmp_path / "late-normal", include_legacy=False)
+    record = asyncio.run(run_structured_review(
+        ReviewTaskV2(
+            source_text="Save", candidate_translation="保存", content_type="ui",
+            briefing_mode="off", interactive_mode="off",
+        ),
+        ScriptedModelExecutor([clean] * 6, telemetry),
+        ScriptedUserInteractionGateway([], telemetry=telemetry),
+        store=store,
+    ))
+
+    assert 20 <= record.runtime_metadata.wall_clock_ms < 2_000
+    assert record.runtime_metadata.elapsed_ms >= record.runtime_metadata.sampling_wait_ms
+    assert store.load(record.review_id).runtime_metadata.wall_clock_ms == record.runtime_metadata.wall_clock_ms
 
 
 def test_sequential_override_preserves_order_without_overlap(tmp_path, monkeypatch):

@@ -13,10 +13,26 @@ from council_of_translation.localization.orchestration import (
 from council_of_translation.localization.persistence import ReviewStore
 from council_of_translation.localization.runtime import (
     ElicitationResult,
+    ModelExecutionResult,
+    RuntimeEvent,
     RuntimeTelemetry,
     ScriptedModelExecutor,
     ScriptedUserInteractionGateway,
 )
+
+
+class DelayedContinuationExecutor:
+    def __init__(self, response: str):
+        self.response = response
+        self.telemetry = RuntimeTelemetry(sample_budget=13)
+        self.calls = 0
+
+    async def sample(self, prompt, *, temperature=0.2, max_tokens=1_400):
+        del prompt, temperature, max_tokens
+        self.calls += 1
+        await asyncio.sleep(0.02)
+        self.telemetry.record(RuntimeEvent("sampling", "success", 20))
+        return ModelExecutionResult(status="success", text=self.response)
 
 
 def run(coro):
@@ -167,7 +183,8 @@ def test_clean_translation_skips_conflict_discussion_and_interaction(tmp_path):
     assert record.runtime_metadata.elicitation_calls == 0
 
 
-def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path):
+def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path, monkeypatch):
+    monkeypatch.delenv("COUNCIL_REVIEW_CONCURRENCY", raising=False)
     store = ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy")
     first_telemetry = RuntimeTelemetry(sample_budget=10)
     parent = run(
@@ -195,16 +212,16 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     parent_bytes = parent_path.read_bytes()
     point = parent.decision_points[0]
 
-    telemetry = RuntimeTelemetry(sample_budget=10)
     selected = point.options[0].option_id
     reconsideration = json.dumps(
         {"positions": [{"issue_id": point.issue_id, "stance": "accept", "option_id": selected, "claim": "accepted", "confidence": 0.8}]}
     )
+    continuation_executor = DelayedContinuationExecutor(reconsideration)
     child = run(
         continue_structured_review(
             parent,
             [{"decision_id": point.decision_id, "selected_option_id": selected, "classification": "context_update", "context": "This is navigation."}],
-            ScriptedModelExecutor([reconsideration, reconsideration], telemetry),
+            continuation_executor,
             store=store,
         )
     )
@@ -215,9 +232,24 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     assert child.runtime_metadata.sampling_calls == 1
     assert child.runtime_metadata.elicitation_calls == 0
     assert child.runtime_metadata.sample_budget == 13
+    assert continuation_executor.calls == 1
+    assert child.runtime_metadata.sampling_wait_ms == 20
+    assert 15 <= child.runtime_metadata.wall_clock_ms < 2_000
+    assert (
+        child.runtime_metadata.independent_review_concurrency_limit,
+        child.runtime_metadata.independent_review_peak_concurrency,
+        child.runtime_metadata.independent_review_batch_count,
+        child.runtime_metadata.independent_review_concurrency_disposition,
+    ) == (
+        parent.runtime_metadata.independent_review_concurrency_limit,
+        parent.runtime_metadata.independent_review_peak_concurrency,
+        parent.runtime_metadata.independent_review_batch_count,
+        parent.runtime_metadata.independent_review_concurrency_disposition,
+    )
     assert {item.role_id for item in child.reconsiderations} == {"fluency_reviewer"}
     assert child.process_digest.user_decisions
     assert child.display_report
+    assert store.load(child.review_id).runtime_metadata.wall_clock_ms == child.runtime_metadata.wall_clock_ms
     assert parent_path.read_bytes() == parent_bytes
 
 

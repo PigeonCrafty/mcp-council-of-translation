@@ -1,7 +1,9 @@
 import asyncio
+import time
 
 import pytest
 
+import council_of_translation.localization.orchestration as orchestration
 from council_of_translation.localization.guided import context_is_sufficient
 from council_of_translation.localization.models import ReviewTaskV2
 from council_of_translation.localization.orchestration import run_structured_review
@@ -204,6 +206,34 @@ def test_always_nonaccept_matrix_stops_before_sampling(tmp_path, result, expecte
     assert executor.prompts == []
     assert record.briefing_interaction.accepted_answers == {}
     assert record.chief_editor_decision.review_needed == "是"
+
+
+def test_required_briefing_wall_clock_includes_late_display_finalization(tmp_path, monkeypatch):
+    original_render = orchestration.render_display_report
+
+    def delayed_render(*args, **kwargs):
+        time.sleep(0.025)
+        return original_render(*args, **kwargs)
+
+    monkeypatch.setattr(orchestration, "render_display_report", delayed_render)
+    task = ReviewTaskV2(
+        source_text="Save", candidate_translation="保存", briefing_mode="always"
+    )
+    telemetry = RuntimeTelemetry(sample_budget=18)
+    store = ReviewStore(tmp_path / "late-briefing", include_legacy=False)
+    record = asyncio.run(run_structured_review(
+        task,
+        ScriptedModelExecutor([CLEAN] * 6, telemetry),
+        ScriptedUserInteractionGateway(
+            [ElicitationResult(action="decline")], telemetry=telemetry
+        ),
+        store=store,
+    ))
+
+    assert record.status == "RETURNED_PENDING"
+    assert record.runtime_metadata.sampling_calls == 0
+    assert 20 <= record.runtime_metadata.wall_clock_ms < 2_000
+    assert store.load(record.review_id).runtime_metadata.wall_clock_ms == record.runtime_metadata.wall_clock_ms
 
 
 def test_auto_decline_continues_with_truthful_assumptions_and_rules(tmp_path):
