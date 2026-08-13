@@ -210,7 +210,7 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     )
     assert child.parent_review_id == parent.review_id
     assert child.review_id != parent.review_id
-    assert parent.schema_version == child.schema_version == "2.2"
+    assert parent.schema_version == child.schema_version == "2.3"
     assert child.status == "COMPLETED"
     assert child.runtime_metadata.sampling_calls == 1
     assert child.runtime_metadata.elicitation_calls == 0

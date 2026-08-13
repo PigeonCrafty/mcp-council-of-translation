@@ -605,6 +605,14 @@ class RuntimeMetadata(DomainModel):
     parse_failures: int = Field(default=0, ge=0)
     fallbacks: list[str] = Field(default_factory=list)
     elapsed_ms: int = Field(default=0, ge=0)
+    wall_clock_ms: int = Field(default=0, ge=0)
+    sampling_wait_ms: int = Field(default=0, ge=0)
+    independent_review_concurrency_limit: int = Field(default=1, ge=1, le=3)
+    independent_review_peak_concurrency: int = Field(default=0, ge=0, le=3)
+    independent_review_batch_count: int = Field(default=0, ge=0, le=8)
+    independent_review_concurrency_disposition: Literal[
+        "legacy", "default", "configured", "invalid_fallback"
+    ] = "legacy"
     sample_budget: int = Field(default=13, ge=0, le=18)
     reviewer_samples_successful: int = Field(default=0, ge=0, le=8)
     reviewer_samples_unavailable: int = Field(default=0, ge=0, le=8)
@@ -678,7 +686,7 @@ class ChiefEditorDecisionV2(DomainModel):
 
 
 class ReviewRecordV2(DomainModel):
-    schema_version: Literal["2.0", "2.1", "2.2"] = "2.2"
+    schema_version: Literal["2.0", "2.1", "2.2", "2.3"] = "2.3"
     review_id: str
     parent_review_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -718,7 +726,7 @@ class ReviewRecordV2(DomainModel):
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
         "package_version": "0.8.0",
         "diagnostic_build": "context-coherent-council-v6",
-        "record_schema": "2.2",
+        "record_schema": "2.3",
     })
 
     @field_validator("decision_points")
