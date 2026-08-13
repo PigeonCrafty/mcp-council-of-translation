@@ -430,12 +430,12 @@
     {
       "id": "Q-009",
       "name": "V0.6 process-first digest usability evidence",
-      "status": "changes_requested"
+      "status": "accepted"
     },
     {
       "id": "Q-010",
       "name": "Context-coherent panoramic Council live evidence",
-      "status": "planned"
+      "status": "partial_live_evidence"
     }
   ]
 }

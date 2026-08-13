@@ -5,7 +5,7 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / PUBLISHED / AWAITING_Q010`)
+- Active Campaign: `CAMPAIGN-006-r3` (`ACCEPTED / PUBLISHED / Q010_PARTIAL_REVALIDATION_REQUIRED`)
 - Source baseline: `1f8e6981b9fdef08f42a35fc52c7a216b123a94a`
 - Product target: `0.8.0`
 - Diagnostic build target: `context-coherent-council-v6`
@@ -865,6 +865,14 @@ accepted archive commit `91b71d7b980a2933e5a98840dc46af4ae37273e5`. The
 accepted implementation commit `f3e9bde1b74ff4591d91b66a38558b8bebe6efab` maps to
 published rebase commit `fbe0eb1de63b6d26b4ffbf96e5e05b76fe4b86f8`. Q-010 is
 the only remaining Campaign 006 gate.
+
+The first Q-010 live round is reviewed in
+`harness/evaluations/CAMPAIGN-006-q010-live-review.md`. The clean marketing run accepts
+Q-009 and proves the intended six-lens first-response experience. The mixed run proves
+material-gap detection but not the unresolved branch: Goose submitted non-assumption
+answers copied from caller context despite the instruction to pause, then reconstructed
+impossible role/status/coverage fields. Q-010 therefore has partial live evidence and
+requires one `interactive_mode=off` revalidation with literal full-record JSON.
 
 ### Live counterexample and evidence boundary
 
