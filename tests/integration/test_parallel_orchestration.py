@@ -115,6 +115,17 @@ def test_sequential_override_preserves_order_without_overlap(tmp_path, monkeypat
     assert record.runtime_metadata.independent_review_batch_count == 6
 
 
+def test_invalid_configuration_falls_back_to_visible_sequential_mode(tmp_path, monkeypatch):
+    record, executor, _, roles = run_review(tmp_path, monkeypatch, limit="invalid")
+    assert executor.peak == 1
+    assert executor.calls == {role: 1 for role in roles}
+    assert record.runtime_metadata.independent_review_concurrency_limit == 1
+    assert record.runtime_metadata.independent_review_peak_concurrency == 1
+    assert record.runtime_metadata.independent_review_batch_count == 6
+    assert record.runtime_metadata.independent_review_concurrency_disposition == "invalid_fallback"
+    assert record.runtime_metadata.fallbacks == ["review_concurrency_invalid"]
+
+
 def test_role_exception_is_partial_coverage_without_replay(tmp_path, monkeypatch):
     failed = "product_context_reviewer"
     record, executor, _, roles = run_review(tmp_path, monkeypatch, fail_role=failed)

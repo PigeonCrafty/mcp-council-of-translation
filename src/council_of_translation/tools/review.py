@@ -20,7 +20,9 @@ from council_of_translation.localization.persistence import ReviewPersistenceErr
 from council_of_translation.localization.runtime import (
     FastMCPModelExecutor,
     FastMCPUserInteractionGateway,
+    MAX_REVIEW_CONCURRENCY,
     RuntimeTelemetry,
+    resolve_review_concurrency,
 )
 from council_of_translation.localization.roles import SAMPLE_BUDGETS, normalize_mode
 from council_of_translation.presentation import dual_channel_result
@@ -44,12 +46,13 @@ def _installed_version() -> str:
 
 
 def _server_info() -> dict[str, Any]:
+    concurrency = resolve_review_concurrency()
     return {
         "name": "Council-of-Translation",
         "package_version": _installed_version(),
         "module_version": __version__,
         "diagnostic_build": DIAGNOSTIC_BUILD,
-        "schema_version": "2.2",
+        "schema_version": "2.3",
         "default_output_mode": "review_only",
         "default_interactive_mode": "auto",
         "default_briefing_mode": "auto",
@@ -59,6 +62,9 @@ def _server_info() -> dict[str, Any]:
         "decision_fallback": "council_adjudication",
         "review_only": True,
         "sample_budgets": dict(SAMPLE_BUDGETS),
+        "independent_review_concurrency_limit": concurrency.effective_limit,
+        "max_independent_review_concurrency": MAX_REVIEW_CONCURRENCY,
+        "independent_review_concurrency_disposition": concurrency.disposition,
         "max_decision_points": 3,
         "normal_tools": [
             "review_translation",
