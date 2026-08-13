@@ -1083,3 +1083,16 @@ CAMPAIGN-007-r5 is accepted at
 the one-line root-version diff, exact target lock hash, locked CI-version sync, compile,
 246 tests and all V0.9 public invariants. The local publication defect is cleared;
 protected-main CI and Q-011 remain external gates.
+
+PR #15 CI round 2 proves the lock fix across all six matrix jobs, but exposes one
+Windows Python 3.12-only test defect. The continuation test reports a hard-coded 20ms
+sampling event after `asyncio.sleep(0.02)` and assumes wall time is at least 15ms; the
+runner observed an actual 9ms wall interval. CAMPAIGN-007-r6 is test-only: measure the
+test double's real sampling duration and assert positive sampling wait does not exceed
+the encompassing wall clock. Production telemetry and scheduling remain frozen.
+
+CAMPAIGN-007-r6 is accepted at
+`516db0ea88ec69cdd7df5e3490eb8aa08b74eca3`. Independent Windows Python 3.12 evidence
+includes 20/20 isolated continuation passes, 23 timing-focused passes and 246 complete
+passes. The correction is test-only; publication still requires a fresh all-green PR
+#15 matrix before merge.

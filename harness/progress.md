@@ -195,11 +195,11 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-CAMPAIGN-007-r5 is `ACCEPTED` at
-`28817d6ea7a0d547ae89579d4597cea0fbae0b2b`; it clears the stale-lock defect with an
-exact one-line root-version correction and fresh 246-test Foreman verification. Archive
-the r3-r5 evidence, update publication PR #15 with the accepted lock and Harness state,
-and require all six checks to pass. After merge, run Q-011 in normal Goose against the
+CAMPAIGN-007-r6 is `ACCEPTED` at
+`516db0ea88ec69cdd7df5e3490eb8aa08b74eca3` with 20/20 independent Windows Python 3.12
+continuation passes, 23 timing-focused passes and 246 complete passes. Archive its
+evidence, update PR #15 and require all six checks to pass. After merge, run Q-011 in
+normal Goose against the
 exact published commit: compare the same standard six-role, briefing-off case at
 `COUNCIL_REVIEW_CONCURRENCY=1` and `3`; record server-reported wall, sampling wait,
 effective/peak concurrency, batch count, coverage/status/warnings and primary report.
