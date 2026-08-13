@@ -47,32 +47,61 @@ def _material_roles(cluster: IssueCluster, active_roles: set[str]) -> set[str]:
     }
 
 
+def _normalize_anchor(value: str) -> str:
+    """Return a bounded exact-comparison form for a structured span."""
+    return " ".join(unicodedata.normalize("NFKC", value).casefold().split())[:240]
+
+
 def _structured_issue_keys(cluster: IssueCluster) -> set[tuple[str, str]]:
-    """Return bounded exact identities; never classify using natural-language prose."""
+    """Return bounded aliases from source/candidate spans, never issue prose."""
     values = [*cluster.source_spans, *cluster.candidate_spans]
     keys: set[tuple[str, str]] = set()
     for value in values:
         bounded = unicodedata.normalize("NFKC", str(value)).strip()[:240]
+        anchor = _normalize_anchor(bounded)
+        if anchor:
+            keys.add(("anchor", anchor))
+
+        prefix, separator, literal = bounded.partition(":")
+        if separator and literal and prefix in {"required_literal", "forbidden_literal"}:
+            literal_anchor = _normalize_anchor(literal)
+            if literal_anchor:
+                keys.add(("anchor", literal_anchor))
+
         for match in _STRUCTURED_TOKEN.finditer(bounded):
-            token = " ".join(match.group(0).casefold().split())
+            token = _normalize_anchor(match.group(0))
             if token:
-                keys.add((cluster.category, token))
+                keys.add(("token", token))
                 tag = re.fullmatch(r"</?([a-z][a-z0-9:-]*)\b[^>]*>", token)
                 slash = re.fullmatch(r"/([a-z][\w-]*)", token)
                 # The preflight command scanner also sees an HTML closing tag as
                 # ``/name``.  This bounded structural alias joins that duplicate
                 # diagnostic to the actual tag check without reading issue prose.
                 if tag:
-                    keys.add((cluster.category, f"markup-name:{tag.group(1)}"))
+                    keys.add(("markup-name", tag.group(1)))
                 elif slash:
-                    keys.add((cluster.category, f"markup-name:{slash.group(1)}"))
+                    keys.add(("markup-name", slash.group(1)))
+
+                # The command scanner sees the second slash and first host label
+                # of a URL as a slash command (for example ``/example``).  Give
+                # only deterministic URL structure that exact scanner alias.
+                url = re.fullmatch(r"https?://([^/:?#]+)(?:[/:?#].*)?", token)
+                if url:
+                    first_host_label = url.group(1).split(".", 1)[0]
+                    if re.fullmatch(r"[a-z][\w-]*", first_host_label):
+                        keys.add(("token", f"/{first_host_label}"))
     return keys
 
 
 def _logical_issue_groups(clusters: list[IssueCluster]) -> list[list[IssueCluster]]:
-    """Correlate only exact structured anchors while retaining all evidence records."""
+    """Correlate reviewer anchors only through deterministic preflight aliases."""
     groups: list[tuple[set[tuple[str, str]], list[IssueCluster]]] = []
-    for cluster in clusters:
+    deterministic = [cluster for cluster in clusters if not cluster.finding_ids]
+    reviewer = [cluster for cluster in clusters if cluster.finding_ids]
+
+    # First collapse exact overlapping views from deterministic scanners.  These
+    # groups remain projections only; the original clusters are never mutated.
+    for cluster in deterministic:
         keys = _structured_issue_keys(cluster)
         matching = [index for index, (known, _) in enumerate(groups) if keys and known & keys]
         if not matching:
@@ -85,6 +114,19 @@ def _logical_issue_groups(clusters: list[IssueCluster]) -> list[list[IssueCluste
             other_keys, other_clusters = groups.pop(index)
             groups[first][0].update(other_keys)
             groups[first][1].extend(other_clusters)
+
+    # A reviewer cluster may support each deterministic issue whose exact anchor
+    # it carries, but it cannot bridge two otherwise distinct deterministic issues.
+    # Model-only clusters remain separate because production clustering already
+    # owns their issue identity and semantic deduplication.
+    for cluster in reviewer:
+        keys = _structured_issue_keys(cluster)
+        matching = [index for index, (known, _) in enumerate(groups) if keys and known & keys]
+        if matching:
+            for index in matching:
+                groups[index][1].append(cluster)
+        else:
+            groups.append((set(keys), [cluster]))
     return [members for _, members in groups]
 
 
@@ -164,7 +206,8 @@ def compute_council_value_metrics(
     unique_issues: set[str] = set()
     corroborated_issues: set[str] = set()
     for group in _logical_issue_groups(clusters_list):
-        issue_identity = min(cluster.issue_id for cluster in group)
+        deterministic_ids = [cluster.issue_id for cluster in group if not cluster.finding_ids]
+        issue_identity = min(deterministic_ids or [cluster.issue_id for cluster in group])
         roles = set().union(*(_material_roles(cluster, active_set) for cluster in group))
         if len(roles) == 1:
             role_id = next(iter(roles))

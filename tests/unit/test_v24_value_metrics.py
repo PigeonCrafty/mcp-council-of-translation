@@ -107,6 +107,115 @@ def test_preflight_markup_is_material_when_technical_sample_is_unavailable():
     assert metrics.unavailable_role_count == 1
 
 
+def _technical_anchor_finding(source_span="", candidate_span=""):
+    return FindingV2(
+        agent_name="technical_safety_reviewer",
+        issue_type="technical",
+        severity="critical",
+        source_span=source_span,
+        candidate_span=candidate_span,
+        problem="Deterministic structure differs",
+        evidence="bounded reviewer evidence",
+        action="Restore the required source structure",
+    )
+
+
+def _preflight_metrics(preflight, finding=None, *, status="structured_success"):
+    role = "technical_safety_reviewer"
+    clusters = cluster_findings([finding] if finding else [], preflight)
+    before = [cluster.model_dump(mode="json") for cluster in clusters]
+    metrics = compute_council_value_metrics(
+        active_role_ids=[role],
+        independent_reviews=[_review(role, status=status)],
+        clusters=clusters,
+        discussion_rounds=[],
+    )
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == before
+    return clusters, metrics
+
+
+def test_required_and_forbidden_literals_correlate_only_by_exact_literal():
+    required_clusters, required = _preflight_metrics(
+        run_preflight("Launch", "启动", hard_constraints=["required_literal:Acme"]),
+        _technical_anchor_finding(source_span="Acme"),
+    )
+    forbidden_clusters, forbidden = _preflight_metrics(
+        run_preflight("Safe", "危险", hard_constraints=["forbidden_literal:危险"]),
+        _technical_anchor_finding(candidate_span="危险"),
+    )
+
+    assert len(required_clusters) == len(forbidden_clusters) == 2
+    assert required.unique_material_issue_count == 1
+    assert forbidden.unique_material_issue_count == 1
+
+
+def test_numeric_parity_and_exact_reviewer_anchor_count_once():
+    clusters, metrics = _preflight_metrics(
+        run_preflight("Keep 10 files", "保留 9 个文件", hard_constraints=["numeric_parity"]),
+        _technical_anchor_finding(source_span="10"),
+    )
+
+    assert len(clusters) == 2
+    assert metrics.unique_material_issue_count == 1
+    assert metrics.role_contributions[0].unique_issue_count == 1
+
+
+def test_each_markdown_signal_correlates_by_exact_structured_anchor():
+    cases = [
+        ("# Title", "标题", "heading"),
+        ("- Item", "项目", "list"),
+        ("[Docs](docs)", "文档", "link"),
+        ("```\ncode\n```", "代码", "fence"),
+    ]
+    for source, candidate, signal in cases:
+        clusters, metrics = _preflight_metrics(
+            run_preflight(source, candidate, hard_constraints=["markdown_parity"]),
+            _technical_anchor_finding(source_span=signal),
+        )
+        assert len(clusters) == 2
+        assert metrics.unique_material_issue_count == 1
+
+
+def test_explicit_dnt_and_matching_reviewer_anchor_count_once():
+    clusters, metrics = _preflight_metrics(
+        run_preflight("Open Pigeon", "打开", do_not_translate=["Pigeon"]),
+        _technical_anchor_finding(source_span="Pigeon"),
+    )
+
+    assert len(clusters) == 2
+    assert metrics.unique_material_issue_count == 1
+
+
+def test_overlapping_url_scanners_keep_clusters_but_count_one_issue():
+    clusters, metrics = _preflight_metrics(
+        run_preflight("Visit https://example.com", "访问"),
+    )
+
+    assert len(clusters) == 2
+    assert {span for cluster in clusters for span in cluster.source_spans} == {
+        "/example", "https://example.com"
+    }
+    assert metrics.unique_material_issue_count == 1
+
+
+def test_distinct_placeholder_url_and_caller_literals_do_not_overmerge():
+    token_clusters, token_metrics = _preflight_metrics(
+        run_preflight("Delete {count} at https://example.com", "删除"),
+    )
+    literal_clusters, literal_metrics = _preflight_metrics(
+        run_preflight(
+            "Launch",
+            "启动",
+            hard_constraints=["required_literal:Acme", "required_literal:Beta"],
+        ),
+    )
+
+    assert len(token_clusters) == 3
+    assert token_metrics.unique_material_issue_count == 2
+    assert len(literal_clusters) == 2
+    assert literal_metrics.unique_material_issue_count == 2
+
+
 def test_rephrased_discussion_claim_alone_has_no_marginal_value():
     roles = ["fidelity_reviewer", "risk_ambiguity_reviewer"]
     clusters = cluster_findings([_finding(roles[0]), _finding(roles[1])])
