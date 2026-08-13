@@ -83,6 +83,7 @@ from council_of_translation.localization.runtime import (
     resolve_review_concurrency,
     sample_correlated_batch,
 )
+from council_of_translation.localization.value_metrics import compute_council_value_metrics
 
 
 def _json_object(text: str) -> dict[str, Any]:
@@ -918,6 +919,12 @@ async def run_structured_review(
                 )
             ]),
             process_digest=early_digest,
+            council_value_metrics=compute_council_value_metrics(
+                active_role_ids=plan.active_role_ids,
+                independent_reviews=[],
+                clusters=[],
+                discussion_rounds=[],
+            ),
             display_report=render_display_report(
                 early_digest,
                 status="RETURNED_PENDING",
@@ -1307,6 +1314,12 @@ async def run_structured_review(
         ],
         phase_trace=phase_trace,
         process_digest=process_digest,
+        council_value_metrics=compute_council_value_metrics(
+            active_role_ids=plan.active_role_ids,
+            independent_reviews=independent_reviews,
+            clusters=clusters,
+            discussion_rounds=discussion_rounds,
+        ),
         display_report="",
     )
     record.display_report = render_display_report(
@@ -1503,6 +1516,12 @@ async def continue_structured_review(
         outcome_provenance=outcome_provenance,
         chief=chief,
         reviewer_coverage=reviewer_coverage,
+    )
+    record.council_value_metrics = compute_council_value_metrics(
+        active_role_ids=plan.active_role_ids,
+        independent_reviews=record.independent_reviews,
+        clusters=clusters,
+        discussion_rounds=record.discussion_rounds,
     )
     record.display_report = render_display_report(
         record.process_digest,
