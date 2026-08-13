@@ -209,6 +209,7 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
                 for phase in record.phase_trace.phases
             ]
         },
+        "council_value_metrics": record.council_value_metrics.model_dump(mode="json"),
         "version_metadata": {
             "package_version": _CURRENT_PACKAGE_VERSION,
             "diagnostic_build": _CURRENT_DIAGNOSTIC_BUILD,
