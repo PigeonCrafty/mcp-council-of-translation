@@ -369,6 +369,111 @@ def test_existing_structured_evidence_repeated_across_rounds_stays_zero():
     assert metrics.discussion_marginal_value == "none"
 
 
+def test_existing_typed_rule_and_constraint_provenance_is_not_new_evidence():
+    roles = ["fidelity_reviewer", "terminology_reviewer"]
+    for kind, stored, discussed in [
+        ("rule", "TB-1", "rule_ref:TB-1"),
+        ("rule", "rule_ref:TB-1", "rule_ref:TB-1"),
+        ("constraint", "placeholder-parity", "constraint_ref:placeholder-parity"),
+        (
+            "constraint",
+            "constraint_ref:placeholder-parity",
+            "constraint_ref:placeholder-parity",
+        ),
+    ]:
+        findings = [
+            FindingV2(
+                agent_name=role,
+                issue_type="terminology",
+                severity="major",
+                source_span="trial",
+                candidate_span="试用版",
+                problem="The release tier must remain explicit",
+                evidence="Bounded caller provenance is already recorded",
+                action="Keep the approved release tier",
+                rule_refs=[stored] if kind == "rule" else [],
+            )
+            for role in roles
+        ]
+        cluster = cluster_findings(findings)[0]
+        if kind == "constraint":
+            cluster = cluster.model_copy(
+                update={"immutable_hard_constraints": [stored]}
+            )
+        rounds = [
+            normalize_discussion_round(
+                f"round_{index}",
+                [cluster],
+                [{
+                    "issue_id": cluster.issue_id,
+                    "speaker": roles[index % 2],
+                    "evidence": [discussed],
+                    "position_changed": False,
+                }],
+            )
+            for index in range(3)
+        ]
+
+        metrics = compute_council_value_metrics(
+            active_role_ids=roles,
+            independent_reviews=[_review(role) for role in roles],
+            clusters=[cluster],
+            discussion_rounds=rounds,
+        )
+
+        assert metrics.discussion_new_evidence_count == 0
+        assert metrics.discussion_marginal_value == "none"
+
+
+def test_absent_typed_provenance_counts_once_but_pseudo_markers_count_zero():
+    roles = ["fidelity_reviewer", "terminology_reviewer"]
+    cluster = cluster_findings([_finding(role) for role in roles])[0]
+    for marker in ["rule_ref:TB-NEW", "constraint_ref:release-tier"]:
+        rounds = [
+            normalize_discussion_round(
+                f"round_{index}",
+                [cluster],
+                [{
+                    "issue_id": cluster.issue_id,
+                    "speaker": roles[index % 2],
+                    "evidence": [marker],
+                    "position_changed": False,
+                }],
+            )
+            for index in range(3)
+        ]
+        metrics = compute_council_value_metrics(
+            active_role_ids=roles,
+            independent_reviews=[_review(role) for role in roles],
+            clusters=[cluster],
+            discussion_rounds=rounds,
+        )
+        assert metrics.discussion_new_evidence_count == 1
+        assert metrics.discussion_marginal_value == "low"
+
+    malformed = normalize_discussion_round(
+        "round_malformed",
+        [cluster],
+        [{
+            "issue_id": cluster.issue_id,
+            "speaker": roles[0],
+            "evidence": [
+                "The prose mentions rule_ref:TB-PSEUDO but is not a typed marker.",
+                "rule_ref:" + "x" * 121,
+                "constraint_ref:contains whitespace",
+            ],
+        }],
+    )
+    metrics = compute_council_value_metrics(
+        active_role_ids=roles,
+        independent_reviews=[_review(role) for role in roles],
+        clusters=[cluster],
+        discussion_rounds=[malformed],
+    )
+    assert metrics.discussion_new_evidence_count == 0
+    assert metrics.discussion_marginal_value == "none"
+
+
 def test_new_evidence_is_low_value_and_real_resolution_is_material():
     roles = ["terminology_reviewer", "fluency_reviewer"]
     findings = [

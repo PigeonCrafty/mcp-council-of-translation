@@ -28,6 +28,7 @@ _STRUCTURED_TOKEN = re.compile(
 _STRUCTURED_PROVENANCE = re.compile(
     r"(?i)(?:rule_ref|constraint_ref):[A-Za-z0-9][A-Za-z0-9_.:/-]{0,119}"
 )
+_PROVENANCE_VALUE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.:/-]{0,119}")
 
 
 def _sample_statuses(independent_reviews: Iterable[dict[str, Any]]) -> dict[str, str]:
@@ -156,6 +157,17 @@ def _bounded_structured_evidence_keys(value: str) -> set[str]:
     return keys
 
 
+def _canonical_provenance_key(kind: str, value: str) -> str:
+    """Map a typed-field value to the same identity used by discussion markers."""
+    bounded = unicodedata.normalize("NFKC", str(value)).strip()
+    prefix = f"{kind}:"
+    while bounded.casefold().startswith(prefix):
+        bounded = bounded[len(prefix):]
+    if not _PROVENANCE_VALUE.fullmatch(bounded):
+        return ""
+    return f"provenance:{kind}:{_normalize_anchor(bounded)}"
+
+
 def _pre_discussion_inventory(cluster: IssueCluster) -> set[str]:
     """Build the issue-local structured inventory available before deliberation."""
     inventory = {f"issue:{_normalize_anchor(cluster.issue_id)}"}
@@ -175,6 +187,12 @@ def _pre_discussion_inventory(cluster: IssueCluster) -> set[str]:
             *position.rule_refs,
             *position.conditions,
         ])
+        for rule_ref in position.rule_refs:
+            if key := _canonical_provenance_key("rule_ref", rule_ref):
+                inventory.add(key)
+    for constraint_ref in cluster.immutable_hard_constraints:
+        if key := _canonical_provenance_key("constraint_ref", constraint_ref):
+            inventory.add(key)
     for value in values:
         normalized = _normalize_anchor(str(value))
         if normalized:
