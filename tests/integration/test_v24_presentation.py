@@ -4,6 +4,7 @@ import json
 from council_of_translation.localization.digest import render_display_report
 from council_of_translation.localization.models import (
     CouncilValueMetrics,
+    IssueCluster,
     MinorityReport,
     ProcessDigestV2,
     ReviewTaskV2,
@@ -46,9 +47,16 @@ def test_clean_runtime_report_collapses_confirmations_and_accounts_for_roles_onc
     assert headings == HEADINGS
     assert len(record.display_report) <= 1_200
     assert "完成确认性覆盖" in record.display_report
+    assert record.display_report.count("完成确认性覆盖") == 1
     assert "依据：" not in record.display_report
+    coverage_line = next(
+        line for line in record.display_report.splitlines()
+        if "完成确认性覆盖" in line
+    )
     for role_id in record.council_plan.active_role_ids:
-        assert record.display_report.count(ROLE_REGISTRY[role_id].display_name) == 1
+        role_name = ROLE_REGISTRY[role_id].display_name
+        assert record.display_report.count(role_name) == 1
+        assert role_name in coverage_line
     assert record.display_report.splitlines()[-1].startswith("- 最终处置：")
 
 
@@ -113,3 +121,84 @@ def test_discussion_line_is_absent_when_no_discussion_occurred():
     )
     report = render_display_report(digest, metrics=metrics)
     assert "讨论" not in report
+
+
+def test_case_b_groups_corroboration_and_collapses_exact_chief_anchor_only():
+    roles = [
+        "technical_safety_reviewer", "fidelity_reviewer",
+        "risk_ambiguity_reviewer", "terminology_reviewer",
+        "ux_copy_reviewer", "fluency_reviewer",
+    ]
+    digest = ProcessDigestV2(
+        case_brief=["删除确认对话框；{count} 必须原样保留。"],
+        role_lenses=[
+            RoleLens(role_id=roles[0], perspective="占位符 {count} 缺失。"),
+            RoleLens(role_id=roles[1], perspective="占位符 {count} 缺失。"),
+            RoleLens(role_id=roles[2], perspective="cannot 被反转为可以。"),
+            *[
+                RoleLens(role_id=role_id, perspective="未发现职责范围内的其他实质问题。")
+                for role_id in roles[3:]
+            ],
+        ],
+        consensus=["占位符 {count} 缺失。"],
+        material_disagreements=["cannot 被反转为可以。"],
+        minority_report=MinorityReport(
+            dissent="占位符 {count} 缺失。",
+            decisive_condition="若运行时可核查地补齐 {count}，可重新评估。",
+        ),
+        execution_checklist_final_disposition=[
+            "必须修复：恢复 {count}。",
+            "必须修复：按 required_literal:{count} 保留 {count}。",
+            "执行顺序：先恢复 {count}。",
+            "必须修复：不得把 cannot 改成可以。",
+            "最终处置：需人工复核；需人工复核：是",
+        ],
+    )
+    clusters = [
+        IssueCluster(
+            issue_id="issue_preflight", topic="占位符 {count} 缺失。",
+            category="integrity", source_spans=["{count}"], finding_ids=[],
+            participant_role_ids=[roles[0]], blocking=True,
+        ),
+        IssueCluster(
+            issue_id="issue_model_placeholder", topic="占位符 {count} 缺失。",
+            category="integrity", source_spans=["{count}"], finding_ids=["finding_1"],
+            participant_role_ids=roles[:2],
+        ),
+        IssueCluster(
+            issue_id="issue_reversal", topic="cannot 被反转为可以。",
+            category="correctness", source_spans=["cannot"], candidate_spans=["可以"],
+            finding_ids=["finding_2"], participant_role_ids=[roles[2]],
+        ),
+    ]
+    metrics = CouncilValueMetrics(
+        role_contributions=[
+            RoleContribution(role_id=roles[0], contribution_kind="corroborating", corroborated_issue_count=1, material_finding_count=1),
+            RoleContribution(role_id=roles[1], contribution_kind="corroborating", corroborated_issue_count=1, material_finding_count=1),
+            RoleContribution(role_id=roles[2], contribution_kind="unique_material", unique_issue_count=1, material_finding_count=1),
+            *[
+                RoleContribution(role_id=role_id, contribution_kind="confirmation_only")
+                for role_id in roles[3:]
+            ],
+        ],
+        unique_material_issue_count=1,
+        corroborated_issue_count=1,
+        confirmation_only_role_count=3,
+        discussion_marginal_value="none",
+    )
+    digest_before = digest.model_dump(mode="json")
+    clusters_before = [cluster.model_dump(mode="json") for cluster in clusters]
+
+    report = render_display_report(digest, metrics=metrics, clusters=clusters)
+
+    coverage = report.split("## 角色覆盖与分工", 1)[1].split("## 共识、分歧与盲区", 1)[0]
+    assert '技术与占位符审校员、忠实度审校员：共同交叉印证“' in coverage
+    assert coverage.count("完成确认性覆盖") == 1
+    assert report.count("必须修复：恢复 {count}") == 1
+    assert "按 required_literal:{count}" not in report
+    assert "执行顺序：先恢复 {count}" not in report
+    assert "必须修复：不得把 cannot 改成可以" in report
+    assert "讨论补充 6 条新证据" not in report
+    assert report.splitlines()[-1] == "- 最终处置：需人工复核；需人工复核：是"
+    assert digest.model_dump(mode="json") == digest_before
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == clusters_before

@@ -19,6 +19,11 @@ from council_of_translation.localization.models import (
     UserDecision,
 )
 from council_of_translation.localization.roles import ROLE_REGISTRY
+from council_of_translation.localization.value_metrics import (
+    _bounded_structured_evidence_keys,
+    _logical_issue_groups,
+    _normalize_anchor,
+)
 
 
 _ROLE_FOCUS = {
@@ -369,47 +374,208 @@ def _coverage_lines(
     metrics: CouncilValueMetrics,
     *,
     compatibility_fallback: bool = False,
+    clusters: list[IssueCluster] | None = None,
 ) -> list[str]:
     by_role = {lens.role_id: lens for lens in digest.role_lenses}
     order = {"unique_material": 0, "corroborating": 1, "confirmation_only": 2, "unavailable": 3}
-    contributions = sorted(
-        metrics.role_contributions,
-        key=lambda item: (order[item.contribution_kind], list(by_role).index(item.role_id) if item.role_id in by_role else 99),
-    )
+    contributions = sorted(metrics.role_contributions, key=lambda item: (
+        order[item.contribution_kind],
+        list(by_role).index(item.role_id) if item.role_id in by_role else 99,
+    ))
+    if clusters is None:
+        lines: list[str] = []
+        for contribution in contributions:
+            lens = by_role.get(contribution.role_id)
+            if lens is None:
+                continue
+            role = ROLE_REGISTRY.get(lens.role_id)
+            label = role.display_name if role else "未识别专业角色"
+            evidence = (
+                _whole_optional_evidence(lens.evidence)
+                if (
+                    compatibility_fallback
+                    and not _compatibility_evidence_is_redundant(lens)
+                ) or contribution.contribution_kind in {"unique_material", "corroborating"}
+                else ""
+            )
+            suffix = f"；依据：{evidence}" if evidence else ""
+            if contribution.contribution_kind == "unique_material":
+                summary = f"新增 {contribution.unique_issue_count} 个独立问题；{lens.perspective}"
+            elif contribution.contribution_kind == "corroborating":
+                summary = f"交叉印证 {contribution.corroborated_issue_count} 个问题；{lens.perspective}"
+            elif contribution.contribution_kind == "confirmation_only":
+                summary = (
+                    f"兼容记录未提供结构化贡献分类；{lens.perspective}"
+                    if compatibility_fallback
+                    else "完成确认性覆盖，未提交实质问题。"
+                )
+            else:
+                summary = "结构化评审不可用；该专业范围保留为盲区。"
+            perspective_limit = max(40, 150 - len(label) - 1 - len(suffix))
+            perspective = _human_line(summary, perspective_limit)
+            if suffix:
+                perspective = perspective.rstrip("。；; ")
+            lines.append(_human_line(f"{label}：{perspective}{suffix}", 150))
+        return lines
+
     lines: list[str] = []
+    accounted: set[str] = set()
+
     for contribution in contributions:
+        if contribution.contribution_kind != "unique_material":
+            continue
         lens = by_role.get(contribution.role_id)
         if lens is None:
             continue
         role = ROLE_REGISTRY.get(lens.role_id)
         label = role.display_name if role else "未识别专业角色"
-        evidence = (
-            _whole_optional_evidence(lens.evidence)
-            if (
-                compatibility_fallback
-                and not _compatibility_evidence_is_redundant(lens)
-            ) or contribution.contribution_kind in {"unique_material", "corroborating"}
-            else ""
-        )
+        evidence = _whole_optional_evidence(lens.evidence) if clusters is None else ""
         suffix = f"；依据：{evidence}" if evidence else ""
-        if contribution.contribution_kind == "unique_material":
-            summary = f"新增 {contribution.unique_issue_count} 个独立问题；{lens.perspective}"
-        elif contribution.contribution_kind == "corroborating":
-            summary = f"交叉印证 {contribution.corroborated_issue_count} 个问题；{lens.perspective}"
-        elif contribution.contribution_kind == "confirmation_only":
-            summary = (
-                f"兼容记录未提供结构化贡献分类；{lens.perspective}"
-                if compatibility_fallback
-                else "完成确认性覆盖，未提交实质问题。"
-            )
-        else:
-            summary = "结构化评审不可用；该专业范围保留为盲区。"
+        summary = f"新增 {contribution.unique_issue_count} 个独立问题"
+        if clusters is None:
+            summary += f"；{lens.perspective}"
         perspective_limit = max(40, 150 - len(label) - 1 - len(suffix))
         perspective = _human_line(summary, perspective_limit)
         if suffix:
             perspective = perspective.rstrip("。；; ")
         lines.append(_human_line(f"{label}：{perspective}{suffix}", 150))
+        accounted.add(contribution.role_id)
+
+    corroborating_ids = {
+        item.role_id
+        for item in contributions
+        if item.contribution_kind == "corroborating" and item.role_id in by_role
+    }
+    if clusters:
+        for group in _logical_issue_groups(clusters):
+            group_roles = [
+                role_id
+                for role_id in by_role
+                if role_id in corroborating_ids
+                and role_id not in accounted
+                and any(role_id in cluster.participant_role_ids for cluster in group)
+            ]
+            if not group_roles:
+                continue
+            labels = "、".join(
+                ROLE_REGISTRY[role_id].display_name
+                if role_id in ROLE_REGISTRY else "未识别专业角色"
+                for role_id in group_roles
+            )
+            anchors = _dedupe([
+                *[span for cluster in group for span in cluster.source_spans],
+                *[span for cluster in group for span in cluster.candidate_spans],
+            ], maximum=2)
+            anchor = " → ".join(_human_line(item, 36) for item in anchors if item)
+            subject = f"“{anchor}”相关问题" if anchor else "同一结构化问题"
+            lines.append(_human_line(f"{labels}：共同交叉印证{subject}。", 180))
+            accounted.update(group_roles)
+
+    remaining_corroborating = [
+        role_id for role_id in by_role
+        if role_id in corroborating_ids and role_id not in accounted
+    ]
+    if remaining_corroborating:
+        labels = "、".join(
+            ROLE_REGISTRY[role_id].display_name
+            if role_id in ROLE_REGISTRY else "未识别专业角色"
+            for role_id in remaining_corroborating
+        )
+        lines.append(_human_line(f"{labels}：共同完成结构化交叉印证。", 180))
+        accounted.update(remaining_corroborating)
+
+    confirmation_ids = [
+        item.role_id
+        for item in contributions
+        if item.contribution_kind == "confirmation_only"
+        and item.role_id in by_role
+        and item.role_id not in accounted
+    ]
+    if confirmation_ids:
+        labels = "、".join(
+            ROLE_REGISTRY[role_id].display_name
+            if role_id in ROLE_REGISTRY else "未识别专业角色"
+            for role_id in confirmation_ids
+        )
+        summary = (
+            "兼容记录未提供结构化贡献分类。"
+            if compatibility_fallback
+            else "完成确认性覆盖，未提交实质问题。"
+        )
+        lines.append(_human_line(f"{labels}：{summary}", 240))
+        accounted.update(confirmation_ids)
+
+    for contribution in contributions:
+        if contribution.contribution_kind != "unavailable" or contribution.role_id in accounted:
+            continue
+        lens = by_role.get(contribution.role_id)
+        if lens is None:
+            continue
+        role = ROLE_REGISTRY.get(lens.role_id)
+        label = role.display_name if role else "未识别专业角色"
+        lines.append(f"{label}：结构化评审不可用；该专业范围保留为盲区。")
+        accounted.add(contribution.role_id)
     return lines
+
+
+def _represented_cluster_topics(clusters: list[IssueCluster] | None) -> set[str]:
+    return {
+        _semantic_key(cluster.topic)
+        for cluster in (clusters or [])
+        if _semantic_key(cluster.topic)
+    }
+
+
+def _primary_checklist(
+    values: list[str],
+    clusters: list[IssueCluster] | None,
+) -> list[str]:
+    """Collapse only exact deterministic anchors in primary checklist prose."""
+    anchor_to_group: dict[str, str] = {}
+    for index, group in enumerate(_logical_issue_groups(clusters or [])):
+        if not any(not cluster.finding_ids for cluster in group):
+            continue
+        group_key = f"deterministic-group:{index}"
+        for cluster in group:
+            for value in [*cluster.source_spans, *cluster.candidate_spans]:
+                bounded = str(value).strip()[:240]
+                prefix, separator, literal = bounded.partition(":")
+                if separator and literal and prefix in {"required_literal", "forbidden_literal"}:
+                    bounded = literal
+                normalized = _normalize_anchor(bounded)
+                if normalized:
+                    anchor_to_group[normalized] = group_key
+                for token in _bounded_structured_evidence_keys(bounded):
+                    anchor_to_group[token.removeprefix("token:")] = group_key
+
+    result: list[str] = []
+    seen_groups: set[str] = set()
+    seen_text: set[str] = set()
+    for value in values:
+        text = str(value).strip()[:240]
+        if not text:
+            continue
+        normalized = _normalize_anchor(text)
+        matched_groups = {
+            group_key
+            for anchor, group_key in anchor_to_group.items()
+            if anchor and (
+                bool(re.search(rf"(?<!\w){re.escape(anchor)}(?!\w)", normalized))
+                if re.fullmatch(r"[\w.-]+", anchor)
+                else anchor in normalized
+            )
+        }
+        if matched_groups and matched_groups & seen_groups:
+            continue
+        key = _semantic_key(text)
+        if not key or key in seen_text:
+            continue
+        result.append(_human_line(text))
+        seen_groups.update(matched_groups)
+        seen_text.add(key)
+        if len(result) >= 6:
+            break
+    return result
 
 
 def _value_lines(
@@ -435,9 +601,7 @@ def _value_lines(
     if compatibility_fallback:
         lines = ["兼容记录未包含结构化贡献指标；不据角色自然语言推断新增价值。"]
     elif not lines:
-        lines.append(
-            f"未发现新增实质问题；{metrics.confirmation_only_role_count} 个角色完成确认性覆盖。"
-        )
+        lines.append("未发现新增实质问题；结构化评审覆盖完整。")
     if metrics.discussion_marginal_value != "not_applicable":
         discussion = {
             "none": "讨论未增加新的结构化证据，也未改变立场。",
@@ -460,6 +624,7 @@ def render_display_report(
     degraded: bool = False,
     warnings: list[str] | None = None,
     fallback_reason: str = "",
+    clusters: list[IssueCluster] | None = None,
 ) -> str:
     """Render the frozen value-first five-section primary Council report."""
     compatibility_fallback = metrics is None
@@ -467,14 +632,20 @@ def render_display_report(
     background = _material(digest.case_brief, maximum=4)
     background.extend(_material(digest.assumptions_context_confidence, maximum=2))
 
+    represented_topics = _represented_cluster_topics(clusters)
     deliberation = [
-        *(f"共识：{value}" for value in _material(digest.consensus, maximum=2)),
-        *(f"分歧：{value}" for value in _material(digest.material_disagreements, maximum=2)),
+        *(f"共识：{value}" for value in _material(digest.consensus, maximum=2)
+          if _semantic_key(value) not in represented_topics),
+        *(f"分歧：{value}" for value in _material(digest.material_disagreements, maximum=2)
+          if _semantic_key(value) not in represented_topics),
         *(f"盲区：{value}" for value in _material(digest.blind_spots, maximum=2)),
     ]
     minority = digest.minority_report
     if minority.dissent and not minority.dissent.startswith("未识别有效少数异议"):
-        deliberation.append(f"少数意见：{_human_line(minority.dissent)}")
+        if _semantic_key(minority.dissent) not in represented_topics:
+            deliberation.append(f"少数意见：{_human_line(minority.dissent)}")
+        elif minority.decisive_condition:
+            deliberation.append("少数意见：已保留该问题的少数立场及其决定条件。")
         if minority.decisive_condition:
             deliberation.append(f"决定条件：{_human_line(minority.decisive_condition)}")
 
@@ -488,7 +659,7 @@ def render_display_report(
         value for value in digest.editor_synthesis
         if not _is_canonical_procedural_synthesis(value)
     ], maximum=2)
-    checklist = _material(digest.execution_checklist_final_disposition, maximum=6)
+    checklist = _primary_checklist(digest.execution_checklist_final_disposition, clusters)
     final = next((item for item in reversed(checklist) if item.startswith("最终处置：")), "")
     conclusion.extend(item for item in checklist if item != final)
     if degraded or warnings or fallback_reason:
@@ -516,6 +687,7 @@ def render_display_report(
                 digest,
                 value_metrics,
                 compatibility_fallback=compatibility_fallback,
+                clusters=clusters,
             ) or ["尚无可展示的角色覆盖。"],
         ),
         _section("共识、分歧与盲区", [_human_line(value) for value in deliberation] or ["无可展示结论。"]),
