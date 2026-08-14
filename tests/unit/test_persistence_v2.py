@@ -175,16 +175,16 @@ def test_new_write_persists_truthful_v071_runtime_and_version_identifiers(tmp_pa
 
     payload = json.loads(path.read_text(encoding="utf-8"))
     expected = {
-        "package_version": "0.10.0",
-        "diagnostic_build": "evidence-value-council-v8",
+        "package_version": "0.10.1",
+        "diagnostic_build": "evidence-value-council-v8.1",
     }
     assert {key: payload["runtime_metadata"][key] for key in expected} == expected
     assert {key: payload["version_metadata"][key] for key in expected} == expected
     assert payload["version_metadata"]["record_schema"] == "2.4"
 
     loaded = store.load(record.review_id)
-    assert loaded.runtime_metadata.package_version == "0.10.0"
-    assert loaded.runtime_metadata.diagnostic_build == "evidence-value-council-v8"
+    assert loaded.runtime_metadata.package_version == "0.10.1"
+    assert loaded.runtime_metadata.diagnostic_build == "evidence-value-council-v8.1"
     assert loaded.version_metadata == {**expected, "record_schema": "2.4"}
 
 
