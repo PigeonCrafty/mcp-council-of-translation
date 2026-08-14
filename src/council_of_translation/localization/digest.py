@@ -467,8 +467,15 @@ def _coverage_lines(
                 *[span for cluster in group for span in cluster.candidate_spans],
             ], maximum=2)
             anchor = " → ".join(_human_line(item, 36) for item in anchors if item)
-            subject = f"“{anchor}”相关问题" if anchor else "同一结构化问题"
-            lines.append(_human_line(f"{labels}：共同交叉印证{subject}。", 180))
+            topics = _dedupe([
+                *[cluster.topic for cluster in group if cluster.finding_ids],
+                *[cluster.topic for cluster in group if not cluster.finding_ids],
+            ], maximum=1)
+            topic = _human_line(topics[0]) if topics else "同一结构化问题。"
+            location = f"“{anchor}”相关问题" if anchor else "同一结构化问题"
+            lines.append(
+                _human_line(f"{labels}：共同交叉印证{location}：{topic}", 240)
+            )
             accounted.update(group_roles)
 
     remaining_corroborating = [
@@ -518,11 +525,16 @@ def _coverage_lines(
     return lines
 
 
-def _represented_cluster_topics(clusters: list[IssueCluster] | None) -> set[str]:
+def _represented_cluster_topics(
+    clusters: list[IssueCluster] | None,
+    rendered_lines: list[str],
+) -> set[str]:
+    """Return only bounded cluster topics literally emitted in earlier lines."""
     return {
         _semantic_key(cluster.topic)
         for cluster in (clusters or [])
         if _semantic_key(cluster.topic)
+        and any(_human_line(cluster.topic) in line for line in rendered_lines)
     }
 
 
@@ -632,7 +644,21 @@ def render_display_report(
     background = _material(digest.case_brief, maximum=4)
     background.extend(_material(digest.assumptions_context_confidence, maximum=2))
 
-    represented_topics = _represented_cluster_topics(clusters)
+    value_lines = _value_lines(
+        digest,
+        value_metrics,
+        compatibility_fallback=compatibility_fallback,
+    )
+    coverage_lines = _coverage_lines(
+        digest,
+        value_metrics,
+        compatibility_fallback=compatibility_fallback,
+        clusters=clusters,
+    )
+    represented_topics = _represented_cluster_topics(
+        clusters,
+        [*value_lines, *coverage_lines],
+    )
     deliberation = [
         *(f"共识：{value}" for value in _material(digest.consensus, maximum=2)
           if _semantic_key(value) not in represented_topics),
@@ -679,16 +705,11 @@ def render_display_report(
         _section("审校背景", background or ["审校背景未完整提供；结论限于当前输入。"]),
         _section(
             "Council 新增视角",
-            _value_lines(digest, value_metrics, compatibility_fallback=compatibility_fallback),
+            value_lines,
         ),
         _section(
             "角色覆盖与分工",
-            _coverage_lines(
-                digest,
-                value_metrics,
-                compatibility_fallback=compatibility_fallback,
-                clusters=clusters,
-            ) or ["尚无可展示的角色覆盖。"],
+            coverage_lines or ["尚无可展示的角色覆盖。"],
         ),
         _section("共识、分歧与盲区", [_human_line(value) for value in deliberation] or ["无可展示结论。"]),
         _section("主编结论", [*conclusion[:5], _human_line(final)]),
