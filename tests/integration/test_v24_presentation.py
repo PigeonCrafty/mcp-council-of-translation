@@ -202,3 +202,60 @@ def test_case_b_groups_corroboration_and_collapses_exact_chief_anchor_only():
     assert report.splitlines()[-1] == "- 最终处置：需人工复核；需人工复核：是"
     assert digest.model_dump(mode="json") == digest_before
     assert [cluster.model_dump(mode="json") for cluster in clusters] == clusters_before
+
+
+def test_corroborated_disputed_topic_is_rendered_once_before_deduplication():
+    roles = ["fidelity_reviewer", "terminology_reviewer"]
+    topic = "候选译文把“trial”误写成“正式版”，会改变授权状态。"
+    condition = "只有确认该功能已结束试用并正式授权时，才可采用“正式版”。"
+    digest = ProcessDigestV2(
+        case_brief=["软件授权状态审校。"],
+        role_lenses=[
+            RoleLens(role_id=roles[0], perspective="发现授权状态发生实质变化。"),
+            RoleLens(role_id=roles[1], perspective="术语选择改变了产品授权层级。"),
+        ],
+        material_disagreements=[topic],
+        minority_report=MinorityReport(
+            dissent=topic,
+            decisive_condition=condition,
+            role_ids=[roles[1]],
+        ),
+        editor_synthesis=["当前证据不能支持直接发布。"],
+        execution_checklist_final_disposition=[
+            "最终处置：需人工复核；需人工复核：是",
+        ],
+    )
+    cluster = IssueCluster(
+        issue_id="issue_trial_tier",
+        topic=topic,
+        category="terminology",
+        source_spans=["trial"],
+        candidate_spans=["正式版"],
+        finding_ids=["finding_fidelity", "finding_terminology"],
+        participant_role_ids=roles,
+        consensus_status="disputed",
+    )
+    metrics = CouncilValueMetrics(
+        role_contributions=[
+            RoleContribution(
+                role_id=role,
+                contribution_kind="corroborating",
+                corroborated_issue_count=1,
+                material_finding_count=1,
+            )
+            for role in roles
+        ],
+        corroborated_issue_count=1,
+    )
+    digest_before = digest.model_dump(mode="json")
+    cluster_before = cluster.model_dump(mode="json")
+
+    report = render_display_report(digest, metrics=metrics, clusters=[cluster])
+
+    assert report.count(topic) == 1
+    for role in roles:
+        assert report.count(ROLE_REGISTRY[role].display_name) == 1
+    assert condition in report
+    assert report.splitlines()[-1] == "- 最终处置：需人工复核；需人工复核：是"
+    assert digest.model_dump(mode="json") == digest_before
+    assert cluster.model_dump(mode="json") == cluster_before
