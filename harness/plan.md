@@ -5,7 +5,7 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-009-r2` (`ACCEPTED / PUBLICATION_IN_PROGRESS`)
+- Active Campaign: `CAMPAIGN-009-r2` (`ACCEPTED / PUBLISHED`)
 - Source baseline: `62f2ee9bf1860f80281afbbad53734db5f700205`
 - Product target: `0.10.1`
 - Diagnostic build target: `evidence-value-council-v8.1`
@@ -1202,3 +1202,6 @@ raw evidence, adjudication, tools, budgets, concurrency and Schema 2.4 remain fr
   Q-012, and an unpinned or stale Goose installation is not admissible evidence.
 - Signed live protocol: `harness/contracts/CAMPAIGN-009-q012-live.md`; the user's normal
   extension command remains unchanged and version admission prevents stale-cache tests.
+- Published through PR #18 at protected-main commit
+  `f3b232cb2f3c9500fed04d204ef6198f2ee49af4`; all six required Linux/Windows Python
+  checks passed and the published product tree is equivalent to accepted HEAD.
