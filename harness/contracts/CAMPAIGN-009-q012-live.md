@@ -6,6 +6,8 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Gate: `Q-012` value-first Council live usefulness and non-repetition evidence
 - Accepted product commit: `4a3c692ad528db03e4f72a025d60c4eb775454f0`
+- Published protected `main`: `f3b232cb2f3c9500fed04d204ef6198f2ee49af4`
+- Publication PR: `https://github.com/PigeonCrafty/mcp-council-of-translation/pull/18`
 - Required package/module: `0.10.1`
 - Required diagnostic build: `evidence-value-council-v8.1`
 - Required schema: `2.4`
@@ -34,8 +36,8 @@ COUNCIL_REVIEWS_DIR
 C:\Users\GeZhu\MyMCP\mcp-council-of-translation\.tmp\q012
 ```
 
-After protected `main` publication, fully exit Goose so the old STDIO child terminates,
-then restart it once. Do not change command, environment, provider or model between cases.
+V0.10.1 is published. Fully exit Goose so the old STDIO child terminates, then restart it
+once. Do not change command, environment, provider or model between cases.
 
 ## Admission
 

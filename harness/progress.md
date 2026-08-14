@@ -5,7 +5,7 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-009-r2`
-- Campaign state: `ACCEPTED / PUBLICATION_IN_PROGRESS`
+- Campaign state: `ACCEPTED / PUBLISHED`
 - Campaign baseline: `62f2ee9bf1860f80281afbbad53734db5f700205`
 - Last updated: 2026-08-14 Asia/Shanghai
 - Completion authority: Foreman only
@@ -38,7 +38,8 @@
 - Preserved evidence: V0.10.1/build v8.1/schema 2.4, exact five tools, budgets 6/13/18,
   A/B grouped output, exact 18/18 Golden run with 113 samples/four elicitations/eight
   metrics at 1.0, immutable full history and accepted r1 package/lock evidence.
-- Publication status: pending.
+- Publication status: protected-main PR #18 merged at
+  `f3b232cb2f3c9500fed04d204ef6198f2ee49af4`; six required CI jobs passed.
 - Q-012 status: `changes_requested` until post-publication normal-Goose A/B/C evidence is
   reviewed; local Campaign acceptance is not live-gate acceptance.
 
@@ -346,8 +347,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive and publish accepted V0.10.1 implementation
-`4a3c692ad528db03e4f72a025d60c4eb775454f0` through protected main. Then fully restart
-normal Goose without changing its extension command and execute
+Fully restart normal Goose without changing its extension command and execute
 `harness/contracts/CAMPAIGN-009-q012-live.md` Cases A/B/C. Q-012 remains
 `changes_requested` until the three persisted records are independently reviewed.
