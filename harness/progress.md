@@ -4,9 +4,9 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-007`
-- Campaign state: `ACCEPTED / PUBLISHED / Q011_ACCEPTED / CLOSED`
-- Campaign baseline: `641ef46b6fdde380463b40d39a654cf8eb1248c2`
+- Campaign: `CAMPAIGN-008`
+- Campaign state: `ACCEPTED / PUBLICATION_PENDING`
+- Campaign baseline: `84c6c64d40836875cf6515a6bf0c615c9e5ea0c9`
 - Last updated: 2026-08-13 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -195,9 +195,75 @@ The Worker may create only the active Campaign ledger and report under `harness/
   retained full coverage and clean protocol behavior, with sequential `1/1/6`, parallel
   `3/3/2`, and median wall time reduced from 16,363 ms to 5,712 ms (`65.09%`, `2.86x`)
 
+## Campaign 008 review state
+
+- r1 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-008-r1-review.md`
+- r1 implementation HEAD: `6e28c103f98a6b0481ab7d103580b83f8e6c4cfa`
+- Preserved r1 evidence: V2.4 models/compatibility/privacy, ordinary structured
+  contribution and discussion deltas, five-section value-first layout, exact five tools,
+  V0.10 identifiers, budgets/concurrency and fresh artifact behavior
+- Independent r1 verification: compile passed; `263 passed` full; `13 passed` focused;
+  exact authorized diff and empty index
+- Reproduced defect: placeholder-loss preflight correctly blocks release but value
+  metrics report zero material issues and confirmation-only coverage, producing a
+  contradictory primary report
+- Golden defect: all 18 case names exist, but fixture-authored `observed` dictionaries
+  duplicate `expected` and no product path derives the observations
+- Active correction contract: `harness/contracts/CAMPAIGN-008-r2.md`
+- r2 scope: PKG-047 structured preflight contribution/deduplication/prose-fallback
+  correction; PKG-048 executable offline 18-case corpus
+- Q-012: remains planned and cannot begin before local acceptance and publication
+
+### r2 review
+
+- r2 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-008-r2-review.md`
+- r2 implementation HEAD: `6464f96f681aa3531c14cd631689673561193027`
+- Preserved r2 evidence: placeholder/markup deterministic contribution correction,
+  unavailable precedence, prose-free compatibility fallback, executable 18-case Golden
+  runner, real context/continuation authority paths, `269 passed` and fresh artifact
+  behavior
+- Fresh Foreman evidence: compile; `269 passed` full; `17 passed` focused; 18/18 corpus
+  with 113 scripted samples and four scripted elicitations
+- Remaining counterexamples: required literal plus matching model finding = two issues;
+  numeric parity plus matching model finding = two issues; one missing URL = command and
+  URL parity counted as two issues
+- Active bounded correction: `harness/contracts/CAMPAIGN-008-r3.md`
+
+### r3 review
+
+- r3 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-008-r3-review.md`
+- r3 implementation HEAD: `c3fcfec363878d069b64e15a65a364c7fd55468b`
+- Preserved r3 evidence: complete deterministic preflight correlation matrix,
+  non-overmerge for placeholder/URL and distinct literals, unavailable precedence,
+  `276 passed`, executable Golden 18/18 and fresh artifact behavior
+- Remaining regression: two model-only clusters from different issue families but the
+  same source/candidate span are incorrectly merged into one corroborated issue
+- Active minimal correction: `harness/contracts/CAMPAIGN-008-r4.md`
+
+### r4 acceptance
+
+- r4 decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-008-r4-review.md`
+- Accepted implementation HEAD: `84c6c64d40836875cf6515a6bf0c615c9e5ea0c9`
+- F-040 through F-044: accepted by combined Campaign 008 r1-r4 evidence
+- Independent final evidence: exact two-path/one-commit correction, protected hashes,
+  compile, `278 passed` full, `19 passed` focused, `30 passed` V2.4/Golden, `33 passed`
+  public/compatibility selection and direct cross-family/same-family/mixed probes
+- Golden evidence: exact 18/18 production execution, 113 scripted samples, four scripted
+  elicitations and all eight aggregate metrics 1.0
+- Product: package/module `0.10.0`, build `evidence-value-council-v8`, schema `2.4`,
+  exact five tools, review-only, budgets 6/13/18 and concurrency controls preserved
+- Fresh artifact evidence: wheel/sdist and isolated Python 3.12/FastMCP 3.4.7 smoke in
+  `harness/reports/CAMPAIGN-008-r4-worker.md`
+- Publication status: pending
+- Q-012: pending post-publication normal-Goose usefulness/non-repetition validation
+
 ## Next step
 
-CAMPAIGN-007 is closed at published `main`
-`641ef46b6fdde380463b40d39a654cf8eb1248c2`. Retain default concurrency three and the
-documented sequential override. Select the next product opportunity from user experience
-or a new audit; no Campaign 007 Worker assignment remains active.
+Archive the accepted Campaign 008 contracts, reports, evaluations and Foreman state in a
+scoped local commit, then publish through the protected-main workflow. After publication,
+run Q-012 in normal Goose against the exact published commit without altering the existing
+extension command between test cases.

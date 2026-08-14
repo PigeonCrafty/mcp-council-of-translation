@@ -1,14 +1,14 @@
-# Council of Translation V0.9 Harness Plan
+# Council of Translation V0.10 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-007` (`ACCEPTED / PUBLISHED / Q011_ACCEPTED / CLOSED`)
-- Source baseline: `f9651ed64daf86dd5fabac5e7437b9de8b3186bc`
-- Product target: `0.9.0`
-- Diagnostic build target: `bounded-parallel-council-v7`
+- Active Campaign: `CAMPAIGN-008` (`ACCEPTED / PUBLICATION_PENDING`)
+- Source baseline: `84c6c64d40836875cf6515a6bf0c615c9e5ea0c9`
+- Product target: `0.10.0`
+- Diagnostic build target: `evidence-value-council-v8`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
@@ -1104,3 +1104,57 @@ Goose records preserved full 6/6 coverage and clean protocol behavior, sequentia
 limit/peak/batches `1/1/6`, parallel `3/3/2`, and reduced median server wall time from
 16,363 ms to 5,712 ms (`65.09%`, `2.86x`). Campaign 007 is closed. The sequential
 operator override remains available for providers with stricter rate limits.
+
+## Campaign 008: Council Value Visibility and Evaluation Intelligence
+
+Campaign 008 moves from protocol completeness and latency to the product's central value:
+showing users material blind spots without making six reviewers repeat the same approval.
+It adds deterministic role-contribution and marginal-discussion diagnostics, a value-first
+five-section primary report, and the audit's complete 18-case Golden Corpus. Metrics are
+descriptive only and cannot become votes, role rankings, confidence theater or Policy Gate
+weights. Full natural evidence remains in structured history.
+
+The frozen implementation graph is PKG-042 V2.4 models/compatibility, PKG-043 deterministic
+metrics, PKG-044 value-first presentation, PKG-045 Golden evaluation framework and PKG-046
+V0.10 migration/artifacts/docs. Exact five tools, review-only default, budgets 6/13/18,
+bounded concurrency and all user-authority rules remain unchanged. Q-012 is a separate
+post-publication live usefulness gate.
+
+CAMPAIGN-008-r1 produced the V2.4 models, ordinary structured contribution/discussion
+metrics, value-first display, V0.10 identifiers and package evidence. Foreman review at
+`harness/evaluations/CAMPAIGN-008-r1-review.md` preserved that work but reproduced a
+deterministic correctness contradiction: preflight-only placeholder/markup clusters have
+no model finding IDs, so the value projection called the technical role
+confirmation-only and claimed no material issue while the chief correctly required a
+fix. The r1 digest fallback also semantically classified free-form lens prose, contrary
+to the frozen structured-only basis.
+
+The r1 18-case fixture is enumeratively complete but not executable product evidence:
+each case stores a manually identical `expected` and `observed` dictionary and the runner
+only compares them. CAMPAIGN-008-r2 is a two-package bounded correction. PKG-047 makes
+deterministic preflight contributions visible without double-counting an equivalent model
+finding and removes prose heuristics. PKG-048 replaces copied observations with outcomes
+derived by an offline scripted execution of real product components. All other V0.10
+behavior remains frozen.
+
+CAMPAIGN-008-r2 successfully removed the false-clean placeholder report and replaced
+fixture-authored observations with an executable offline 18-case runner. Foreman review
+preserves the 18/18 production-path corpus, authority/continuation evidence, prose-free
+compatibility fallback and placeholder/markup correlation. Extended structured
+counterexamples found one remaining bounded gap: required literals and numeric parity
+plus equivalent reviewer evidence still count twice, and a missing URL is counted once
+by command parity and once by URL parity. CAMPAIGN-008-r3 corrects only preflight-rooted
+exact logical-issue correlation across the existing deterministic check families.
+
+CAMPAIGN-008-r3 completed its required deterministic check-family matrix, but Foreman
+non-overmerge review found one model-only regression: two production clusters from
+different issue families merge when they share the same source/candidate span. r4 is a
+minimal correction that restricts r3 exact aliases to attaching reviewer evidence onto
+preflight-rooted groups; reviewer-only clusters retain their production issue identity.
+
+CAMPAIGN-008-r4 is accepted by
+`harness/evaluations/CAMPAIGN-008-r4-review.md` at
+`84c6c64d40836875cf6515a6bf0c615c9e5ea0c9`. Combined r1-r4 evidence accepts F-040
+through F-044: deterministic contribution and discussion-value metrics, value-first
+presentation, the executable 18-case Golden Corpus and V0.10 migration. Publication and
+Q-012 remain separate gates; no further local implementation Campaign is active.
