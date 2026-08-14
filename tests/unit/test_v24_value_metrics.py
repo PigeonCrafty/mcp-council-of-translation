@@ -294,6 +294,81 @@ def test_rephrased_discussion_claim_alone_has_no_marginal_value():
     assert metrics.discussion_new_evidence_count == 0
 
 
+def test_live_shaped_case_b_paraphrases_do_not_manufacture_new_evidence():
+    roles = ["technical_safety_reviewer", "fidelity_reviewer"]
+    clusters = cluster_findings([
+        FindingV2(
+            agent_name=role,
+            issue_type="accuracy",
+            severity="major",
+            source_span="Delete {count} files? This action cannot be undone.",
+            candidate_span="删除文件吗？此操作可以撤销。",
+            problem="The protected meaning and placeholder differ",
+            evidence="Project rule requires {count} and permanent-delete meaning",
+            action="Restore the protected facts",
+            rule_refs=["required_literal:{count}", "project_rule:permanent_delete"],
+        )
+        for role in roles
+    ])
+    issue_id = clusters[0].issue_id
+    turns = [
+        {
+            "issue_id": issue_id,
+            "speaker": roles[index % 2],
+            "claim": f"Existing fact restated {index}",
+            "evidence": [evidence],
+            "position_changed": False,
+        }
+        for index, evidence in enumerate([
+            "The {count} placeholder must remain.",
+            "Permanent deletion is the supplied context.",
+            "Cannot must not become can.",
+            "The existing project rule forbids reversibility.",
+            "Keep {count} exactly as already required.",
+            "The permanent-delete and cannot facts are unchanged.",
+        ])
+    ]
+    round_ = normalize_discussion_round("round_1", clusters, turns)
+    metrics = compute_council_value_metrics(
+        active_role_ids=roles,
+        independent_reviews=[_review(role) for role in roles],
+        clusters=clusters,
+        discussion_rounds=[round_],
+    )
+
+    assert metrics.discussion_new_evidence_count == 0
+    assert metrics.discussion_position_change_count == 0
+    assert metrics.discussion_resolved_issue_count == 0
+    assert metrics.discussion_marginal_value == "none"
+
+
+def test_existing_structured_evidence_repeated_across_rounds_stays_zero():
+    roles = ["fidelity_reviewer", "risk_ambiguity_reviewer"]
+    clusters = cluster_findings([_finding(roles[0]), _finding(roles[1])])
+    cluster = clusters[0].model_copy(update={"evidence": ["{count}"]})
+    rounds = [
+        normalize_discussion_round(
+            f"round_{index}",
+            [cluster],
+            [{
+                "issue_id": cluster.issue_id,
+                "speaker": roles[index % 2],
+                "evidence": ["Existing anchor {count} is unchanged"],
+            }],
+        )
+        for index in range(3)
+    ]
+    metrics = compute_council_value_metrics(
+        active_role_ids=roles,
+        independent_reviews=[_review(role) for role in roles],
+        clusters=[cluster],
+        discussion_rounds=rounds,
+    )
+
+    assert metrics.discussion_new_evidence_count == 0
+    assert metrics.discussion_marginal_value == "none"
+
+
 def test_new_evidence_is_low_value_and_real_resolution_is_material():
     roles = ["terminology_reviewer", "fluency_reviewer"]
     findings = [
@@ -313,7 +388,7 @@ def test_new_evidence_is_low_value_and_real_resolution_is_material():
     evidence_round = normalize_discussion_round(
         "round_1", clusters, [{
             "issue_id": cluster.issue_id, "speaker": roles[0],
-            "evidence": ["UI flow proceeds to a new step"], "position_changed": False,
+            "evidence": ["https://example.com/new-ui-flow"], "position_changed": False,
         }]
     )
     low = compute_council_value_metrics(
