@@ -439,6 +439,61 @@
         "Fresh wheel and sdist plus isolated current-FastMCP smoke verify the installed concurrent path and sequential override",
         "Documentation explains latency semantics, compatibility control and the post-publication Goose gate"
       ]
+    },
+    {
+      "id": "F-040",
+      "name": "Deterministic Council contribution metrics",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-008-r4",
+      "criteria": [
+        "Each active role is classified as unique material, corroborating, confirmation only or unavailable from validated structured artifacts without a model call",
+        "Repeated or synonymous findings cannot inflate contribution or authority",
+        "Metrics are descriptive diagnostics and never become votes, quality scores or Policy Gate weights"
+      ]
+    },
+    {
+      "id": "F-041",
+      "name": "Marginal discussion value telemetry",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-008-r4",
+      "criteria": [
+        "Discussion value counts only new bounded evidence, real position changes or resolved material issues",
+        "Rephrased prose alone reports no marginal value",
+        "Metric construction adds zero sampling and zero elicitation"
+      ]
+    },
+    {
+      "id": "F-042",
+      "name": "Value-first concise Council presentation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-008-r4",
+      "criteria": [
+        "Primary text leads with material new perspectives and collapses repetitive confirmation while visibly accounting for every active role exactly once",
+        "Minority views, unresolved context, degradation and unavailable coverage remain prominent and the chief disposition remains last",
+        "Full role feedback, findings, evidence and trace remain available in structured full history"
+      ]
+    },
+    {
+      "id": "F-043",
+      "name": "Eighteen-case Golden evaluation framework",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-008-r4",
+      "criteria": [
+        "The deterministic corpus covers all 18 audit scenarios with machine-checkable expected properties",
+        "Offline aggregate metrics cover critical recall, false positives, contribution, conflict, user authority, chief consistency, calls and marginal discussion value",
+        "Evaluation adds no MCP tool, runtime dependency or live provider call"
+      ]
+    },
+    {
+      "id": "F-044",
+      "name": "V0.10 evidence-value migration",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-008-r4",
+      "criteria": [
+        "Package/module 0.10.0 and diagnostic build evidence-value-council-v8 write schema 2.4 while preserving five tools, budgets 6/13/18 and concurrency controls",
+        "V1 and V2.0 through V2.3 records remain readable with conservative value defaults",
+        "Fresh artifacts, installed-wheel smoke, complete regression and authoritative documentation pass"
+      ]
     }
   ],
   "quality_gates": [
@@ -496,6 +551,11 @@
       "id": "Q-011",
       "name": "Bounded-parallel Goose compatibility and latency evidence",
       "status": "accepted"
+    },
+    {
+      "id": "Q-012",
+      "name": "Value-first Council live usefulness and non-repetition evidence",
+      "status": "planned"
     }
   ]
 }
