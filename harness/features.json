@@ -494,6 +494,17 @@
         "V1 and V2.0 through V2.3 records remain readable with conservative value defaults",
         "Fresh artifacts, installed-wheel smoke, complete regression and authoritative documentation pass"
       ]
+    },
+    {
+      "id": "F-045",
+      "name": "V0.10.1 truthful novelty and grouped presentation correction",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-009-r2",
+      "criteria": [
+        "Discussion provenance already present in typed rule or immutable-constraint fields cannot be counted as new evidence under a prefixed spelling",
+        "Every material corroborated or disputed issue remains intelligible at least once while repeated confirmations and exact-anchor work items stay grouped",
+        "Package/module 0.10.1 and build evidence-value-council-v8.1 preserve schema 2.4, five tools, budgets 6/13/18, full structured history and the exact 18-case Golden evidence"
+      ]
     }
   ],
   "quality_gates": [
@@ -555,7 +566,7 @@
     {
       "id": "Q-012",
       "name": "Value-first Council live usefulness and non-repetition evidence",
-      "status": "planned"
+      "status": "changes_requested"
     }
   ]
 }

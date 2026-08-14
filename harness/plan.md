@@ -5,13 +5,28 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-008` (`ACCEPTED / PUBLICATION_PENDING`)
-- Source baseline: `84c6c64d40836875cf6515a6bf0c615c9e5ea0c9`
-- Product target: `0.10.0`
-- Diagnostic build target: `evidence-value-council-v8`
+- Active Campaign: `CAMPAIGN-009-r2` (`ACCEPTED / PUBLICATION_IN_PROGRESS`)
+- Source baseline: `62f2ee9bf1860f80281afbbad53734db5f700205`
+- Product target: `0.10.1`
+- Diagnostic build target: `evidence-value-council-v8.1`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
+
+CAMPAIGN-009-r1 reached the intended Q-012 A/B outcome but independent Foreman review
+found two bounded counterexamples: an already-present typed rule reference can be counted
+as new discussion evidence, and a corroborated material disagreement can be replaced by
+an unintelligible anchor-only summary. CAMPAIGN-009-r2 corrects only those boundaries;
+the V0.10.1 migration, Golden evidence, full-record preservation and A/B improvements are
+retained.
+
+CAMPAIGN-009-r2 is accepted at
+`4a3c692ad528db03e4f72a025d60c4eb775454f0`. Typed rule/constraint provenance now
+canonicalizes before novelty comparison, and grouped corroboration states the material
+topic once before suppressing repetition. Independent Foreman evidence includes 286 full
+passes, 50 focused passes, exact counterexamples, preserved A/B behavior and frozen
+version/tool/schema/budget invariants. Publication and normal-Goose Q-012 revalidation
+remain separate gates.
 
 The Foreman and Main Worker are separate Codex conversations. The Worker must bootstrap exclusively from repository assets and must not assume access to the Foreman's conversation context.
 
@@ -1158,3 +1173,32 @@ CAMPAIGN-008-r4 is accepted by
 through F-044: deterministic contribution and discussion-value metrics, value-first
 presentation, the executable 18-case Golden Corpus and V0.10 migration. Publication and
 Q-012 remain separate gates; no further local implementation Campaign is active.
+
+V0.10 was published through protected-main PR #17 after all six Linux/Windows Python
+3.10/3.12/3.13 CI jobs passed. Published `main` is
+`e3d3de275915088c1430a243dfd9c2e410cbc58a`. Q-012 is issued by
+`harness/contracts/CAMPAIGN-008-q012-live.md`: one fixed normal-Goose configuration,
+three live cases for clean compression, deterministic blocker correlation and panoramic
+non-repetitive value, with persisted structured records as evidence authority.
+
+Q-012 stopped after its first admissible live record, documented in
+`harness/evaluations/CAMPAIGN-008-q012-live-review.md`. The record proves normal Goose
+compatibility and full reviewer coverage but reproduces two value-contract defects:
+primary text repeats one placeholder defect across roles/checks, and discussion counts
+six rephrasings of existing facts as six new evidence items. CAMPAIGN-009-r1 is a bounded
+V0.10.1 correction for deterministic discussion novelty and grouped human presentation;
+raw evidence, adjudication, tools, budgets, concurrency and Schema 2.4 remain frozen.
+
+## Campaign 009 acceptance and next gate
+
+- r1 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-009-r1-review.md`.
+- r2 decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-009-r2-review.md`.
+- Accepted implementation HEAD: `4a3c692ad528db03e4f72a025d60c4eb775454f0`.
+- F-045: accepted by combined CAMPAIGN-009-r1/r2 evidence.
+- Next: archive and publish the accepted V0.10.1 tree, then run Q-012 normal-Goose A/B/C
+  revalidation against the exact published commit. Offline acceptance does not accept
+  Q-012, and an unpinned or stale Goose installation is not admissible evidence.
+- Signed live protocol: `harness/contracts/CAMPAIGN-009-q012-live.md`; the user's normal
+  extension command remains unchanged and version admission prevents stale-cache tests.

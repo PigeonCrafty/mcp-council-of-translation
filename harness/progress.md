@@ -4,11 +4,43 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-008`
-- Campaign state: `ACCEPTED / PUBLICATION_PENDING`
-- Campaign baseline: `84c6c64d40836875cf6515a6bf0c615c9e5ea0c9`
-- Last updated: 2026-08-13 Asia/Shanghai
+- Campaign: `CAMPAIGN-009-r2`
+- Campaign state: `ACCEPTED / PUBLICATION_IN_PROGRESS`
+- Campaign baseline: `62f2ee9bf1860f80281afbbad53734db5f700205`
+- Last updated: 2026-08-14 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Campaign 009 r1 review
+
+- Decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-009-r1-review.md`.
+- Preserved evidence: V0.10.1/build v8.1/schema 2.4, exact five tools, budgets 6/13/18,
+  complete `283 passed`, exact 18/18 Golden run, Case A grouped confirmation, Case B
+  paraphrase value zero, one primary `{count}` work item, distinct semantic reversal,
+  immutable full structured history, fresh package artifacts and lock integrity.
+- r1 counterexample 1: existing `RolePosition.rule_refs=["TB-1"]` plus discussion
+  `rule_ref:TB-1` is incorrectly reported as one new evidence item.
+- r1 counterexample 2: a corroborated disputed issue can lose its material topic and
+  render only an anchor-based “相关问题” label.
+- Active correction: `CAMPAIGN-009-r2`; no version, schema, tool, prompt, authority,
+  sampling, dependency, documentation or lock change is authorized.
+
+## Campaign 009 r2 acceptance
+
+- Decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-009-r2-review.md`.
+- Accepted implementation HEAD: `4a3c692ad528db03e4f72a025d60c4eb775454f0`.
+- F-045 is accepted by combined CAMPAIGN-009-r1/r2 evidence.
+- Independent evidence: exact two-commit/four-path scope, ten protected hashes, compile,
+  `286 passed` full, `50 passed` risk-weighted, exact typed-provenance and material-topic
+  counterexamples, zero new sampling/elicitation call sites and unchanged structured
+  projection inputs.
+- Preserved evidence: V0.10.1/build v8.1/schema 2.4, exact five tools, budgets 6/13/18,
+  A/B grouped output, exact 18/18 Golden run with 113 samples/four elicitations/eight
+  metrics at 1.0, immutable full history and accepted r1 package/lock evidence.
+- Publication status: pending.
+- Q-012 status: `changes_requested` until post-publication normal-Goose A/B/C evidence is
+  reviewed; local Campaign acceptance is not live-gate acceptance.
 
 ## Accepted state
 
@@ -258,12 +290,64 @@ The Worker may create only the active Campaign ledger and report under `harness/
   exact five tools, review-only, budgets 6/13/18 and concurrency controls preserved
 - Fresh artifact evidence: wheel/sdist and isolated Python 3.12/FastMCP 3.4.7 smoke in
   `harness/reports/CAMPAIGN-008-r4-worker.md`
-- Publication status: pending
+- Publication status: accepted at protected `main`
 - Q-012: pending post-publication normal-Goose usefulness/non-repetition validation
+
+### Publication and Q-012 issuance
+
+- Protected-main publication: PR #17, merged 2026-08-14
+- Published `main`: `e3d3de275915088c1430a243dfd9c2e410cbc58a`
+- CI: all six required Linux/Windows Python 3.10/3.12/3.13 jobs passed
+- Live protocol: `harness/contracts/CAMPAIGN-008-q012-live.md`
+- Fixed runtime: one unchanged normal-main extension command, concurrency 3, dedicated
+  `.tmp/q012` persistence and one provider/model/account
+- Cases: clean confirmation compression; deterministic placeholder correlation plus
+  semantic separation; panoramic privacy-copy value without repetitive padding
+- Evidence status: awaiting three user-run normal-Goose review IDs
+
+### Q-012 r1 configuration admission failure
+
+- Initial A/B/C attempts: invalid; all returned `review record write failed` and no
+  `review_id`
+- Evidence directory after attempts: `.tmp/q012` absent
+- Goose extension state: `envs: {}` with both variables represented as protected
+  `env_keys`; concurrency reached Core as `3/configured`, but the required review path
+  did not resolve
+- Bounded diagnosis: the protected review-directory value is stale, empty or malformed;
+  the strongest concrete hazard is r1's YAML-quoted path being copied into a Goose
+  Desktop raw-value input, where the quotes become part of an invalid Windows path
+- Corrected protocol: `harness/contracts/CAMPAIGN-008-q012-live-r2.md`
+- Repository action: pre-created ignored `.tmp/q012` with inherited write permissions;
+  no production, test, dependency, Git or GitHub change
+- Gate state: Q-012 remains issued; no valid live case has yet been admitted
+
+### Q-012 admissible Case B and decision
+
+- Valid clean Case A: `20260814T082515308822Z_acd09409c766`, SHA-256
+  `8CB528793F5D9F4F97B76822349E6EB1BAB88A3EE6097A4079ADBD9ADF1D81B3`
+- Case A evidence: `COMPLETED`, six `structured_success`, full coverage, calls `6/13`,
+  all six roles `confirmation_only`, no discussion, 467-code-point report and chief last
+- Case A observation: correct and within target, but six identical confirmation lines can
+  be grouped while still naming every role once; this alone is not a gate failure
+- Valid record: `20260814T082144326698Z_eee1cf4ac053`
+- Record SHA-256:
+  `5CF9DB8EF84FFF5CE68876E0B0A0A80B54094A71FF1A74C1B4B62DDC91E3879A`
+- Actual input: Case B `{count}` placeholder loss plus `cannot`/`可以` reversal
+- Preserved live evidence: V0.10/schema 2.4, six `structured_success`, full coverage,
+  calls `7/13`, truthful blocker and distinct reversal, no degradation or fallback
+- Failed non-repetition: the 1,501-code-point primary report repeats the placeholder
+  defect across value, roles, disagreement and three chief work items
+- Failed discussion truth: six rephrased statements of existing placeholder/reversal/rule
+  facts are reported as six new evidence items; no position changed and no issue resolved
+- Outer Goose metric aliases are excluded; persisted Schema 2.4 JSON is authoritative
+- Q-012 decision: `CHANGES_REQUESTED`; Case C stopped to avoid unnecessary live cost
+- Review: `harness/evaluations/CAMPAIGN-008-q012-live-review.md`
+- Active correction: `harness/contracts/CAMPAIGN-009-r1.md`
 
 ## Next step
 
-Archive the accepted Campaign 008 contracts, reports, evaluations and Foreman state in a
-scoped local commit, then publish through the protected-main workflow. After publication,
-run Q-012 in normal Goose against the exact published commit without altering the existing
-extension command between test cases.
+Archive and publish accepted V0.10.1 implementation
+`4a3c692ad528db03e4f72a025d60c4eb775454f0` through protected main. Then fully restart
+normal Goose without changing its extension command and execute
+`harness/contracts/CAMPAIGN-009-q012-live.md` Cases A/B/C. Q-012 remains
+`changes_requested` until the three persisted records are independently reviewed.
