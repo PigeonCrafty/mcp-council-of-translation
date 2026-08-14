@@ -25,6 +25,9 @@ _STRUCTURED_TOKEN = re.compile(
     r"|https?://[^\s<>\]\[\"']+"
     r"|(?<![\w-])--[A-Za-z][\w-]*|(?<!\w)/[A-Za-z][\w-]*(?!\w)"
 )
+_STRUCTURED_PROVENANCE = re.compile(
+    r"(?i)(?:rule_ref|constraint_ref):[A-Za-z0-9][A-Za-z0-9_.:/-]{0,119}"
+)
 
 
 def _sample_statuses(independent_reviews: Iterable[dict[str, Any]]) -> dict[str, str]:
@@ -135,6 +138,51 @@ def _logical_issue_groups(clusters: list[IssueCluster]) -> list[list[IssueCluste
     return [members for _, members in groups]
 
 
+def _bounded_structured_evidence_keys(value: str) -> set[str]:
+    """Extract only independently checkable, bounded evidence anchors.
+
+    Natural-language claims are deliberately not evidence identities.  They may
+    explain an existing fact, but without typed provenance the metric cannot prove
+    that a differently worded sentence added information.
+    """
+    bounded = unicodedata.normalize("NFKC", str(value)).strip()[:240]
+    keys = {
+        f"token:{_normalize_anchor(match.group(0))}"
+        for match in _STRUCTURED_TOKEN.finditer(bounded)
+        if _normalize_anchor(match.group(0))
+    }
+    if provenance := _STRUCTURED_PROVENANCE.fullmatch(bounded):
+        keys.add(f"provenance:{_normalize_anchor(provenance.group(0))}")
+    return keys
+
+
+def _pre_discussion_inventory(cluster: IssueCluster) -> set[str]:
+    """Build the issue-local structured inventory available before deliberation."""
+    inventory = {f"issue:{_normalize_anchor(cluster.issue_id)}"}
+    values = [
+        *cluster.source_spans,
+        *cluster.candidate_spans,
+        *cluster.immutable_hard_constraints,
+        *cluster.evidence,
+        cluster.current_outcome,
+        cluster.outcome_anchor,
+    ]
+    for position in cluster.positions:
+        values.extend([
+            position.option_id,
+            position.claim,
+            *position.evidence,
+            *position.rule_refs,
+            *position.conditions,
+        ])
+    for value in values:
+        normalized = _normalize_anchor(str(value))
+        if normalized:
+            inventory.add(f"exact:{normalized}")
+        inventory.update(_bounded_structured_evidence_keys(str(value)))
+    return inventory
+
+
 def _discussion_deltas(
     clusters: Iterable[IssueCluster],
     discussion_rounds: Iterable[DiscussionRound],
@@ -144,11 +192,11 @@ def _discussion_deltas(
         return 0, 0, 0, "not_applicable"
 
     by_issue = {cluster.issue_id: cluster for cluster in clusters}
-    baseline_evidence = {
-        issue_id: {outcome_key(item) for item in cluster.evidence if outcome_key(item)}
+    seen_structured_evidence = {
+        issue_id: _pre_discussion_inventory(cluster)
         for issue_id, cluster in by_issue.items()
     }
-    new_evidence: set[tuple[str, str]] = set()
+    new_evidence: set[tuple[str, tuple[str, ...]]] = set()
     changed_positions: set[tuple[str, str]] = set()
     for round_ in rounds:
         for turn in round_.turns:
@@ -156,9 +204,11 @@ def _discussion_deltas(
             if cluster is None:
                 continue
             for evidence in turn.evidence:
-                normalized = outcome_key(evidence)
-                if normalized and normalized not in baseline_evidence[turn.issue_id]:
-                    new_evidence.add((turn.issue_id, normalized))
+                keys = _bounded_structured_evidence_keys(evidence)
+                novel = tuple(sorted(keys - seen_structured_evidence[turn.issue_id]))
+                if novel:
+                    new_evidence.add((turn.issue_id, novel))
+                    seen_structured_evidence[turn.issue_id].update(novel)
             if not turn.position_changed or not turn.proposed_action:
                 continue
             expected_option = option_id_for_action(
