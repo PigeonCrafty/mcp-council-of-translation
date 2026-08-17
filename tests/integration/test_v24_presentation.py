@@ -264,7 +264,6 @@ def test_corroborated_disputed_topic_is_rendered_once_before_deduplication():
 def test_case_c_exact_cross_family_repair_renders_once_with_distinct_consequences():
     source = "only use your location while the app is open"
     candidate = "使用您的位置信息"
-    replacement = "仅在应用打开期间使用您的位置信息"
     topics = [
         "遗漏使用时段限定，扩大了原文所述的数据使用范围。",
         "用户可能误解为应用关闭后仍会持续使用定位。",
@@ -278,7 +277,7 @@ def test_case_c_exact_cross_family_repair_renders_once_with_distinct_consequence
             candidate_spans=[candidate],
             finding_ids=["finding_accuracy"],
             participant_role_ids=["fidelity_reviewer"],
-            candidate_actions=[candidate, replacement],
+            candidate_actions=[candidate],
             current_outcome=candidate,
             outcome_anchor=candidate,
             severity="major",
@@ -291,7 +290,7 @@ def test_case_c_exact_cross_family_repair_renders_once_with_distinct_consequence
             candidate_spans=[candidate],
             finding_ids=["finding_user_impact"],
             participant_role_ids=["ux_copy_reviewer"],
-            candidate_actions=[candidate, replacement],
+            candidate_actions=[],
             current_outcome=candidate,
             outcome_anchor=candidate,
             severity="major",
@@ -316,10 +315,9 @@ def test_case_c_exact_cross_family_repair_renders_once_with_distinct_consequence
     report = render_display_report(digest, metrics=metrics, clusters=clusters)
     chief = report.split("## 主编结论", 1)[1]
 
-    assert chief.count(replacement) == 1
-    assert chief.count("建议修复：将") == 1
-    assert topics[0].rstrip("。") in chief
-    assert topics[1].rstrip("。") in chief
+    assert chief.count("建议修复：") == 1
+    assert chief.count(topics[0].rstrip("。")) == 1
+    assert chief.count(topics[1].rstrip("。")) == 1
     assert "执行顺序" not in chief
     assert report.splitlines()[-1] == "- 最终处置：修改后可发布；需人工复核：否"
     assert before == (
@@ -327,6 +325,57 @@ def test_case_c_exact_cross_family_repair_renders_once_with_distinct_consequence
         [cluster.model_dump(mode="json") for cluster in clusters],
         metrics.model_dump(mode="json"),
     )
+
+
+def test_case_b_nested_actionless_reversal_is_one_item_beside_placeholder():
+    source = "Delete {count} files? This action cannot be undone."
+    candidate = "删除文件吗？此操作可以撤销。"
+    topics = [
+        "不可撤销被改成可以撤销。",
+        "危险操作的后果提示会误导用户。",
+    ]
+    clusters = [
+        IssueCluster(
+            issue_id="issue_placeholder",
+            topic="missing=['{count}']; extra=[]",
+            category="integrity",
+            source_spans=["{count}"],
+            immutable_hard_constraints=["braced-placeholder-parity"],
+            blocking=True,
+        ),
+        IssueCluster(
+            issue_id="issue_reversal_accuracy",
+            topic=topics[0],
+            category="correctness",
+            source_spans=["cannot be undone"],
+            candidate_spans=["可以撤销"],
+            finding_ids=["finding_reversal_accuracy"],
+            candidate_actions=["可以撤销"],
+            current_outcome="可以撤销",
+        ),
+        IssueCluster(
+            issue_id="issue_reversal_impact",
+            topic=topics[1],
+            category="language_choice",
+            source_spans=[source],
+            candidate_spans=[candidate],
+            finding_ids=["finding_reversal_impact"],
+        ),
+    ]
+    checklist = [
+        "必须修复：missing=['{count}']; extra=[]",
+        *(f"建议修复：{topic}" for topic in topics),
+        *(f"执行顺序：{topic}" for topic in topics),
+    ]
+    report, cluster_before, _, _ = _render_negative_control(clusters, checklist)
+    chief = report.split("## 主编结论", 1)[1]
+
+    assert chief.count("恢复并原样保留占位符 {count}") == 1
+    assert chief.count("建议修复：") == 1
+    assert chief.count(topics[0].rstrip("。")) == 1
+    assert chief.count(topics[1].rstrip("。")) == 1
+    assert "执行顺序" not in chief
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
 
 
 def _render_negative_control(
@@ -462,4 +511,49 @@ def test_same_spans_with_different_repair_actions_remain_separate():
     chief = report.split("## 主编结论", 1)[1]
     assert "补足设置对象" in chief
     assert "改用偏好设置名称" in chief
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
+
+
+def _actionless_cluster_pair(
+    source_spans: tuple[str, str],
+    candidate_spans: tuple[str, str],
+) -> list[IssueCluster]:
+    return [
+        IssueCluster(
+            issue_id=f"issue_one_sided_{index}",
+            topic=f"独立问题 {index}。",
+            category=category,
+            source_spans=[source_spans[index]],
+            candidate_spans=[candidate_spans[index]],
+            finding_ids=[f"finding_one_sided_{index}"],
+        )
+        for index, category in enumerate(("correctness", "language_choice"))
+    ]
+
+
+def test_source_related_but_candidate_unrelated_work_items_remain_separate():
+    clusters = _actionless_cluster_pair(
+        ("cannot be undone", "This action cannot be undone"),
+        ("可以撤销", "删除后仍可恢复"),
+    )
+    report, cluster_before, _, _ = _render_negative_control(
+        clusters,
+        [f"建议修复：{cluster.topic}" for cluster in clusters],
+    )
+    chief = report.split("## 主编结论", 1)[1]
+    assert chief.count("建议修复：") == 2
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
+
+
+def test_candidate_related_but_source_unrelated_work_items_remain_separate():
+    clusters = _actionless_cluster_pair(
+        ("cannot be undone", "permanent deletion"),
+        ("可以撤销", "此操作可以撤销"),
+    )
+    report, cluster_before, _, _ = _render_negative_control(
+        clusters,
+        [f"建议修复：{cluster.topic}" for cluster in clusters],
+    )
+    chief = report.split("## 主编结论", 1)[1]
+    assert chief.count("建议修复：") == 2
     assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
