@@ -16,8 +16,8 @@ Council-of-Translation is a review-only MCP server for localization translation 
 - Default decision fallback: `council_adjudication`
 - Default trace level: `summary`
 - Default history mode: `full`
-- Current expected diagnostic build: `evidence-value-council-v8.1`
-- Current version: `0.10.1`
+- Current expected diagnostic build: `evidence-value-council-v8.2`
+- Current version: `0.10.2`
 
 Only independent reviewer sampling is concurrent. The per-review default is three;
 `COUNCIL_REVIEW_CONCURRENCY` accepts only `1`, `2`, or `3`, and invalid values visibly
@@ -50,7 +50,7 @@ Before sampling, `briefing_mode=auto` asks source/candidate-only callers for bou
 
 Findings are clustered by issue, optionally discussed once, and adjudicated through a Policy Gate and evidence-weighted Position Matrix. V2.2 reviewers classify `issue`, `choice`, and `affirmation`; only `finding_kind="choice"` with a concrete bounded `proposed_value` can become an outcome, while `action` remains advice even for legacy, missing, invalid, or incomplete classifications. RolePositions and DecisionPoints share one deterministic outcome identity. Repeated or synonymous findings do not multiply a reviewer's authority. A consistent bounded `candidate_span` supplies the issue-local current outcome; proposed replacements are applied only at one provable anchor and deterministic checks run against the reconstructed complete candidate. Missing or repeated anchors persist content-free suppression provenance and surface degraded fallback warnings; ordinary hard-constraint rejection does not. The batched form uses human-readable enum values mapped per field to exact internal outcomes, keeps a known current outcome first, and offers explicit Council delegation last. Only contrary/materially affected roles reconsider; requested/completed/skipped/failed provenance is recorded, and budget/runtime gaps surface as degradation and warnings. Structured reviewer coverage is recorded separately from finding count. Success requires both envelope keys, a string `role_feedback`, a list `findings`, and safely validated finding objects; empty findings additionally require non-blank feedback. If any finding entry is invalid, the whole sample's findings are discarded and it is unavailable. Partial or zero coverage requires human review and is exposed in fallback/runtime metadata. User choices are decisive only among valid options and cannot override technical integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Use `hard_constraints` values `numeric_parity`, `markdown_parity`, `required_literal:<text>`, or `forbidden_literal:<text>` for machine-enforced caller rules; other rule packets remain authoritative reviewer context but do not become deterministic blockers by model assertion alone.
 
-Schema 2.4 adds deterministic `council_value_metrics`. Each active role is classified as `unique_material`, `corroborating`, `confirmation_only`, or `unavailable`; repeated same-role findings count once per issue. Discussion adds evidence value only for a new bounded structured anchor/provenance item absent from the validated pre-discussion inventory and prior turns; natural-language paraphrases conservatively add zero, while real position/resolution deltas remain independent. These diagnostics are descriptive, never votes or authority weights. The primary report uses exactly five sections: 审校背景, Council 新增视角, 角色覆盖与分工, 共识、分歧与盲区, 主编结论. Confirmation-only roles share one coverage line; corroborating roles are grouped only by existing deterministic logical-issue identity; repeated deterministic chief checks on one exact protected anchor collapse only in primary text. Full structured evidence is unchanged. Clean output targets 1,200 Unicode code points and every report remains capped at 3,200.
+Schema 2.4 adds deterministic `council_value_metrics`. Each active role is classified as `unique_material`, `corroborating`, `confirmation_only`, or `unavailable`; repeated same-role findings count once per issue. Discussion adds evidence value only for a new bounded structured anchor/provenance item absent from the validated pre-discussion inventory and prior turns; natural-language paraphrases conservatively add zero, while real position/resolution deltas remain independent. These diagnostics are descriptive, never votes or authority weights. The primary report uses exactly five sections: 审校背景, Council 新增视角, 角色覆盖与分工, 共识、分歧与盲区, 主编结论. Confirmation-only roles share one coverage line. Its human work-item projection groups deterministic checks and reviewer corroboration only through bounded protected anchors and check provenance; model-only cross-category findings group only when their exact source/candidate anchors and concrete replacement match. Distinct repairs and material consequences remain visible. This projection changes primary prose only: full clusters, checklist, metrics and structured evidence are unchanged. Clean output targets 1,200 Unicode code points and every report remains capped at 3,200.
 
 Default `review_only` output must not include a full recommended translation. The chief editor returns an execution checklist such as:
 
@@ -102,9 +102,9 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 If Goose appears stale, call `get_server_info()` and verify:
 
-- `package_version`: `0.10.1`
-- `module_version`: `0.10.1`
-- `diagnostic_build`: `evidence-value-council-v8.1`
+- `package_version`: `0.10.2`
+- `module_version`: `0.10.2`
+- `diagnostic_build`: `evidence-value-council-v8.2`
 
 ## Repository Hygiene
 
