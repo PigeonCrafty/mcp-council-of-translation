@@ -4,11 +4,72 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-009-r2`
-- Campaign state: `ACCEPTED / PUBLISHED`
-- Campaign baseline: `62f2ee9bf1860f80281afbbad53734db5f700205`
-- Last updated: 2026-08-14 Asia/Shanghai
+- Campaign: `CAMPAIGN-010`
+- Campaign state: `ACCEPTED / PUBLISHED; Q-012 ISSUED`
+- Campaign baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
+- Last updated: 2026-08-17 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Q-012 V0.10.1 revalidation
+
+- Decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-009-q012-live-review.md`.
+- Admitted records: A `20260817T065433950821Z_5ca7ecf52b3a`, B
+  `20260817T065512032949Z_e19fcdfc832c`, C
+  `20260817T065532734548Z_0270f5294463`.
+- Shared pass: published V0.10.1/build v8.1/schema 2.4, configured concurrency 3,
+  phase/budget truth, full planned-role coverage, five-section privacy-safe primary
+  report, null `suggested_translation`, no degradation or fallback.
+- Case A: accepted; six marketing roles are grouped into one confirmation line and the
+  369-code-point report is clean.
+- Case B: safety outcome accepted, presentation rejected; `{count}` remains blocking and
+  `cannot`/`可以` remains distinct, while three deterministic messages still appear as
+  three primary must-fix items for one missing anchor.
+- Case C: semantic outcome accepted, presentation rejected; the missing scope limitation
+  is material and discussion value is truthfully zero, while one repair is repeated as
+  two recommendations and two execution-order entries.
+- Offline presentation/value tests remain green (`25 passed`) and therefore lack these
+  live-shaped counterexamples.
+- Active correction: `harness/contracts/CAMPAIGN-010-r1.md`; F-046 is planned.
+
+## Campaign 010 r1 review
+
+- Decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-010-r1-review.md`.
+- Preserved r1 evidence: deterministic `{count}` checks now render as one natural repair;
+  raw check labels are hidden; distinct semantic safety remains; Case A, negative
+  controls, complete structured records, V0.10.2 metadata, lock, docs, Golden 18/18,
+  packaging invariants and `291 passed` remain valid.
+- Exact live replay failure: Case B still renders two semantic-reversal recommendations;
+  Case C still renders two recommendations plus two execution-order entries for one
+  scope-restoration repair.
+- Root cause: model-only grouping requires a non-empty replacement different from the
+  current outcome, while admitted live `issue` findings have no `proposed_value` and
+  their clusters carry only the current outcome.
+- Active bounded correction: `harness/contracts/CAMPAIGN-010-r2.md`; version/build/schema
+  remain `0.10.2` / `evidence-value-council-v8.2` / `2.4`.
+
+## Campaign 010 r2 acceptance
+
+- Decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-010-r2-review.md`.
+- Accepted implementation HEAD: `f58306d0df42fc27d46dd5049348ccfce8a0f6f8`.
+- F-046: accepted by combined r1/r2 evidence.
+- Exact scope: one commit and three authorized renderer/test paths; protected assets and
+  `uv.lock` are unchanged.
+- Independent live-record replay: A 369 code points and unchanged; B 716 code points with
+  exactly two repairs; C 1,056 code points with exactly one repair; all records remain
+  byte-immutable through rendering.
+- Independent verification: compile passed, `294 passed`, lock check passed, exact five
+  tools, V0.10.2/build v8.2/schema 2.4, review-only, budgets 6/13/18 and concurrency 3.
+- Fresh Foreman wheel/sdist build from final HEAD succeeded; Worker isolated FastMCP
+  3.4.7 five-tool smoke remains supporting installed-artifact evidence.
+- Publication: protected-main PR #20 merged at
+  `2b4297d003a7ac4b69185200c8e2fd96dca738ce`; six PR checks and six post-merge `main`
+  checks passed, and the published product tree matches accepted HEAD.
+- Q-012 remains `changes_requested` until normal Goose generates and Foreman accepts a
+  new A/B/C evidence set under `harness/contracts/CAMPAIGN-010-q012-live.md` (SHA-256
+  `F54634FA35E1473F268F669B1C35B4B4F133858F5BCDB4C86F106DFABFB79544`).
 
 ## Campaign 009 r1 review
 
@@ -347,6 +408,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Fully restart normal Goose without changing its extension command and execute
-`harness/contracts/CAMPAIGN-009-q012-live.md` Cases A/B/C. Q-012 remains
-`changes_requested` until the three persisted records are independently reviewed.
+Run the issued normal-Goose Q-012 A/B/C protocol against published V0.10.2 and return only
+the three new review IDs. The Foreman will inspect the persisted records and decide the
+gate. Historical live records remain immutable evidence and must not be copied into
+production, tests or committed fixtures.
