@@ -106,24 +106,37 @@ def test_live_shaped_case_b_keeps_full_evidence_but_collapses_primary_repetition
             role_perspective=ROLE_REGISTRY[role_id].display_name,
             issue_type="technical",
             severity="critical",
-            source_span=("{count}" if index % 2 == 0 else "Delete {count} files?"),
+            source_span="{count}",
             problem="The protected placeholder is missing.",
             evidence="{count}",
             action="Restore {count}.",
         )
-        for index, role_id in enumerate(plan.active_role_ids)
+        for role_id in plan.active_role_ids
     ]
-    findings.append(FindingV2(
-        agent_name="fidelity_reviewer",
-        role_perspective=ROLE_REGISTRY["fidelity_reviewer"].display_name,
-        issue_type="accuracy",
-        severity="critical",
-        source_span="cannot",
-        candidate_span="可以",
-        problem="The irreversibility meaning is reversed.",
-        evidence="cannot differs from 可以",
-        action="Restore the cannot meaning.",
-    ))
+    findings.extend([
+        FindingV2(
+            agent_name="fidelity_reviewer",
+            role_perspective=ROLE_REGISTRY["fidelity_reviewer"].display_name,
+            issue_type="accuracy",
+            severity="critical",
+            source_span="cannot be undone",
+            candidate_span="可以撤销",
+            problem="The irreversibility meaning is reversed.",
+            evidence="cannot be undone differs from 可以撤销",
+            action="Restore the cannot meaning.",
+        ),
+        FindingV2(
+            agent_name="ux_copy_reviewer",
+            role_perspective=ROLE_REGISTRY["ux_copy_reviewer"].display_name,
+            issue_type="usability",
+            severity="major",
+            source_span=task.source_text,
+            candidate_span=task.candidate_translation,
+            problem="The dangerous-action consequence misleads the user.",
+            evidence="The full source and candidate describe opposite outcomes.",
+            action="Make the irreversible consequence clear.",
+        ),
+    ])
     preflight = run_preflight(
         task.source_text,
         task.candidate_translation,
@@ -233,7 +246,15 @@ def test_live_shaped_case_b_keeps_full_evidence_but_collapses_primary_repetition
     chief_section = report.split("## 主编结论", 1)[1]
     assert sum("{count}" in line for line in chief_section.splitlines()) == 1
     assert "恢复并原样保留占位符 {count}" in chief_section
-    assert "The irreversibility meaning is reversed" in chief_section
+    assert chief_section.count("The irreversibility meaning is reversed") == 1
+    assert chief_section.count("The dangerous-action consequence misleads the user") == 1
+    reversal_line = next(
+        line
+        for line in chief_section.splitlines()
+        if "The irreversibility meaning is reversed" in line
+    )
+    assert "The dangerous-action consequence misleads the user" in reversal_line
+    assert "执行顺序" not in chief_section
     assert "explicit do-not-translate literal missing" not in chief_section
     assert "explicit caller hard constraint violated" not in chief_section
     assert "missing=['{count}']" not in chief_section
@@ -243,5 +264,21 @@ def test_live_shaped_case_b_keeps_full_evidence_but_collapses_primary_repetition
     assert len(record.independent_reviews) == 6
     assert len(record.preflight.checks) >= 3
     assert len(record.issue_clusters) >= 3
+    reversal_clusters = [
+        cluster
+        for cluster in record.issue_clusters
+        if cluster.finding_ids and "撤销" in " ".join(cluster.candidate_spans)
+    ]
+    assert len(reversal_clusters) == 2
+    assert all(not _non_current_actions(cluster) for cluster in reversal_clusters)
     assert len(record.discussion_rounds[0].turns) == 6
     assert len(record.chief_editor_decision.must_fix) == 3
+
+
+def _non_current_actions(cluster):
+    current = cluster.current_outcome.strip().casefold()
+    return [
+        action
+        for action in cluster.candidate_actions
+        if action.strip() and action.strip().casefold() != current
+    ]

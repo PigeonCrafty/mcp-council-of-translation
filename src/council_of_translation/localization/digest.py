@@ -620,6 +620,21 @@ def _replacement_actions(cluster: IssueCluster) -> tuple[str, ...]:
     }))
 
 
+def _bounded_anchor_sets_related(
+    left: tuple[str, ...],
+    right: tuple[str, ...],
+) -> bool:
+    """Admit only exact singleton anchors or direct bounded containment."""
+    if not left or not right:
+        return False
+    if left == right:
+        return True
+    if len(left) != 1 or len(right) != 1:
+        return False
+    left_anchor, right_anchor = left[0], right[0]
+    return left_anchor in right_anchor or right_anchor in left_anchor
+
+
 def _model_work_item(group: list[IssueCluster]) -> str:
     """Render one exact-anchor replacement while retaining distinct consequences."""
     first = group[0]
@@ -637,7 +652,7 @@ def _model_work_item(group: list[IssueCluster]) -> str:
         repair = f"建议修复：采用“{_human_line(proposal, 120)}”"
     else:
         repair = f"建议修复：{_human_line(first.topic, 160).rstrip('。')}"
-    consequences = _bounded_cluster_topics(group)
+    consequences = _bounded_cluster_topics(group[1:])
     if consequences:
         repair += "；相关影响：" + "；".join(_human_line(value, 100).rstrip("。") for value in consequences)
     return _human_line(repair + "。", 240)
@@ -700,6 +715,48 @@ def _primary_work_item_groups(clusters: list[IssueCluster]) -> list[dict[str, An
         model_buckets.setdefault(identity, []).append(cluster)
     for index, members in enumerate(model_buckets.values()):
         if len({cluster.category for cluster in members}) < 2:
+            continue
+        groups.append({
+            "key": f"model:{index}",
+            "members": members,
+            "anchors": set(),
+            "topics": _bounded_cluster_topics(members),
+            "line": _model_work_item(members),
+        })
+
+    # Live ordinary-issue findings often have no proposal at all.  Preserve the
+    # exact-action identity above, then conservatively group only actionless,
+    # cross-family clusters whose source and candidate anchors independently
+    # match or directly contain one another.  Requiring pairwise compatibility
+    # prevents transitive bridging through a broad sentence span.
+    actionless_groups: list[list[IssueCluster]] = []
+    for cluster in model_clusters:
+        if _replacement_actions(cluster):
+            continue
+        source_anchors = _normalized_span_set(cluster.source_spans)
+        candidate_anchors = _normalized_span_set(cluster.candidate_spans)
+        if not source_anchors or not candidate_anchors:
+            continue
+        for members in actionless_groups:
+            if all(
+                cluster.category != member.category
+                and _bounded_anchor_sets_related(
+                    source_anchors,
+                    _normalized_span_set(member.source_spans),
+                )
+                and _bounded_anchor_sets_related(
+                    candidate_anchors,
+                    _normalized_span_set(member.candidate_spans),
+                )
+                for member in members
+            ):
+                members.append(cluster)
+                break
+        else:
+            actionless_groups.append([cluster])
+    model_offset = len(model_buckets)
+    for index, members in enumerate(actionless_groups, start=model_offset):
+        if len(members) < 2:
             continue
         groups.append({
             "key": f"model:{index}",
