@@ -106,12 +106,12 @@ def test_live_shaped_case_b_keeps_full_evidence_but_collapses_primary_repetition
             role_perspective=ROLE_REGISTRY[role_id].display_name,
             issue_type="technical",
             severity="critical",
-            source_span="{count}",
+            source_span=("{count}" if index % 2 == 0 else "Delete {count} files?"),
             problem="The protected placeholder is missing.",
             evidence="{count}",
             action="Restore {count}.",
         )
-        for role_id in plan.active_role_ids
+        for index, role_id in enumerate(plan.active_role_ids)
     ]
     findings.append(FindingV2(
         agent_name="fidelity_reviewer",
@@ -171,15 +171,13 @@ def test_live_shaped_case_b_keeps_full_evidence_but_collapses_primary_repetition
         }
         for role_id in plan.active_role_ids
     ]
+    blocking_topics = [cluster.topic for cluster in clusters if cluster.blocking]
+    model_topics = [cluster.topic for cluster in clusters if cluster.finding_ids]
     chief = ChiefEditorDecisionV2(
         publishability="需人工复核",
-        must_fix=[
-            "恢复缺失的 {count} 占位符。",
-            "满足 required_literal:{count} 硬规则。",
-            "修复 {count} 的数量插值完整性。",
-            "不得把 cannot 改成可以。",
-        ],
-        execution_order=["先恢复 {count}，再修复 cannot 语义。"],
+        must_fix=blocking_topics,
+        should_fix=model_topics,
+        execution_order=[*blocking_topics, *model_topics],
         review_needed="是",
         review_reason="存在确定性技术阻断与独立语义反转。",
     )
@@ -231,14 +229,19 @@ def test_live_shaped_case_b_keeps_full_evidence_but_collapses_primary_repetition
     assert metrics.discussion_marginal_value == "none"
     assert "讨论补充 6 条新证据" not in report
     assert "讨论未增加新的结构化证据，也未改变立场" in report
-    assert sum("{count}" in item for item in chief.must_fix) == 3
+    assert len(chief.must_fix) == 3
     chief_section = report.split("## 主编结论", 1)[1]
     assert sum("{count}" in line for line in chief_section.splitlines()) == 1
-    assert "不得把 cannot 改成可以" in chief_section
+    assert "恢复并原样保留占位符 {count}" in chief_section
+    assert "The irreversibility meaning is reversed" in chief_section
+    assert "explicit do-not-translate literal missing" not in chief_section
+    assert "explicit caller hard constraint violated" not in chief_section
+    assert "missing=['{count}']" not in chief_section
+    assert "required_literal:{count}" not in report
     assert report.splitlines()[-1] == "- 最终处置：需人工复核；需人工复核：是"
     assert record.model_dump(mode="json") == before
     assert len(record.independent_reviews) == 6
     assert len(record.preflight.checks) >= 3
     assert len(record.issue_clusters) >= 3
     assert len(record.discussion_rounds[0].turns) == 6
-    assert len(record.chief_editor_decision.must_fix) == 4
+    assert len(record.chief_editor_decision.must_fix) == 3

@@ -462,16 +462,23 @@ def _coverage_lines(
                 if role_id in ROLE_REGISTRY else "未识别专业角色"
                 for role_id in group_roles
             )
-            anchors = _dedupe([
-                *[span for cluster in group for span in cluster.source_spans],
-                *[span for cluster in group for span in cluster.candidate_spans],
-            ], maximum=2)
+            deterministic = [cluster for cluster in group if not cluster.finding_ids]
+            anchors = (
+                _deterministic_literals(deterministic)
+                if deterministic
+                else _dedupe([
+                    *[span for cluster in group for span in cluster.source_spans],
+                    *[span for cluster in group for span in cluster.candidate_spans],
+                ], maximum=2)
+            )
             anchor = " → ".join(_human_line(item, 36) for item in anchors if item)
             topics = _dedupe([
-                *[cluster.topic for cluster in group if cluster.finding_ids],
-                *[cluster.topic for cluster in group if not cluster.finding_ids],
+                cluster.topic for cluster in group if cluster.finding_ids
             ], maximum=1)
-            topic = _human_line(topics[0]) if topics else "同一结构化问题。"
+            topic = _human_line(topics[0]) if topics else (
+                "确定性检查发现受保护内容或结构缺失。"
+                if deterministic else "同一结构化问题。"
+            )
             location = f"“{anchor}”相关问题" if anchor else "同一结构化问题"
             lines.append(
                 _human_line(f"{labels}：共同交叉印证{location}：{topic}", 240)
@@ -538,28 +545,205 @@ def _represented_cluster_topics(
     }
 
 
+def _bounded_cluster_topics(group: list[IssueCluster]) -> list[str]:
+    return _dedupe([cluster.topic for cluster in group if cluster.topic], maximum=3)
+
+
+def _deterministic_literals(group: list[IssueCluster]) -> list[str]:
+    """Recover bounded protected literals from deterministic check evidence only."""
+    literals: list[str] = []
+    for cluster in group:
+        if cluster.finding_ids:
+            continue
+        refs = " ".join(cluster.immutable_hard_constraints)
+        for value in cluster.source_spans:
+            bounded = str(value).strip()[:240]
+            prefix, separator, literal = bounded.partition(":")
+            if separator and literal and prefix in {"required_literal", "forbidden_literal"}:
+                literals.append(literal)
+                continue
+            tokens = sorted(
+                key.removeprefix("token:")
+                for key in _bounded_structured_evidence_keys(bounded)
+                if key.startswith("token:")
+            )
+            if tokens:
+                literals.extend(tokens)
+            elif (
+                "explicit-dnt-preservation" in refs
+                or "explicit-required-literal" in refs
+                or "explicit-forbidden-literal" in refs
+            ) and bounded:
+                literals.append(bounded)
+    return _dedupe(literals, maximum=3)
+
+
+def _deterministic_work_item(group: list[IssueCluster]) -> str:
+    """Translate deterministic telemetry into one natural primary repair."""
+    refs = {
+        ref
+        for cluster in group
+        if not cluster.finding_ids
+        for ref in cluster.immutable_hard_constraints
+    }
+    if not refs:
+        return ""
+    literals = _deterministic_literals(group)
+    quoted = "、".join(f"{value}" for value in literals)
+    if any("forbidden-literal" in ref for ref in refs):
+        return f"必须修复：移除禁用内容 {quoted}。" if quoted else "必须修复：移除调用方明确禁用的内容。"
+    if any("placeholder-parity" in ref or ref in {"variable-parity", "command-parity"} for ref in refs):
+        return f"必须修复：恢复并原样保留占位符 {quoted}。" if quoted else "必须修复：恢复缺失的占位符或变量。"
+    if "url-parity" in refs:
+        return f"必须修复：恢复并原样保留链接 {quoted}。" if quoted else "必须修复：恢复缺失的链接。"
+    if "tag-integrity" in refs:
+        return f"必须修复：恢复并校正标签结构 {quoted}。" if quoted else "必须修复：恢复并校正标签结构。"
+    if any("explicit-dnt-preservation" in ref or "explicit-required-literal" in ref for ref in refs):
+        return f"必须修复：恢复并原样保留受保护内容 {quoted}。" if quoted else "必须修复：恢复调用方要求保留的内容。"
+    if "numeric-parity" in refs:
+        return "必须修复：恢复原文中的数字信息。"
+    if "markdown-structure" in refs:
+        return "必须修复：恢复原文的 Markdown 结构。"
+    return "必须修复：恢复确定性检查指出的受保护内容或结构。"
+
+
+def _normalized_span_set(values: list[str]) -> tuple[str, ...]:
+    return tuple(sorted({anchor for value in values if (anchor := _normalize_anchor(value))}))
+
+
+def _replacement_actions(cluster: IssueCluster) -> tuple[str, ...]:
+    current = _normalize_anchor(cluster.current_outcome)
+    return tuple(sorted({
+        action
+        for value in cluster.candidate_actions
+        if (action := _normalize_anchor(value)) and action != current
+    }))
+
+
+def _model_work_item(group: list[IssueCluster]) -> str:
+    """Render one exact-anchor replacement while retaining distinct consequences."""
+    first = group[0]
+    current = next((value.strip() for value in first.candidate_spans if value.strip()), "")
+    current_key = _normalize_anchor(current)
+    proposals = [
+        value.strip()
+        for value in first.candidate_actions
+        if value.strip() and _normalize_anchor(value) != current_key
+    ]
+    proposal = proposals[0] if proposals else ""
+    if current and proposal:
+        repair = f"建议修复：将“{_human_line(current, 72)}”调整为“{_human_line(proposal, 96)}”"
+    elif proposal:
+        repair = f"建议修复：采用“{_human_line(proposal, 120)}”"
+    else:
+        repair = f"建议修复：{_human_line(first.topic, 160).rstrip('。')}"
+    consequences = _bounded_cluster_topics(group)
+    if consequences:
+        repair += "；相关影响：" + "；".join(_human_line(value, 100).rstrip("。") for value in consequences)
+    return _human_line(repair + "。", 240)
+
+
+def _primary_work_item_groups(clusters: list[IssueCluster]) -> list[dict[str, Any]]:
+    """Build bounded, non-mutating human work-item identities for primary text."""
+    groups: list[dict[str, Any]] = []
+    assigned_model_ids: set[str] = set()
+    for index, logical_group in enumerate(_logical_issue_groups(clusters)):
+        deterministic = [cluster for cluster in logical_group if not cluster.finding_ids]
+        if not deterministic:
+            continue
+        literals = _deterministic_literals(deterministic)
+        literal_keys = {_normalize_anchor(value) for value in literals if _normalize_anchor(value)}
+        corroborating: list[IssueCluster] = []
+        for cluster in logical_group:
+            if not cluster.finding_ids:
+                continue
+            spans = [*cluster.source_spans, *cluster.candidate_spans]
+            exact = {_normalize_anchor(value) for value in spans if _normalize_anchor(value)}
+            structured = {
+                key.removeprefix("token:")
+                for value in cluster.evidence
+                for key in _bounded_structured_evidence_keys(value)
+                if key.startswith("token:")
+            }
+            # Exact spans are direct corroboration.  Containment is admitted only
+            # when independent structured evidence carries the same repair anchor;
+            # a whole sentence that merely contains a token cannot absorb a
+            # separate semantic reversal.
+            if literal_keys & exact or literal_keys & structured:
+                corroborating.append(cluster)
+                assigned_model_ids.add(cluster.issue_id)
+        members = [*deterministic, *corroborating]
+        groups.append({
+            "key": f"deterministic:{index}",
+            "members": members,
+            "anchors": literal_keys,
+            "topics": _bounded_cluster_topics(members),
+            "line": _deterministic_work_item(deterministic),
+        })
+
+    model_clusters = [
+        cluster for cluster in clusters
+        if cluster.finding_ids and cluster.issue_id not in assigned_model_ids
+    ]
+    model_buckets: dict[tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]], list[IssueCluster]] = {}
+    for cluster in model_clusters:
+        actions = _replacement_actions(cluster)
+        if not actions:
+            continue
+        identity = (
+            _normalized_span_set(cluster.source_spans),
+            _normalized_span_set(cluster.candidate_spans),
+            actions,
+        )
+        if not identity[0] or not identity[1]:
+            continue
+        model_buckets.setdefault(identity, []).append(cluster)
+    for index, members in enumerate(model_buckets.values()):
+        if len({cluster.category for cluster in members}) < 2:
+            continue
+        groups.append({
+            "key": f"model:{index}",
+            "members": members,
+            "anchors": set(),
+            "topics": _bounded_cluster_topics(members),
+            "line": _model_work_item(members),
+        })
+    return groups
+
+
+def _entry_work_items(
+    text: str,
+    groups: list[dict[str, Any]],
+    seen_groups: set[str],
+) -> list[dict[str, Any]]:
+    normalized = _normalize_anchor(text)
+    topic_matches = [
+        group
+        for group in groups
+        if any(
+            (topic_key := _normalize_anchor(topic)) and topic_key in normalized
+            for topic in group["topics"]
+        )
+    ]
+    if topic_matches:
+        unseen = [group for group in topic_matches if group["key"] not in seen_groups]
+        return unseen or [topic_matches[0]]
+    anchor_matches = [
+        group for group in groups
+        if group["anchors"] and any(anchor in normalized for anchor in group["anchors"])
+    ]
+    if anchor_matches:
+        unseen = [group for group in anchor_matches if group["key"] not in seen_groups]
+        return unseen or [anchor_matches[0]]
+    return []
+
+
 def _primary_checklist(
     values: list[str],
     clusters: list[IssueCluster] | None,
 ) -> list[str]:
-    """Collapse only exact deterministic anchors in primary checklist prose."""
-    anchor_to_group: dict[str, str] = {}
-    for index, group in enumerate(_logical_issue_groups(clusters or [])):
-        if not any(not cluster.finding_ids for cluster in group):
-            continue
-        group_key = f"deterministic-group:{index}"
-        for cluster in group:
-            for value in [*cluster.source_spans, *cluster.candidate_spans]:
-                bounded = str(value).strip()[:240]
-                prefix, separator, literal = bounded.partition(":")
-                if separator and literal and prefix in {"required_literal", "forbidden_literal"}:
-                    bounded = literal
-                normalized = _normalize_anchor(bounded)
-                if normalized:
-                    anchor_to_group[normalized] = group_key
-                for token in _bounded_structured_evidence_keys(bounded):
-                    anchor_to_group[token.removeprefix("token:")] = group_key
-
+    """Project structured clusters into bounded primary-only human work items."""
+    groups = _primary_work_item_groups(clusters or [])
     result: list[str] = []
     seen_groups: set[str] = set()
     seen_text: set[str] = set()
@@ -567,24 +751,24 @@ def _primary_checklist(
         text = str(value).strip()[:240]
         if not text:
             continue
-        normalized = _normalize_anchor(text)
-        matched_groups = {
-            group_key
-            for anchor, group_key in anchor_to_group.items()
-            if anchor and (
-                bool(re.search(rf"(?<!\w){re.escape(anchor)}(?!\w)", normalized))
-                if re.fullmatch(r"[\w.-]+", anchor)
-                else anchor in normalized
-            )
-        }
-        if matched_groups and matched_groups & seen_groups:
+        matched = _entry_work_items(text, groups, seen_groups)
+        if matched and all(group["key"] in seen_groups for group in matched):
             continue
-        key = _semantic_key(text)
-        if not key or key in seen_text:
-            continue
-        result.append(_human_line(text))
-        seen_groups.update(matched_groups)
-        seen_text.add(key)
+        candidates = matched or [None]
+        for group in candidates:
+            group_key = group["key"] if group else ""
+            if group_key and group_key in seen_groups:
+                continue
+            rendered = str(group["line"] or text) if group else text
+            key = _semantic_key(rendered)
+            if not key or key in seen_text:
+                continue
+            result.append(_human_line(rendered, 240))
+            if group_key:
+                seen_groups.add(group_key)
+            seen_text.add(key)
+            if len(result) >= 6:
+                break
         if len(result) >= 6:
             break
     return result
@@ -659,11 +843,20 @@ def render_display_report(
         clusters,
         [*value_lines, *coverage_lines],
     )
+    deterministic_topics = {
+        _semantic_key(cluster.topic)
+        for group in _primary_work_item_groups(clusters or [])
+        if str(group["key"]).startswith("deterministic:")
+        for cluster in group["members"]
+        if not cluster.finding_ids and _semantic_key(cluster.topic)
+    }
     deliberation = [
         *(f"共识：{value}" for value in _material(digest.consensus, maximum=2)
-          if _semantic_key(value) not in represented_topics),
+          if _semantic_key(value) not in represented_topics
+          and _semantic_key(value) not in deterministic_topics),
         *(f"分歧：{value}" for value in _material(digest.material_disagreements, maximum=2)
-          if _semantic_key(value) not in represented_topics),
+          if _semantic_key(value) not in represented_topics
+          and _semantic_key(value) not in deterministic_topics),
         *(f"盲区：{value}" for value in _material(digest.blind_spots, maximum=2)),
     ]
     minority = digest.minority_report
