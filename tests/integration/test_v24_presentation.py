@@ -259,3 +259,207 @@ def test_corroborated_disputed_topic_is_rendered_once_before_deduplication():
     assert report.splitlines()[-1] == "- 最终处置：需人工复核；需人工复核：是"
     assert digest.model_dump(mode="json") == digest_before
     assert cluster.model_dump(mode="json") == cluster_before
+
+
+def test_case_c_exact_cross_family_repair_renders_once_with_distinct_consequences():
+    source = "only use your location while the app is open"
+    candidate = "使用您的位置信息"
+    replacement = "仅在应用打开期间使用您的位置信息"
+    topics = [
+        "遗漏使用时段限定，扩大了原文所述的数据使用范围。",
+        "用户可能误解为应用关闭后仍会持续使用定位。",
+    ]
+    clusters = [
+        IssueCluster(
+            issue_id="issue_scope_accuracy",
+            topic=topics[0],
+            category="correctness",
+            source_spans=[source],
+            candidate_spans=[candidate],
+            finding_ids=["finding_accuracy"],
+            participant_role_ids=["fidelity_reviewer"],
+            candidate_actions=[candidate, replacement],
+            current_outcome=candidate,
+            outcome_anchor=candidate,
+            severity="major",
+        ),
+        IssueCluster(
+            issue_id="issue_scope_user_impact",
+            topic=topics[1],
+            category="language_choice",
+            source_spans=[source],
+            candidate_spans=[candidate],
+            finding_ids=["finding_user_impact"],
+            participant_role_ids=["ux_copy_reviewer"],
+            candidate_actions=[candidate, replacement],
+            current_outcome=candidate,
+            outcome_anchor=candidate,
+            severity="major",
+        ),
+    ]
+    digest = ProcessDigestV2(
+        case_brief=["定位权限说明审校。"],
+        material_disagreements=topics,
+        execution_checklist_final_disposition=[
+            *(f"建议修复：{topic}" for topic in topics),
+            *(f"执行顺序：{topic}" for topic in topics),
+            "最终处置：修改后可发布；需人工复核：否",
+        ],
+    )
+    metrics = CouncilValueMetrics()
+    before = (
+        digest.model_dump(mode="json"),
+        [cluster.model_dump(mode="json") for cluster in clusters],
+        metrics.model_dump(mode="json"),
+    )
+
+    report = render_display_report(digest, metrics=metrics, clusters=clusters)
+    chief = report.split("## 主编结论", 1)[1]
+
+    assert chief.count(replacement) == 1
+    assert chief.count("建议修复：将") == 1
+    assert topics[0].rstrip("。") in chief
+    assert topics[1].rstrip("。") in chief
+    assert "执行顺序" not in chief
+    assert report.splitlines()[-1] == "- 最终处置：修改后可发布；需人工复核：否"
+    assert before == (
+        digest.model_dump(mode="json"),
+        [cluster.model_dump(mode="json") for cluster in clusters],
+        metrics.model_dump(mode="json"),
+    )
+
+
+def _render_negative_control(
+    clusters: list[IssueCluster],
+    checklist: list[str],
+) -> tuple[str, list[dict], dict, dict]:
+    digest = ProcessDigestV2(
+        execution_checklist_final_disposition=[
+            *checklist,
+            "最终处置：需人工复核；需人工复核：是",
+        ],
+    )
+    metrics = CouncilValueMetrics()
+    cluster_before = [cluster.model_dump(mode="json") for cluster in clusters]
+    digest_before = digest.model_dump(mode="json")
+    metrics_before = metrics.model_dump(mode="json")
+    report = render_display_report(digest, metrics=metrics, clusters=clusters)
+    return report, cluster_before, digest_before, metrics_before
+
+
+def test_primary_work_items_do_not_merge_different_required_literals():
+    clusters = [
+        IssueCluster(
+            issue_id=f"issue_literal_{index}",
+            topic="explicit caller hard constraint violated",
+            category="integrity",
+            source_spans=[f"required_literal:{literal}"],
+            immutable_hard_constraints=[f"explicit-required-literal-{index}"],
+            blocking=True,
+        )
+        for index, literal in enumerate(("ALPHA", "BETA"), start=1)
+    ]
+    report, cluster_before, _, _ = _render_negative_control(
+        clusters,
+        ["必须修复：explicit caller hard constraint violated"] * 2,
+    )
+    chief = report.split("## 主编结论", 1)[1]
+    assert chief.count("恢复并原样保留受保护内容") == 2
+    assert "ALPHA" in chief and "BETA" in chief
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
+
+
+def test_primary_work_items_do_not_merge_placeholder_and_url_loss():
+    clusters = [
+        IssueCluster(
+            issue_id="issue_placeholder",
+            topic="missing=['{count}']; extra=[]",
+            category="integrity",
+            source_spans=["{count}"],
+            immutable_hard_constraints=["braced-placeholder-parity"],
+            blocking=True,
+        ),
+        IssueCluster(
+            issue_id="issue_url",
+            topic="missing=['https://example.com/help']; extra=[]",
+            category="integrity",
+            source_spans=["https://example.com/help"],
+            immutable_hard_constraints=["url-parity"],
+            blocking=True,
+        ),
+    ]
+    report, cluster_before, _, _ = _render_negative_control(
+        clusters,
+        [f"必须修复：{cluster.topic}" for cluster in clusters],
+    )
+    chief = report.split("## 主编结论", 1)[1]
+    assert chief.count("恢复并原样保留占位符") == 1
+    assert chief.count("恢复并原样保留链接") == 1
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
+
+
+def test_whole_sentence_placeholder_span_does_not_absorb_semantic_reversal():
+    sentence = "Delete {count} files? This action cannot be undone."
+    clusters = [
+        IssueCluster(
+            issue_id="issue_placeholder",
+            topic="missing=['{count}']; extra=[]",
+            category="integrity",
+            source_spans=["{count}"],
+            immutable_hard_constraints=["braced-placeholder-parity"],
+            blocking=True,
+        ),
+        IssueCluster(
+            issue_id="issue_reversal",
+            topic="不可撤销被改成可以撤销。",
+            category="correctness",
+            source_spans=[sentence],
+            candidate_spans=["删除文件吗？此操作可以撤销。"],
+            finding_ids=["finding_reversal"],
+            participant_role_ids=["fidelity_reviewer"],
+            severity="critical",
+        ),
+    ]
+    report, cluster_before, _, _ = _render_negative_control(
+        clusters,
+        [f"必须修复：{cluster.topic}" for cluster in clusters],
+    )
+    chief = report.split("## 主编结论", 1)[1]
+    assert "恢复并原样保留占位符 {count}" in chief
+    assert "不可撤销被改成可以撤销" in chief
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
+
+
+def test_same_spans_with_different_repair_actions_remain_separate():
+    source = "Open settings"
+    candidate = "打开"
+    clusters = [
+        IssueCluster(
+            issue_id="issue_action_settings",
+            topic="补足设置对象。",
+            category="correctness",
+            source_spans=[source],
+            candidate_spans=[candidate],
+            finding_ids=["finding_settings"],
+            candidate_actions=[candidate, "打开设置"],
+            current_outcome=candidate,
+        ),
+        IssueCluster(
+            issue_id="issue_action_preferences",
+            topic="改用偏好设置名称。",
+            category="language_choice",
+            source_spans=[source],
+            candidate_spans=[candidate],
+            finding_ids=["finding_preferences"],
+            candidate_actions=[candidate, "打开偏好设置"],
+            current_outcome=candidate,
+        ),
+    ]
+    report, cluster_before, _, _ = _render_negative_control(
+        clusters,
+        [f"建议修复：{cluster.topic}" for cluster in clusters],
+    )
+    chief = report.split("## 主编结论", 1)[1]
+    assert "补足设置对象" in chief
+    assert "改用偏好设置名称" in chief
+    assert [cluster.model_dump(mode="json") for cluster in clusters] == cluster_before
