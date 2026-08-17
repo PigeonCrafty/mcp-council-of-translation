@@ -5,7 +5,7 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-010` (`ACCEPTED / PUBLISHED`; Q-012 final revalidation issued)
+- Active Campaign: none (`CAMPAIGN-010 CLOSED`; Q-012 accepted)
 - Source baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
 - Product target: `0.10.2`
 - Diagnostic build target: `evidence-value-council-v8.2`
@@ -1253,5 +1253,9 @@ through protected-main PR #20 at
 post-merge `main` checks passed. The published product tree is identical to accepted HEAD
 across every product path. Final normal-Goose Q-012 revalidation is issued by
 `harness/contracts/CAMPAIGN-010-q012-live.md` (SHA-256
-`F54634FA35E1473F268F669B1C35B4B4F133858F5BCDB4C86F106DFABFB79544`) and remains the
-only open Campaign gate.
+`F54634FA35E1473F268F669B1C35B4B4F133858F5BCDB4C86F106DFABFB79544`). The final three
+normal-Goose records are accepted by
+`harness/evaluations/CAMPAIGN-010-q012-live-review.md`: A groups six clean confirmations,
+B renders one placeholder repair plus one distinct reversal repair, and C renders the
+shared scope-restoration repair once while retaining structured consequences. Q-012 is
+accepted and Campaign 010 is closed.
