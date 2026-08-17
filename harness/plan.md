@@ -5,10 +5,10 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-009-r2` (`ACCEPTED / PUBLISHED`)
-- Source baseline: `62f2ee9bf1860f80281afbbad53734db5f700205`
-- Product target: `0.10.1`
-- Diagnostic build target: `evidence-value-council-v8.1`
+- Active Campaign: `CAMPAIGN-010` (`ACCEPTED / PUBLISHED`; Q-012 final revalidation issued)
+- Source baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
+- Product target: `0.10.2`
+- Diagnostic build target: `evidence-value-council-v8.2`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
@@ -1205,3 +1205,53 @@ raw evidence, adjudication, tools, budgets, concurrency and Schema 2.4 remain fr
 - Published through PR #18 at protected-main commit
   `f3b232cb2f3c9500fed04d204ef6198f2ee49af4`; all six required Linux/Windows Python
   checks passed and the published product tree is equivalent to accepted HEAD.
+
+## Campaign 010: Live-shaped Human Work-item Projection
+
+Post-publication Q-012 revalidation admitted all three V0.10.1 normal-Goose records.
+Transport, persistence, full reviewer coverage, concurrency, budget, review-only safety,
+deterministic blocking and discussion-value truth all passed. Case A also proved the
+intended one-line six-role confirmation presentation.
+
+The live records expose a narrower presentation boundary not covered by the accepted
+scripted fixtures. In Case B, three deterministic checks and three reviewer cluster
+families describe the same missing `{count}` anchor, but the chief still renders three
+English implementation messages as separate must-fix work items. The distinct
+`cannot`/`可以` reversal remains correctly visible. In Case C, two intentionally
+preserved cross-family clusters describe the same missing scope limitation; full
+structure is truthful, but the primary chief section repeats the same repair as two
+recommendations and two execution-order entries.
+
+CAMPAIGN-010-r1 is a presentation-only V0.10.2 correction. It introduces a bounded human
+work-item projection derived from existing structured anchors and provenance. It may
+group primary text, but it must not merge or mutate production clusters, metrics,
+findings, evidence, Policy Gate results or persisted history. No fuzzy semantic matching,
+new model call, prompt change, role/routing change, schema change or tool change is
+allowed. Q-012 remains `changes_requested` until the corrected build is independently
+accepted, published and rerun in normal Goose.
+
+CAMPAIGN-010-r1 completed the deterministic-anchor projection and V0.10.2 migration, but
+Foreman replay of the immutable A/B/C records found that its model-only grouping fixture
+assumed a non-empty concrete replacement that the live `issue` findings did not provide.
+Consequently B still rendered the semantic reversal twice, while C retained both duplicate
+recommendations and both duplicate execution-order entries. The complete `291 passed`
+suite remained green, proving a fixture gap rather than a red baseline. r2 preserves the
+accepted deterministic grouping, version/docs/lock work and all structured invariants;
+it adds exact zero-proposal and current-outcome-only live-shaped counterexamples to the
+primary renderer without changing version, schema, clustering or metrics.
+
+CAMPAIGN-010-r2 is accepted at
+`f58306d0df42fc27d46dd5049348ccfce8a0f6f8` by
+`harness/evaluations/CAMPAIGN-010-r2-review.md`. Independent Foreman replay of all three
+immutable live records now yields A 369 code points with one confirmation group, B 716
+code points with exactly one placeholder repair plus one reversal repair, and C 1,056
+code points with one scope-restoration repair and no duplicate execution line. All three
+records remain byte-immutable through rendering. Fresh compile, 294 tests, lock check,
+V0.10.2 diagnostics and artifact build pass. F-046 is accepted. The product was published
+through protected-main PR #20 at
+`2b4297d003a7ac4b69185200c8e2fd96dca738ce`; all six required PR checks and all six
+post-merge `main` checks passed. The published product tree is identical to accepted HEAD
+across every product path. Final normal-Goose Q-012 revalidation is issued by
+`harness/contracts/CAMPAIGN-010-q012-live.md` (SHA-256
+`F54634FA35E1473F268F669B1C35B4B4F133858F5BCDB4C86F106DFABFB79544`) and remains the
+only open Campaign gate.
