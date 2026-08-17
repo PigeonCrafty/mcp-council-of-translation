@@ -5,10 +5,37 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-010`
-- Campaign state: `ACCEPTED / PUBLISHED; Q-012 ISSUED`
+- Campaign state: `CLOSED; Q-012 ACCEPTED`
 - Campaign baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
 - Last updated: 2026-08-17 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Q-012 V0.10.2 final revalidation
+
+- Decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-010-q012-live-review.md` (SHA-256
+  `4B5AA1461D0C18C8C7A6A190ADDA1EAC3C7BAFAB95F87325C4A47C84F56D9717`).
+- Admitted records: A `20260817T080941987242Z_0ad8595c0eb6`, B
+  `20260817T081021025085Z_293aa64504ed`, C
+  `20260817T081059106488Z_463c1303ed2b`.
+- Shared pass: published V0.10.2/build v8.2/schema 2.4, exact signed inputs, concurrency
+  `3/configured`, full planned-role coverage, no parse failures, degradation, warnings
+  or fallback, five-section privacy-safe primary text and null `suggested_translation`.
+- Case A: six marketing roles are grouped in one confirmation line; zero clusters,
+  `6/13` calls and a 369-code-point report.
+- Case B: deterministic `{count}` blockers remain auditable; primary text contains one
+  placeholder repair and one distinct `cannot`/`可以` reversal repair, no execution-order
+  repetition, `7/13` calls and truthful required human review.
+- Case C: two full structured clusters remain intact while the shared scope repair is
+  rendered once with its accuracy/privacy consequences; discussion value is zero,
+  `5/13` calls and the report requires modification before publication.
+- Independent production-model reload and rerender left all three persisted records
+  byte-unchanged; focused presentation/value regressions passed `20 passed`.
+- Operational deviation: Goose retained the prior `.tmp/q012` persistence directory
+  instead of the newly requested `.tmp/q012-final`. Exact fresh IDs, hashes, signed
+  inputs and version metadata make the records unambiguous, so this does not invalidate
+  the live evidence.
+- Q-012 is accepted and Campaign 010 is closed.
 
 ## Q-012 V0.10.1 revalidation
 
@@ -67,9 +94,8 @@
 - Publication: protected-main PR #20 merged at
   `2b4297d003a7ac4b69185200c8e2fd96dca738ce`; six PR checks and six post-merge `main`
   checks passed, and the published product tree matches accepted HEAD.
-- Q-012 remains `changes_requested` until normal Goose generates and Foreman accepts a
-  new A/B/C evidence set under `harness/contracts/CAMPAIGN-010-q012-live.md` (SHA-256
-  `F54634FA35E1473F268F669B1C35B4B4F133858F5BCDB4C86F106DFABFB79544`).
+- Q-012 final A/B/C evidence is accepted; see
+  `harness/evaluations/CAMPAIGN-010-q012-live-review.md`.
 
 ## Campaign 009 r1 review
 
@@ -408,7 +434,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Run the issued normal-Goose Q-012 A/B/C protocol against published V0.10.2 and return only
-the three new review IDs. The Foreman will inspect the persisted records and decide the
-gate. Historical live records remain immutable evidence and must not be copied into
-production, tests or committed fixtures.
+No implementation Campaign is active. Campaign 010 and its final Q-012 live gate are
+closed. The remaining historical cross-client gate Q-003 retains partial live evidence;
+the next Foreman action is either a bounded Goose Desktop/CLI parity run for Q-003 or a
+new product Campaign based on user priorities.
