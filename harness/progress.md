@@ -7,8 +7,31 @@
 - Campaign: `CAMPAIGN-010`
 - Campaign state: `CLOSED; Q-012 ACCEPTED`
 - Campaign baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
+- Active quality gate: `Q-003 Desktop/CLI client parity r1 — ISSUED`
+- Active gate contract: `harness/contracts/Q-003-desktop-cli-live-r1.md`
+- Active gate SHA-256:
+  `0811B9A56CF0EBB3D20B9D2B1843BF2FA4ED66F045C009189591F2FCFF623234`
+- Published protected `main`: `617b696c94624988f03a64ab58e1d42a66697546`
 - Last updated: 2026-08-17 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Q-003 Desktop/CLI client parity r1
+
+- Decision state: `ISSUED`; Q-003 remains `partial_live_evidence` until independent
+  Foreman review accepts both client records and their privacy-safe client-identity
+  captures.
+- Scope: evidence only. No product, test, dependency, lock, tool, Goose installation,
+  extension-command, release or deployment change is authorized.
+- Fixed product: package/module `0.10.2`, build `evidence-value-council-v8.2`, schema
+  `2.4`, concurrency `3/configured`, budgets `6/13/18` and exact five tools.
+- Probe: the same source/candidate-only review runs once in Desktop and once in the
+  interactive CLI with `briefing_mode=always`; both clients must render and accept the
+  same six-field form before sampling.
+- Evidence return: two review IDs, one privacy-safe Desktop form capture, one
+  privacy-safe CLI form capture/transcript and any bounded retry summary.
+- Next after decision: if accepted, mark Q-003 accepted and design-freeze CAMPAIGN-011
+  for risk-sensitive panoramic role routing; if blocked or changes are requested, keep
+  the new product Campaign unissued until the client evidence is resolved.
 
 ## Q-012 V0.10.2 final revalidation
 
