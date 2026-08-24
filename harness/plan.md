@@ -5,18 +5,20 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: none (`CAMPAIGN-011-r3 ACCEPTED`)
-- Campaign state: `V0.11.1_ACCEPTED; PUBLICATION_PENDING; Q-013_REVALIDATION_PENDING`
+- Active Campaign: none (`CAMPAIGN-011 COMPLETE`)
+- Campaign state: `V0.11.1_PUBLISHED; Q-013_ACCEPTED; CAMPAIGN-011_COMPLETE`
 - Accepted contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
-- Active quality gate: `Q-013 CHANGES_REQUESTED; post-fix live revalidation pending`
+- Active quality gate: none (`13/13 accepted`)
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
   `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
 - Parent live contract: `harness/contracts/CAMPAIGN-011-q013-live.md`
-- Published protected `main`: `938c3a4bb9f14c7688286b25eabd8aff9f18a09d`
-- Published product implementation: `7f7d050ad7cd5ef931b38eafd11f988619afced1`
+- Final live contract: `harness/contracts/CAMPAIGN-011-q013-live-r2.md`
+- Publication review: `harness/evaluations/CAMPAIGN-011-r3-publication-ci-review.md`
+- Published protected `main`: `f64d86fd37a0727d3a0a3ebcd8581fd26cc7e1a3`
+- Published product implementation: `6d3a5b6843550ec37ae61ce2670de51a93580bf8`
 - Accepted product implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Product target: `0.11.1`
 - Diagnostic build target: `risk-coherent-council-v9.1`
@@ -72,13 +74,15 @@ the three stale new-runtime assertions, changed only the editable root lock vers
 completed V0.11 packaging. Independent Foreman evidence includes 307 full passes, exact
 24/24 Golden results with all eight metrics at 1.0, legal-risk 4/6/7 route probes, pinned
 lock verification and a fresh wheel import/registration smoke. F-047 through F-052 are
-accepted. Publication is complete; Q-013 live evidence is issued but not yet accepted.
+accepted. At the V0.11.0 checkpoint, publication was complete while Q-013 live evidence
+had been issued but not yet accepted.
 
 V0.11 was published through protected-main PR #23 at
 `938c3a4bb9f14c7688286b25eabd8aff9f18a09d`. All six required Ubuntu/Windows Python
 3.10/3.12/3.13 checks passed. Rebase mapping preserves identical accepted/published
 implementation and archive trees. Publication evidence is recorded in
-`harness/evaluations/CAMPAIGN-011-publication-ci-review.md`. Q-013 is now issued by
+`harness/evaluations/CAMPAIGN-011-publication-ci-review.md`. The original Q-013 gate was
+then issued by
 `harness/contracts/CAMPAIGN-011-q013-live.md` against the user's unchanged normal-main
 Goose extension command.
 
@@ -101,8 +105,26 @@ terminal digest slot for the canonical structured chief disposition, keeps the p
 action cap at six and appends that disposition exactly once and last. Independent Foreman
 evidence includes the real Q-013 A/B/C record reconstruction, 311 full passes, exact 24/24
 Golden metrics, root-only lock migration, fresh uv 0.12.3 artifacts and isolated
-Python 3.12/FastMCP 3.4.7 wheel verification. V0.11.1 publication and the subsequent
-normal-Goose Q-013 revalidation remain separate gates.
+Python 3.12/FastMCP 3.4.7 wheel verification. At r3 acceptance, V0.11.1 publication and
+normal-Goose Q-013 revalidation remained separate gates; both are now complete below.
+
+V0.11.1 was published through protected-main PR #24 at
+`f64d86fd37a0727d3a0a3ebcd8581fd26cc7e1a3`. All six required Ubuntu/Windows Python
+3.10/3.12/3.13 checks passed. Accepted/published implementation and archive tree hashes
+are exact. Publication evidence is recorded in
+`harness/evaluations/CAMPAIGN-011-r3-publication-ci-review.md`. Final Q-013-r2 normal-Goose
+revalidation is issued by `harness/contracts/CAMPAIGN-011-q013-live-r2.md`; it freezes the
+unchanged normal-main extension command and requires exact A/B/C primary/structured
+terminal coherence on V0.11.1.
+
+Q-013-r2 is accepted by
+`harness/evaluations/CAMPAIGN-011-q013-live-r2-review.md`. Fresh persisted V0.11.1 records
+prove standard/lightweight/strict legal-risk routing, full 6/4/7-role coverage, bounded
+7/4/8 sampling calls, zero elicitation, no degradation and exact dual-channel terminal
+coherence for modified-publishable, clean-publishable and human-review outcomes. Goose's
+natural-language summaries rename or misstate several raw fields, but the contract makes
+the persisted full records authoritative. CAMPAIGN-011 is complete with 52/52 accepted
+features and 13/13 accepted quality gates.
 
 CAMPAIGN-009-r1 reached the intended Q-012 A/B outcome but independent Foreman review
 found two bounded counterexamples: an already-present typed rule reference can be counted
