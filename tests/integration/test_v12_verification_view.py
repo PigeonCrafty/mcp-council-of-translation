@@ -14,9 +14,34 @@ from council_of_translation.localization.compatibility import parse_review_recor
 from council_of_translation.localization.orchestration import compact_review_response
 from council_of_translation.localization.persistence import ReviewStore
 from council_of_translation.localization.roles import build_council_plan
+from council_of_translation.localization.verification import (
+    CANONICAL_RECEIPT_LABEL,
+    MAX_VERIFICATION_TEXT,
+    build_verification_receipt,
+)
 from council_of_translation.presentation import structured_payload
 from council_of_translation.server import mcp
 from council_of_translation.tools import review as review_module
+
+
+def _receipt_from_text(text: str) -> tuple[str, dict]:
+    marker = f"\n\n{CANONICAL_RECEIPT_LABEL}\n```json\n"
+    markdown, separator, fenced = text.partition(marker)
+    assert separator == marker
+    assert fenced.endswith("\n```")
+    assert text.count(CANONICAL_RECEIPT_LABEL) == 1
+    assert text.count("```json") == 1
+    return markdown, json.loads(fenced[:-4])
+
+
+def _all_keys(value):
+    if isinstance(value, dict):
+        for key, nested in value.items():
+            yield key
+            yield from _all_keys(nested)
+    elif isinstance(value, list):
+        for nested in value:
+            yield from _all_keys(nested)
 
 
 def _record() -> ReviewRecordV2:
@@ -75,8 +100,10 @@ def test_actual_registered_verification_view_has_exact_dual_channel_wrapper(monk
     assert payload["review_id"] == record.review_id
     assert payload["verification_receipt"]["review_id"] == record.review_id
     assert payload["verification_receipt"]["availability"]["verification_complete"] is True
-    assert result.content[0].text.startswith("# Council 验证回执")
-    assert [line for line in payload["display_report"].splitlines() if line.startswith("#")] == [
+    markdown, text_receipt = _receipt_from_text(result.content[0].text)
+    assert text_receipt == payload["verification_receipt"]
+    assert markdown.startswith("# Council 验证回执")
+    assert [line for line in markdown.splitlines() if line.startswith("#")] == [
         "# Council 验证回执",
         "## 记录与路由",
         "## 覆盖与调用",
@@ -90,9 +117,14 @@ def test_actual_registered_verification_view_has_exact_dual_channel_wrapper(monk
         f"构建 `{serving['diagnostic_build']}`；"
         f"Schema `{serving['schema_version']}`。"
     ) in payload["display_report"]
-    assert result.content[0].text.endswith(
+    assert markdown.endswith(
         f"审校记录：{record.review_id}；可用 view_review_record 获取结构化证据。"
     )
+    expected_json = json.dumps(
+        payload["verification_receipt"], ensure_ascii=False, separators=(",", ":")
+    )
+    assert result.content[0].text.endswith(f"```json\n{expected_json}\n```")
+    assert len(result.content[0].text) <= MAX_VERIFICATION_TEXT
     assert "source_text" not in str(payload)
     assert "candidate_translation" not in str(payload)
     assert calls == {"load": 1, "save": 0}
@@ -194,10 +226,8 @@ def test_live_shaped_a_b_c_verification_views_preserve_canonical_values(monkeypa
             ("strict", 8, 18, "需人工复核", "是"),
         ],
     ):
-        payload = structured_payload(
-            review_module.view_review_record.fn(record.review_id, "verification")
-        )
-        receipt = payload["verification_receipt"]
+        result = review_module.view_review_record.fn(record.review_id, "verification")
+        _, receipt = _receipt_from_text(result.content[0].text)
         mode, calls, budget, publishability, review_needed = expected
         assert receipt["routing"]["mode"] == mode
         assert receipt["routing"]["active_role_ids"] == record.council_plan.active_role_ids
@@ -210,7 +240,15 @@ def test_live_shaped_a_b_c_verification_views_preserve_canonical_values(monkeypa
         assert receipt["coherence"]["terminal_disposition_occurrences"] == 1
         assert receipt["coherence"]["terminal_disposition_is_last_report_line"] is True
         assert receipt["coherence"]["terminal_disposition_matches_structured"] is True
-        assert len(payload["display_report"]) <= 2_400
+        assert receipt == result.structured_content["verification_receipt"]
+        assert {
+            "receipt_version",
+            "calls",
+            "chief_editor",
+            "terminal_disposition_check",
+            "git_commit",
+        }.isdisjoint(set(_all_keys(receipt)))
+        assert len(result.content[0].text) <= MAX_VERIFICATION_TEXT
 
 
 def test_terminal_mismatch_is_reported_without_repair(monkeypatch):
@@ -301,6 +339,15 @@ def test_metadata_and_legacy_actual_verification_views_are_bounded(monkeypatch, 
     assert "PRIVATE" not in str(legacy_payload)
     assert len(metadata_payload["display_report"]) <= 2_400
     assert len(legacy_payload["display_report"]) <= 2_400
+
+    metadata_result = review_module.view_review_record.fn(
+        loaded_metadata.review_id, "verification"
+    )
+    legacy_result = review_module.view_review_record.fn(legacy.review_id, "verification")
+    assert _receipt_from_text(metadata_result.content[0].text)[1] == metadata_payload["verification_receipt"]
+    assert _receipt_from_text(legacy_result.content[0].text)[1] == legacy_payload["verification_receipt"]
+    assert len(metadata_result.content[0].text) <= MAX_VERIFICATION_TEXT
+    assert len(legacy_result.content[0].text) <= MAX_VERIFICATION_TEXT
 
 
 def test_verification_retrieval_preserves_bytes_counters_timestamps_and_normal_report(monkeypatch, tmp_path):
@@ -435,4 +482,40 @@ def test_actual_verification_tool_redacts_huge_count_and_oversized_samples(monke
     assert "脱敏字段 2" in primary_text
     assert hostile_decimal not in serialized
     assert hostile_decimal not in primary_text
-    assert len(primary_text) <= 3_200
+    assert _receipt_from_text(primary_text)[1] == receipt
+    assert len(primary_text) <= MAX_VERIFICATION_TEXT
+
+
+def test_impossible_oversized_receipt_returns_bounded_private_error_without_mutation_or_save(
+    monkeypatch,
+):
+    record = _record()
+    before = deepcopy(record.model_dump(mode="json"))
+    receipt = build_verification_receipt(record)
+    receipt["availability"]["not_recorded_fields"] = ["PRIVATE_SENTINEL" * 1_000]
+    calls = {"load": 0, "save": 0}
+
+    class FakeStore:
+        def load(self, review_id):
+            calls["load"] += 1
+            return record
+
+        def save(self, *args, **kwargs):
+            calls["save"] += 1
+            raise AssertionError("verification retrieval must not save")
+
+    monkeypatch.setattr(review_module, "ReviewStore", FakeStore)
+    monkeypatch.setattr(review_module, "build_verification_receipt", lambda loaded: receipt)
+
+    result = review_module.view_review_record.fn(record.review_id, "verification")
+
+    assert result.structured_content == {
+        "error": "verification text exceeds hard cap",
+        "error_type": "ValueError",
+    }
+    assert result.content[0].text == (
+        "# 审校未完成\n\n- verification text exceeds hard cap"
+    )
+    assert "PRIVATE_SENTINEL" not in result.content[0].text
+    assert calls == {"load": 1, "save": 0}
+    assert record.model_dump(mode="json") == before

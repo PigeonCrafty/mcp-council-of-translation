@@ -7,6 +7,11 @@ from typing import Any
 from fastmcp.tools.tool import ToolResult
 from mcp.types import TextContent
 
+from council_of_translation.localization.verification import (
+    append_canonical_receipt_json,
+    is_canonical_verification_receipt,
+)
+
 
 MAX_PRIMARY_TEXT = 3_200
 
@@ -44,8 +49,12 @@ def primary_text_for_payload(payload: dict[str, Any]) -> str:
 
 def dual_channel_result(payload: dict[str, Any]) -> ToolResult:
     """Expose primary Markdown and the unchanged JSON-safe dictionary together."""
+    primary_text = primary_text_for_payload(payload)
+    receipt = payload.get("verification_receipt")
+    if is_canonical_verification_receipt(receipt):
+        primary_text = append_canonical_receipt_json(primary_text, receipt)
     return ToolResult(
-        content=[TextContent(type="text", text=primary_text_for_payload(payload))],
+        content=[TextContent(type="text", text=primary_text)],
         structured_content=payload,
     )
 

@@ -300,7 +300,7 @@ def view_review_record(
                 "error": "detail_level must be full, summary, or verification"
             })
         return dual_channel_result(record.model_dump(mode="json"))
-    except ReviewPersistenceError as exc:
+    except (ValueError, ReviewPersistenceError) as exc:
         return dual_channel_result(_error(exc))
 
 

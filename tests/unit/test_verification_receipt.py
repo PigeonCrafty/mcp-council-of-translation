@@ -15,7 +15,10 @@ from council_of_translation.localization.models import (
 )
 from council_of_translation.localization.compatibility import parse_review_record
 from council_of_translation.localization.verification import (
+    MAX_VERIFICATION_TEXT,
+    append_canonical_receipt_json,
     build_verification_receipt,
+    is_canonical_verification_receipt,
     render_verification_report,
 )
 from council_of_translation.localization.roles import build_council_plan
@@ -245,6 +248,33 @@ def test_receipt_and_report_are_deterministic_pure_and_privacy_safe():
     assert "SECRET" not in report
     for prohibited in ("source_text", "candidate_translation", "role_feedback", "issue_secret"):
         assert prohibited not in str(first)
+
+
+def test_canonical_text_uses_compact_utf8_json_and_rejects_overflow():
+    receipt = build_verification_receipt(_full_record())
+    primary = render_verification_report(receipt) + "\n\n审校记录：safe-id。"
+
+    combined = append_canonical_receipt_json(primary, receipt)
+    expected = json.dumps(receipt, ensure_ascii=False, separators=(",", ":"))
+
+    assert is_canonical_verification_receipt(receipt)
+    assert combined == (
+        f"{primary}\n\nCanonical verification_receipt JSON:\n"
+        f"```json\n{expected}\n```"
+    )
+    assert len(combined) <= MAX_VERIFICATION_TEXT
+
+    oversized = deepcopy(receipt)
+    oversized["availability"]["not_recorded_fields"] = ["x" * MAX_VERIFICATION_TEXT]
+    with pytest.raises(ValueError, match="verification text exceeds hard cap"):
+        append_canonical_receipt_json(primary, oversized)
+
+
+def test_invalid_receipt_envelope_is_not_recognized_as_canonical():
+    receipt = build_verification_receipt(_full_record())
+    receipt["receipt_version"] = receipt.pop("receipt_schema_version")
+
+    assert is_canonical_verification_receipt(receipt) is False
 
 
 @pytest.mark.parametrize(
