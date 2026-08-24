@@ -60,6 +60,123 @@ def test_clean_runtime_report_collapses_confirmations_and_accounts_for_roles_onc
     assert record.display_report.splitlines()[-1].startswith("- 最终处置：")
 
 
+def test_legal_standard_report_uses_natural_route_wording_without_mutation(tmp_path):
+    clean = json.dumps({"role_feedback": "完成职责内审校", "findings": []}, ensure_ascii=False)
+    telemetry = RuntimeTelemetry(sample_budget=13)
+    record = asyncio.run(run_structured_review(
+        ReviewTaskV2(
+            source_text="You may withdraw after notice.",
+            candidate_translation="通知后可以撤回。",
+            content_type="legal_risk",
+            briefing_mode="off",
+            interactive_mode="off",
+        ),
+        ScriptedModelExecutor([clean] * 6, telemetry),
+        ScriptedUserInteractionGateway([], telemetry=telemetry),
+        store=ReviewStore(tmp_path / "legal", include_legacy=False),
+    ))
+    before = (
+        record.process_digest.model_dump(mode="json"),
+        record.council_plan.model_dump(mode="json"),
+        record.council_value_metrics.model_dump(mode="json"),
+        [cluster.model_dump(mode="json") for cluster in record.issue_clusters],
+    )
+
+    rerendered = render_display_report(
+        record.process_digest,
+        metrics=record.council_value_metrics,
+        status=record.status,
+        degraded=record.degraded,
+        warnings=record.warnings,
+        fallback_reason=record.fallback_reason,
+        clusters=record.issue_clusters,
+    )
+
+    assert record.runtime_metadata.sampling_calls == 6
+    assert record.runtime_metadata.elicitation_calls == 0
+    assert [line for line in rerendered.splitlines() if line.startswith("## ")] == HEADINGS
+    assert "风险审校路线：覆盖语义、术语、产品语境、用户理解、风险歧义与语言自然度" in rerendered
+    assert "确定性技术预检照常执行" in rerendered
+    assert len(rerendered) <= 1_200
+    assert rerendered.splitlines()[-1].startswith("- 最终处置：")
+    for private in ("routing_profile", "routing_reason_codes", "route_legal_risk_standard_v1", "risk_panorama"):
+        assert private not in rerendered
+    assert before == (
+        record.process_digest.model_dump(mode="json"),
+        record.council_plan.model_dump(mode="json"),
+        record.council_value_metrics.model_dump(mode="json"),
+        [cluster.model_dump(mode="json") for cluster in record.issue_clusters],
+    )
+
+
+def test_hostile_report_keeps_five_sections_and_whole_material_lines_under_cap():
+    role_ids = list(ROLE_REGISTRY)[:8]
+    internal = (
+        "ISSUE_SECRET cluster_SECRET POSITION_SECRET decision_SECRET OPTION_SECRET gap_SECRET "
+        "routing_profile routing_reason_codes route_legal_risk_strict_v1 risk_strict"
+    )
+    digest = ProcessDigestV2(
+        case_brief=[f"背景 {index} {internal} " + "甲" * 220 for index in range(6)],
+        assumptions_context_confidence=[f"假设 {index} {internal} " + "乙" * 220 for index in range(4)],
+        blind_spots=[f"盲区 {index} {internal} " + "丙" * 220 for index in range(6)],
+        role_lenses=[
+            RoleLens(
+                role_id=role_id,
+                perspective=f"新增风险 {index} {internal} " + "丁" * 220,
+                evidence=[f"完整依据 {index} " + "戊" * 60],
+            )
+            for index, role_id in enumerate(role_ids)
+        ],
+        consensus=[f"共识 {index} {internal} " + "己" * 220 for index in range(4)],
+        material_disagreements=[f"分歧 {index} {internal} " + "庚" * 220 for index in range(4)],
+        minority_report=MinorityReport(
+            dissent=f"少数意见 {internal} " + "辛" * 220,
+            decisive_condition=f"决定条件 {internal} " + "壬" * 220,
+        ),
+        context_gaps_answers=[f"背景缺口 {index} {internal} " + "癸" * 220 for index in range(3)],
+        user_decisions=[f"用户决定 {index} {internal} " + "子" * 220 for index in range(3)],
+        reconsideration_changes=[f"复议变化 {index} {internal} " + "丑" * 220 for index in range(3)],
+        editor_synthesis=[f"主编依据 {index} {internal} " + "寅" * 220 for index in range(3)],
+        execution_checklist_final_disposition=[
+            *[f"必须修复：风险后果 {index} {internal} " + "卯" * 220 for index in range(6)],
+            "最终处置：需人工复核；需人工复核：是",
+        ],
+    )
+    metrics = CouncilValueMetrics(
+        role_contributions=[
+            RoleContribution(
+                role_id=role_id,
+                contribution_kind="unique_material",
+                unique_issue_count=1,
+                material_finding_count=1,
+            )
+            for role_id in role_ids
+        ],
+        unique_material_issue_count=len(role_ids),
+        unavailable_role_count=1,
+        discussion_marginal_value="material",
+        discussion_new_evidence_count=2,
+        discussion_position_change_count=1,
+        discussion_resolved_issue_count=1,
+    )
+
+    report = render_display_report(digest, metrics=metrics, degraded=True)
+
+    assert [line for line in report.splitlines() if line.startswith("## ")] == HEADINGS
+    assert len(report) <= 3_200
+    assert report.splitlines()[-1] == "- 最终处置：需人工复核；需人工复核：是"
+    assert "覆盖风险" in report
+    assert "盲区" in report
+    assert "存在降级或回退" in report
+    lowered = report.casefold()
+    for token in (
+        "issue_secret", "cluster_secret", "position_secret", "decision_secret",
+        "option_secret", "gap_secret", "routing_profile", "routing_reason_codes",
+        "route_legal_risk_strict_v1", "risk_strict",
+    ):
+        assert token not in lowered
+
+
 def test_value_order_minority_degradation_and_discussion_truth_remain_visible():
     role_ids = ["fidelity_reviewer", "terminology_reviewer", "fluency_reviewer"]
     digest = ProcessDigestV2(
