@@ -516,6 +516,72 @@
         "Distinct semantic defects and materially different consequences remain visible while duplicate chief advice and execution-order prose are suppressed",
         "Package/module 0.10.2 and build evidence-value-council-v8.2 preserve schema 2.4, five tools, budgets 6/13/18, concurrency, review-only behavior and Golden evidence"
       ]
+    },
+    {
+      "id": "F-047",
+      "name": "Deterministic role-routing profiles",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-011-r2",
+      "criteria": [
+        "Every recognized content type and review mode resolves through an explicit stable routing profile rather than an accidental intersection of mode and applicability flags",
+        "CouncilPlan persists a bounded routing profile and safe deterministic reason codes without user prose or hidden model reasoning",
+        "Existing non-legal UI, marketing, technical-documentation and unspecified portfolios retain their accepted relative order and budgets"
+      ]
+    },
+    {
+      "id": "F-048",
+      "name": "Risk-sensitive panoramic reviewer portfolios",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-011-r2",
+      "criteria": [
+        "Legal-risk lightweight, standard and strict routes use the frozen 4/6/7-role portfolios defined by CAMPAIGN-011-r1",
+        "Standard legal-risk reviews include product-context, UX-copy and risk-ambiguity perspectives while remaining at six independent samples",
+        "No generic legal adviser is added and reviewers must not invent statutes, jurisdictional requirements or legal advice"
+      ]
+    },
+    {
+      "id": "F-049",
+      "name": "Routing provenance and compatibility",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-011-r2",
+      "criteria": [
+        "Schema 2.5 records expose routing provenance and remain readable from V1 and V2.0 through V2.4 with conservative defaults",
+        "Routing metadata adds zero sampling and zero elicitation and survives full persistence and continuation",
+        "The standard deep path remains bounded at 13 calls and strict legal-risk paths remain within 18"
+      ]
+    },
+    {
+      "id": "F-050",
+      "name": "Concise risk-route presentation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-011-r2",
+      "criteria": [
+        "Risk-sensitive primary reports make the selected professional coverage intelligible without exposing internal profile or role IDs",
+        "Material scope, consent, authorization, modality, overpromise and user-impact consequences remain visible without duplicate work items",
+        "The report retains exactly five sections, the 1200 clean target, the 3200 hard cap and full structured evidence"
+      ]
+    },
+    {
+      "id": "F-051",
+      "name": "Twenty-four-case Golden risk corpus",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-011-r2",
+      "criteria": [
+        "The accepted 18-case corpus remains intact and six deterministic legal-risk cases cover scope, consent versus authorization, modality, overpromise, protected tokens and a clean control",
+        "All aggregate correctness, contribution, authority, chief, budget and discussion metrics remain machine-checkable at 1.0",
+        "Golden evaluation traverses production orchestration and adds no live provider dependency"
+      ]
+    },
+    {
+      "id": "F-052",
+      "name": "V0.11 risk-coherent migration",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-011-r2",
+      "criteria": [
+        "Package/module 0.11.0 and diagnostic build risk-coherent-council-v9 write schema 2.5",
+        "Exact five tools, review-only default, budgets 6/13/18, concurrency controls and user-authority boundaries remain unchanged",
+        "Fresh wheel and sdist, isolated FastMCP smoke, complete regression and authoritative documentation pass"
+      ]
     }
   ],
   "quality_gates": [
@@ -578,6 +644,11 @@
       "id": "Q-012",
       "name": "Value-first Council live usefulness and non-repetition evidence",
       "status": "accepted"
+    },
+    {
+      "id": "Q-013",
+      "name": "Risk-sensitive panoramic routing live evidence",
+      "status": "planned"
     }
   ]
 }

@@ -4,13 +4,67 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-010`
-- Campaign state: `CLOSED; Q-012 ACCEPTED`
-- Campaign baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
-- Active quality gate: none (`Q-003 ACCEPTED`; 12/12 accepted)
+- Campaign: `CAMPAIGN-011`
+- Campaign state: `ACCEPTED_LOCAL; PUBLICATION_PENDING`
+- Accepted implementation: `565e97d19efbbd7ff009f747a48979fceb002d11`
+- Accepted review: `harness/evaluations/CAMPAIGN-011-r2-review.md`
+- Active quality gate: none (`Q-013 planned, 12/13 accepted; publication prerequisite`)
 - Published protected `main`: `617b696c94624988f03a64ab58e1d42a66697546`
 - Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Campaign 011 r1 review and r2 correction
+
+- Final decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-011-r2-review.md`.
+- Accepted implementation: `565e97d19efbbd7ff009f747a48979fceb002d11`.
+- F-047 through F-052 are accepted by combined r1/r2 evidence.
+- Independent final evidence: exact twelve-path/one-commit r2 correction; protected hashes;
+  compile; 307 full passes; direct 4/6/7 route, version/schema/tool/budget/concurrency probes;
+  exact 24/24 Golden with eight metrics at 1.0; pinned lock check; fresh wheel/sdist and
+  wheel-origin registration smoke.
+- Product: package/module `0.11.0`, build `risk-coherent-council-v9`, Schema `2.5`;
+  exact five tools, review-only behavior, budgets 6/13/18 and concurrency controls retained.
+- Publication and Q-013 normal-Goose risk-routing validation remain separate gates.
+
+- r1 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-011-r1-review.md`.
+- Preserved r1 implementation: five scoped commits through
+  `1ae3a7419c1eaeb293a944a49d0873cdf95952e1` implement PKG-057 through PKG-061.
+- Preserved evidence: focused package suites passed; Golden is exactly 24/24 with 148
+  scripted samples, four elicitations, total budget 296 and all eight aggregate metrics
+  at 1.0; the committed 15-path diff passes `git diff --check`.
+- Independent reproduction: `19 passed, 3 failed`. One current-runtime test still asserts
+  Schema 2.4 and was omitted from r1's allowed paths; two persistence tests still assert
+  V0.10.2/build v8.2. These are stale release assertions, not routing failures.
+- Active r2 scope: authorize only the omitted test plus existing PKG-062 release paths,
+  finish the admitted unstaged release intermediate, update the root lock to 0.11.0 and
+  complete regression/build/isolated-wheel evidence in one commit.
+- At the r1 checkpoint F-047 through F-052 remained pending final Campaign acceptance;
+  the final r2 decision above now accepts them. Q-013 remains post-publication planned.
+
+### Original r1 assignment
+
+- Goal: V0.11 risk-coherent panoramic routing without expanding the Council beyond
+  translation QA.
+- Trigger: standard `legal_risk` currently selects four roles and omits the existing
+  product-context, UX-copy and risk-ambiguity perspectives.
+- Frozen legal-risk portfolios: lightweight 4, standard 6, strict 7. Standard remains
+  within the exact deepest-path budget `6+3+1+3=13`; strict remains within 18.
+- F-047 through F-052 were the r1 plan: explicit routing profiles, risk-sensitive portfolios,
+  Schema 2.5 provenance/compatibility, concise presentation, 24-case Golden corpus and
+  V0.11 release migration.
+- Frozen release: package/module `0.11.0`, build `risk-coherent-council-v9`, schema `2.5`.
+- Preserved: exact five tools, review-only default, 6/13/18 budgets, concurrency 3,
+  evidence hierarchy, user authority, no-vote adjudication, five-section report and all
+  non-legal route portfolios.
+- Admission evidence: compile passed and `294 passed` at exact baseline.
+- Worker reports: `harness/reports/CAMPAIGN-011-r1-ledger.md` and
+  `harness/reports/CAMPAIGN-011-r1-worker.md`, both untracked/unstaged.
+- Worker may create at most three bounded subagents but owns integration and final
+  verification. Live Goose/provider calls, push, PR, release and deployment are forbidden.
+- Q-013 is planned as a separate post-publication normal-Goose risk-routing gate; no
+  Worker or offline Campaign evidence can accept it.
 
 ## Q-003 Desktop/CLI r1 review and r2 correction
 
@@ -477,7 +531,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-No implementation Campaign is active. Campaign 010 and its final Q-012 live gate are
-closed. The remaining historical cross-client gate Q-003 retains partial live evidence;
-the next Foreman action is either a bounded Goose Desktop/CLI parity run for Q-003 or a
-new product Campaign based on user priorities.
+Archive the accepted CAMPAIGN-011 assets and publish accepted implementation
+`565e97d19efbbd7ff009f747a48979fceb002d11` through protected `main`. Confirm all six
+required Windows/Linux Python CI jobs, then issue the pinned normal-Goose Q-013
+risk-routing live gate. Q-013 remains planned until that publication succeeds.
