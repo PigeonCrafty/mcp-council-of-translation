@@ -1,6 +1,6 @@
 # Council of Translation
 
-Council of Translation V0.12.0 is a Goose-first, review-only MCP server for context-coherent localization QA. It reviews a source/candidate pair, returns a concise Council report as the primary MCP text, and retains the complete existing dictionary as structured content. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
+Council of Translation V0.12.1 is a Goose-first, review-only MCP server for context-coherent localization QA. It reviews a source/candidate pair, returns a concise Council report as the primary MCP text, and retains the complete existing dictionary as structured content. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
 
 ## Public MCP tools
 
@@ -68,7 +68,7 @@ New records use schema `2.5`, adding bounded routing provenance to the existing 
 
 Use `view_review_record(review_id, detail_level="full")` to inspect full structured evidence when `history_mode="full"`; no hidden chain-of-thought is requested or stored. The first normal review response is already suitable for user presentation, so a second history lookup is not required just to obtain the concise Council report.
 
-Use `detail_level="verification"` only when a client needs a deterministic, privacy-safe technical receipt. It returns a five-section Markdown verification report plus a canonical structured receipt with receipt schema `1.0`; it does not return raw record content, persist a receipt, sample reviewers, elicit input, or replace the normal process-first Council report. Historical and metadata records expose unavailable facts as `null` with explicit availability provenance instead of compatibility defaults.
+Use `detail_level="verification"` only when a client needs a deterministic, privacy-safe technical receipt. It retains the canonical receipt with receipt schema `1.0` in structured content and appends the exact same compact, UTF-8-safe JSON object after the five-section Markdown and review footer in the first text block. This lets clients that ignore MCP structured content copy the canonical object without reconstructing it from prose. It does not return raw record content, persist a receipt, sample reviewers, elicit input, or replace the normal process-first Council report. Historical and metadata records expose unavailable facts as `null` with explicit availability provenance instead of compatibility defaults.
 
 ## Development
 
@@ -89,4 +89,4 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 For Q-010 after publication, replace `<reviewed-commit>` above with the exact accepted commit and run two pinned normal-user recipes. First, review a clean marketing slogan with explicit brand usage and any binding glossary/reference; expect the six marketing lenses in frozen order and a normal outcome only after context is sufficient. Second, deliberately combine marketing with functional-button context and omit whether the text is a slogan or UI action; expect the Council to ask that material question first, and if it remains unanswered, open no wording form and require human review. Audit literal structured JSON for role IDs, sample statuses, coverage and call counts; do not treat an outer agent's prose reconstruction as telemetry truth.
 
-The pinned build reports version `0.12.0`, schema `2.5`, verification receipt schema `1.0`, diagnostic build `verifiable-evidence-council-v10`, and budgets 6/13/18.
+The pinned build reports version `0.12.1`, schema `2.5`, verification receipt schema `1.0`, diagnostic build `verifiable-evidence-council-v10.1`, and budgets 6/13/18.
