@@ -55,6 +55,10 @@ def _reviewer(
     applicable_content_types: tuple[str, ...],
     priority: int,
 ) -> ReviewerRole:
+    legal_safety_boundaries = (
+        "invent_statutes_or_jurisdictional_obligations",
+        "provide_legal_advice",
+    )
     return ReviewerRole(
         id=id,
         display_name=display_name,
@@ -62,7 +66,7 @@ def _reviewer(
         mission=mission,
         scope=list(scope),
         must_check=list(must_check),
-        must_not_decide=list(must_not_decide),
+        must_not_decide=[*must_not_decide, *legal_safety_boundaries],
         evidence_policy=list(evidence_policy),
         blocking_conditions=list(blocking_conditions),
         applicable_modes=list(applicable_modes),
@@ -141,7 +145,7 @@ REVIEWER_ROLES: tuple[ReviewerRole, ...] = (
         evidence_policy=("Prefer caller-supplied product context and UI metadata.", "Label assumptions when context is absent."),
         blocking_conditions=("explicit_context_confirms_action_or_state_is_materially_misrepresented",),
         applicable_modes=("standard", "strict"),
-        applicable_content_types=("unspecified", "ui", "marketing", "technical_documentation"),
+        applicable_content_types=("unspecified", "ui", "marketing", "technical_documentation", "legal_risk"),
         priority=40,
     ),
     _reviewer(
@@ -154,7 +158,7 @@ REVIEWER_ROLES: tuple[ReviewerRole, ...] = (
         evidence_policy=("Ground advice in supplied UI context, audience, and observable wording." ,),
         blocking_conditions=("explicit_context_confirms_copy_directs_a_materially_wrong_or_unsafe_action",),
         applicable_modes=("standard", "strict"),
-        applicable_content_types=("unspecified", "ui"),
+        applicable_content_types=("unspecified", "ui", "legal_risk"),
         priority=50,
     ),
     _reviewer(
@@ -179,7 +183,7 @@ REVIEWER_ROLES: tuple[ReviewerRole, ...] = (
         must_not_decide=("invent_legal_requirements", "expand_source_meaning_to_remove_hypothetical_risk"),
         evidence_policy=("Prefer explicit jurisdiction, risk, and project rules.", "State uncertainty when legal or cultural context is absent."),
         blocking_conditions=("explicit_rule_or_source_evidence_confirms_material_safety_legal_or_authorization_risk",),
-        applicable_modes=("strict",),
+        applicable_modes=("lightweight", "standard", "strict"),
         applicable_content_types=("unspecified", "marketing", "legal_risk"),
         priority=70,
     ),
@@ -344,10 +348,8 @@ def get_reviewers_for_mode(mode: ReviewMode) -> list[ReviewerRole]:
     """Compatibility selector retaining the V0.3 mode-only behavior."""
 
     normalized_mode = normalize_mode(mode)
-    return sorted(
-        [role for role in REVIEWER_ROLES if normalized_mode in role.applicable_modes],
-        key=lambda role: role.priority,
-    )
+    profile = routing_profile_for(normalized_mode, "unspecified")
+    return [ROLE_REGISTRY[role_id] for role_id in ROUTING_PORTFOLIOS[profile]]  # type: ignore[list-item]
 
 
 def get_reviewers_for_plan(mode: str | None, content_type: str | None = None) -> list[ReviewerRole]:
