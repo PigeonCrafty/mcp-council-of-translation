@@ -19,6 +19,7 @@ from council_of_translation.localization.models import (
 _MATERIAL_SEVERITIES = {"critical", "major"}
 _PENDING_BRIEFING_ACTIONS = {"decline", "cancel", "unsupported", "malformed", "error"}
 _RUNTIME_FALLBACK_EXEMPTION = "user_delegated_to_council"
+INSUFFICIENT_REVIEW_REASON = "结论依据不足；需人工复核后再决定是否发布。"
 
 
 def _ordered(selected: set[str], order: tuple[str, ...]) -> list[str]:
@@ -81,11 +82,20 @@ def classify_decision_support(record: ReviewRecordV2) -> DecisionSupportAssessme
         or decision.selection_kind == "council_delegation"
         for decision in record.user_decisions
     )
-    requested = set(record.reconsideration_provenance.requested_role_ids)
-    completed = set(record.reconsideration_provenance.completed_role_ids)
+    provenances = (
+        record.reconsideration_provenance,
+        record.context_reconsideration_provenance,
+        record.outcome_reconsideration_provenance,
+    )
+    requested = {
+        role_id for provenance in provenances for role_id in provenance.requested_role_ids
+    }
+    completed = {
+        role_id for provenance in provenances for role_id in provenance.completed_role_ids
+    }
     incomplete_reconsideration = bool(
-        record.reconsideration_provenance.failed_role_ids
-        or record.reconsideration_provenance.skipped_role_ids
+        any(provenance.failed_role_ids for provenance in provenances)
+        or any(provenance.skipped_role_ids for provenance in provenances)
         or requested - completed
     )
     completed_reconsideration = bool(requested) and not incomplete_reconsideration
@@ -96,6 +106,8 @@ def classify_decision_support(record: ReviewRecordV2) -> DecisionSupportAssessme
     }
     unresolved_material_context = bool(selected_gap_ids - resolved_gap_ids)
     briefing_pending = bool(
+        record.task.briefing_mode == "always"
+        and
         record.briefing_interaction.requested
         and record.briefing_interaction.action in _PENDING_BRIEFING_ACTIONS
     )
@@ -124,7 +136,7 @@ def classify_decision_support(record: ReviewRecordV2) -> DecisionSupportAssessme
         limitations.add("partial_context")
     if material_clusters:
         basis.add("structured_material_evidence")
-    elif coverage == "full":
+    elif coverage == "full" and not record.issue_clusters:
         basis.add("clean_confirmation")
     if record.council_value_metrics.corroborated_issue_count:
         basis.add("corroborated_material_evidence")
@@ -191,3 +203,26 @@ def classify_decision_support(record: ReviewRecordV2) -> DecisionSupportAssessme
         assessment_basis="deterministic_structured_trace_v1",
         outcome_coherent=coherent,
     )
+
+
+def finalize_decision_support(record: ReviewRecordV2) -> ReviewRecordV2:
+    """Apply the one-way insufficient-support rule and freeze Schema 2.6."""
+
+    assessment = classify_decision_support(record)
+    if assessment.level == "insufficient" and (
+        record.chief_editor_decision.publishability != "需人工复核"
+        or record.chief_editor_decision.review_needed != "是"
+    ):
+        record.chief_editor_decision.publishability = "需人工复核"
+        record.chief_editor_decision.review_needed = "是"
+        record.chief_editor_decision.review_reason = INSUFFICIENT_REVIEW_REASON
+        if record.status != "RETURNED_PENDING":
+            record.status = "NEEDS_HUMAN_REVIEW"
+    record.decision_support = classify_decision_support(record)
+    payload = record.model_dump(mode="json")
+    payload["schema_version"] = "2.6"
+    payload["version_metadata"] = {
+        **payload.get("version_metadata", {}),
+        "record_schema": "2.6",
+    }
+    return ReviewRecordV2.model_validate(payload)

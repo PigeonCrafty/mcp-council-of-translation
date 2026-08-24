@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from council_of_translation.localization.decision_support import classify_decision_support
+from council_of_translation.localization.compatibility import parse_review_record
+from council_of_translation.localization.decision_support import (
+    INSUFFICIENT_REVIEW_REASON,
+    classify_decision_support,
+    finalize_decision_support,
+)
 from council_of_translation.localization.models import (
     ChiefEditorDecisionV2,
     ContextGapInteraction,
@@ -27,7 +32,7 @@ from council_of_translation.localization.models import (
 
 def _record(**updates: object) -> ReviewRecordV2:
     record = ReviewRecordV2(
-        schema_version="2.6",
+        schema_version="2.5",
         review_id="review_support_test",
         task=ReviewTaskV2(source_text="ignored", candidate_translation="ignored"),
         council_plan=CouncilPlan(active_role_ids=["a", "b", "c"]),
@@ -277,3 +282,77 @@ def test_classifier_is_total_for_historical_default_record() -> None:
     ))
     assert assessment.level == "supported_with_limits"
     assert assessment.assessment_basis == "deterministic_structured_trace_v1"
+
+
+def test_finalizer_tightens_only_disposition_fields_and_freezes_schema_26() -> None:
+    record = _record(
+        runtime_metadata=RuntimeMetadata(
+            reviewer_coverage="partial",
+            reviewer_samples_successful=2,
+            reviewer_samples_unavailable=1,
+        ),
+        chief_editor_decision=ChiefEditorDecisionV2(
+            publishability="修改后可发布",
+            review_needed="否",
+            must_fix=["bounded must fix"],
+            should_fix=["bounded should fix"],
+            execution_order=["bounded order"],
+            suggested_translation="bounded suggestion",
+        ),
+    )
+    finalized = finalize_decision_support(record)
+    assert finalized.schema_version == "2.6"
+    assert finalized.version_metadata["record_schema"] == "2.6"
+    assert finalized.status == "NEEDS_HUMAN_REVIEW"
+    assert finalized.chief_editor_decision.publishability == "需人工复核"
+    assert finalized.chief_editor_decision.review_needed == "是"
+    assert finalized.chief_editor_decision.review_reason == INSUFFICIENT_REVIEW_REASON
+    assert finalized.chief_editor_decision.must_fix == ["bounded must fix"]
+    assert finalized.chief_editor_decision.should_fix == ["bounded should fix"]
+    assert finalized.chief_editor_decision.execution_order == ["bounded order"]
+    assert finalized.chief_editor_decision.suggested_translation == "bounded suggestion"
+    assert finalized.decision_support.level == "insufficient"
+    assert finalized.decision_support.outcome_coherent is True
+
+
+def test_non_insufficient_levels_never_change_chief_authority() -> None:
+    chief = ChiefEditorDecisionV2(publishability="需人工复核", review_needed="是")
+    finalized = finalize_decision_support(_record(
+        issue_clusters=[IssueCluster(
+            issue_id="issue_model", severity="critical", consensus_status="consensus"
+        )],
+        chief_editor_decision=chief,
+        status="NEEDS_HUMAN_REVIEW",
+    ))
+    assert finalized.decision_support.level == "supported_with_limits"
+    assert finalized.chief_editor_decision == chief
+
+
+def test_schema_26_requires_current_assessment_for_new_model_validation() -> None:
+    with pytest.raises(ValidationError, match="recorded decision support"):
+        ReviewRecordV2(
+            schema_version="2.6", review_id="invalid_new", task=ReviewTaskV2()
+        )
+
+
+@pytest.mark.parametrize("version", ["2.0", "2.1", "2.2", "2.3", "2.4", "2.5"])
+def test_historical_v2_assessment_is_never_inferred(version: str) -> None:
+    payload = _record().model_dump(mode="json")
+    payload["schema_version"] = version
+    payload["decision_support"] = {
+        "level": "well_supported",
+        "basis_codes": ["full_reviewer_coverage"],
+        "limitation_codes": [],
+        "assessment_basis": "deterministic_structured_trace_v1",
+        "outcome_coherent": True,
+    }
+    parsed = parse_review_record(payload)
+    assert parsed.decision_support == DecisionSupportAssessment()
+
+
+def test_hostile_schema_26_assessment_is_conservatively_unrecorded() -> None:
+    payload = finalize_decision_support(_record()).model_dump(mode="json")
+    payload["decision_support"]["basis_codes"] = ["unknown_code"]
+    parsed = parse_review_record(payload)
+    assert parsed.schema_version == "2.6"
+    assert parsed.decision_support == DecisionSupportAssessment()

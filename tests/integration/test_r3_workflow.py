@@ -87,11 +87,21 @@ def test_production_noninteractive_fallback_selects_expected_non_tied_option(act
     position_ids = {position.option_id for position in record.issue_clusters[0].positions}
     entry = record.decision_trace.entries[0]
     assert point_ids == position_ids
-    assert record.status == "COMPLETED_WITH_FALLBACK"
+    assert record.decision_support.level == "insufficient"
+    assert record.decision_support.outcome_coherent is True
+    assert record.chief_editor_decision.publishability == "需人工复核"
+    assert record.chief_editor_decision.review_needed == "是"
+    assert record.status == "NEEDS_HUMAN_REVIEW"
     assert entry.outcome == "council_fallback"
     assert entry.decision == "继续"
     assert entry.selected_option_id in point_ids
     assert "position_matrix" in entry.basis
+    assert record.fallback_reason == (
+        "user_interaction_unsupported" if action in {"unsupported", "off"}
+        else f"user_interaction_{action}"
+    )
+    assert record.degraded is False
+    assert record.warnings == []
     assert record.runtime_metadata.sampling_calls == 7
     assert record.runtime_metadata.elicitation_calls == (0 if action in {"unsupported", "off"} else 1)
     assert record.runtime_metadata.sample_budget == 13

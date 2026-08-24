@@ -175,7 +175,9 @@ def test_forced_lightweight_budget_shortfall_returns_truthful_degradation(tmp_pa
     ))
     assert record.runtime_metadata.sampling_calls == 6
     assert record.degraded is True
-    assert record.status == "COMPLETED_WITH_FALLBACK"
+    assert record.status == "NEEDS_HUMAN_REVIEW"
+    assert record.decision_support.level == "insufficient"
+    assert record.decision_support.outcome_coherent is True
     assert len(record.reconsideration_provenance.requested_role_ids) == 3
     assert len(record.reconsideration_provenance.completed_role_ids) == 1
     assert len(record.reconsideration_provenance.skipped_role_ids) == 1

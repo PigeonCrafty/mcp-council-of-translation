@@ -6,7 +6,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from council_of_translation.localization.models import ReviewRecordV2
+from council_of_translation.localization.models import DecisionSupportAssessment, ReviewRecordV2
 
 
 class ReviewRecordV1(BaseModel):
@@ -34,11 +34,30 @@ def parse_review_record(value: Any) -> ReviewRecordV1 | ReviewRecordV2:
     if schema_version in ("2", "2.0"):
         data = dict(value)
         data["schema_version"] = "2.0"
+        data["decision_support"] = DecisionSupportAssessment().model_dump(mode="json")
         return ReviewRecordV2.model_validate(data)
-    if schema_version == "2.1":
-        return ReviewRecordV2.model_validate(value)
-    if schema_version in ("2.2", "2.3", "2.4", "2.5"):
-        return ReviewRecordV2.model_validate(value)
+    if schema_version in ("2.1", "2.2", "2.3", "2.4", "2.5"):
+        data = dict(value)
+        data["decision_support"] = DecisionSupportAssessment().model_dump(mode="json")
+        return ReviewRecordV2.model_validate(data)
+    if schema_version == "2.6":
+        data = dict(value)
+        try:
+            assessment = DecisionSupportAssessment.model_validate(data.get("decision_support"))
+            if assessment.level == "not_recorded":
+                raise ValueError("current assessment was not recorded")
+        except (ValueError, TypeError):
+            data["schema_version"] = "2.5"
+            data["decision_support"] = DecisionSupportAssessment().model_dump(mode="json")
+            record = ReviewRecordV2.model_validate(data)
+            return record.model_copy(update={
+                "schema_version": "2.6",
+                "version_metadata": {
+                    **record.version_metadata,
+                    "record_schema": "2.6",
+                },
+            })
+        return ReviewRecordV2.model_validate(data)
     raise ValueError(f"unsupported review record schema_version: {schema_version}")
 
 

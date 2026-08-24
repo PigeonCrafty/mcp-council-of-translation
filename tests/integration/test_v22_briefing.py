@@ -206,6 +206,8 @@ def test_always_nonaccept_matrix_stops_before_sampling(tmp_path, result, expecte
     assert executor.prompts == []
     assert record.briefing_interaction.accepted_answers == {}
     assert record.chief_editor_decision.review_needed == "是"
+    assert record.decision_support.level == "insufficient"
+    assert record.decision_support.outcome_coherent is True
 
 
 def test_required_briefing_wall_clock_includes_late_display_finalization(tmp_path, monkeypatch):

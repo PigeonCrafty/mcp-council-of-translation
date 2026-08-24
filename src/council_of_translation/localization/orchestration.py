@@ -13,6 +13,7 @@ from pydantic import Field, ValidationError, create_model
 from council_of_translation import __diagnostic_build__, __schema_version__, __version__
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.digest import build_process_digest, render_display_report
+from council_of_translation.localization.decision_support import finalize_decision_support
 from council_of_translation.localization.deliberation import (
     SampleBudget,
     apply_discussion_updates,
@@ -875,19 +876,6 @@ async def run_structured_review(
             review_reason="审校尚未开始：必需的背景说明未被接受。",
             decision_rationale=brief_interaction.retry_hint,
         )
-        early_digest = build_process_digest(
-            task=effective_task,
-            brief=effective_brief,
-            plan=plan,
-            independent_reviews=[],
-            clusters=[],
-            context_gaps=[],
-            user_decisions=[],
-            context_provenance=PhaseReconsiderationProvenance(),
-            outcome_provenance=PhaseReconsiderationProvenance(),
-            chief=early_chief,
-            reviewer_coverage="not_applicable",
-        )
         record = ReviewRecordV2(
             schema_version="2.5",
             review_id=build_review_id(),
@@ -919,26 +907,34 @@ async def run_structured_review(
                     summary="必需背景说明未接受；在独立评审前返回。",
                 )
             ]),
-            process_digest=early_digest,
             council_value_metrics=compute_council_value_metrics(
                 active_role_ids=plan.active_role_ids,
                 independent_reviews=[],
                 clusters=[],
                 discussion_rounds=[],
             ),
-            display_report=render_display_report(
-                early_digest,
-                metrics=compute_council_value_metrics(
-                    active_role_ids=plan.active_role_ids,
-                    independent_reviews=[],
-                    clusters=[],
-                    discussion_rounds=[],
-                ),
-                status="RETURNED_PENDING",
-                degraded=True,
-                warnings=[f"briefing_not_accepted:{brief_action}"],
-                fallback_reason=f"briefing_{brief_action}",
-            ),
+        )
+        record = finalize_decision_support(record)
+        record.process_digest = build_process_digest(
+            task=effective_task,
+            brief=effective_brief,
+            plan=plan,
+            independent_reviews=[],
+            clusters=[],
+            context_gaps=[],
+            user_decisions=[],
+            context_provenance=PhaseReconsiderationProvenance(),
+            outcome_provenance=PhaseReconsiderationProvenance(),
+            chief=record.chief_editor_decision,
+            reviewer_coverage="not_applicable",
+        )
+        record.display_report = render_display_report(
+            record.process_digest,
+            metrics=record.council_value_metrics,
+            status=record.status,
+            degraded=record.degraded,
+            warnings=record.warnings,
+            fallback_reason=record.fallback_reason,
         )
         telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
         record.runtime_metadata = telemetry.snapshot()
@@ -1247,34 +1243,6 @@ async def run_structured_review(
             for item in reconsiderations if item.status == "completed"
         ],
     )
-    process_digest = build_process_digest(
-        task=effective_task,
-        brief=effective_brief,
-        plan=plan,
-        independent_reviews=independent_reviews,
-        clusters=clusters,
-        context_gaps=context_gaps,
-        user_decisions=user_decisions,
-        context_provenance=context_provenance,
-        outcome_provenance=outcome_provenance,
-        chief=chief,
-        reviewer_coverage=reviewer_coverage,
-    )
-    phase_trace = _build_phase_trace(
-        briefing=brief_interaction,
-        preflight=preflight,
-        plan=plan,
-        successful_reviewers=successful_reviewers,
-        unavailable_reviewers=unavailable_reviewers,
-        clusters=clusters,
-        context_interaction=context_gap_interaction,
-        context_provenance=context_provenance,
-        discussion_rounds=discussion_rounds,
-        decisions=user_decisions,
-        outcome_provenance=outcome_provenance,
-        suppressions=decision_suppressions,
-        chief=chief,
-    )
     record = ReviewRecordV2(
         schema_version="2.5",
         review_id=build_review_id(),
@@ -1320,8 +1288,6 @@ async def run_structured_review(
             *reconsideration_warnings,
             *_suppression_warnings(decision_suppressions),
         ],
-        phase_trace=phase_trace,
-        process_digest=process_digest,
         council_value_metrics=compute_council_value_metrics(
             active_role_ids=plan.active_role_ids,
             independent_reviews=independent_reviews,
@@ -1330,8 +1296,37 @@ async def run_structured_review(
         ),
         display_report="",
     )
+    record = finalize_decision_support(record)
+    record.process_digest = build_process_digest(
+        task=effective_task,
+        brief=effective_brief,
+        plan=plan,
+        independent_reviews=independent_reviews,
+        clusters=clusters,
+        context_gaps=context_gaps,
+        user_decisions=user_decisions,
+        context_provenance=context_provenance,
+        outcome_provenance=outcome_provenance,
+        chief=record.chief_editor_decision,
+        reviewer_coverage=reviewer_coverage,
+    )
+    record.phase_trace = _build_phase_trace(
+        briefing=brief_interaction,
+        preflight=preflight,
+        plan=plan,
+        successful_reviewers=successful_reviewers,
+        unavailable_reviewers=unavailable_reviewers,
+        clusters=clusters,
+        context_interaction=context_gap_interaction,
+        context_provenance=context_provenance,
+        discussion_rounds=discussion_rounds,
+        decisions=user_decisions,
+        outcome_provenance=outcome_provenance,
+        suppressions=decision_suppressions,
+        chief=record.chief_editor_decision,
+    )
     record.display_report = render_display_report(
-        process_digest,
+        record.process_digest,
         metrics=record.council_value_metrics,
         status=record.status,
         degraded=record.degraded,
@@ -1515,6 +1510,13 @@ async def continue_structured_review(
         "reconsideration_degraded" if reconsideration_degraded else "",
         "decision_validation_degraded" if decision_validation_degraded else "",
     )))
+    record.council_value_metrics = compute_council_value_metrics(
+        active_role_ids=plan.active_role_ids,
+        independent_reviews=record.independent_reviews,
+        clusters=clusters,
+        discussion_rounds=record.discussion_rounds,
+    )
+    record = finalize_decision_support(record)
     record.process_digest = build_process_digest(
         task=task,
         brief=record.effective_brief,
@@ -1525,14 +1527,8 @@ async def continue_structured_review(
         user_decisions=decisions,
         context_provenance=record.context_reconsideration_provenance,
         outcome_provenance=outcome_provenance,
-        chief=chief,
+        chief=record.chief_editor_decision,
         reviewer_coverage=reviewer_coverage,
-    )
-    record.council_value_metrics = compute_council_value_metrics(
-        active_role_ids=plan.active_role_ids,
-        independent_reviews=record.independent_reviews,
-        clusters=clusters,
-        discussion_rounds=record.discussion_rounds,
     )
     record.display_report = render_display_report(
         record.process_digest,
@@ -1556,7 +1552,7 @@ async def continue_structured_review(
         decisions=decisions,
         outcome_provenance=outcome_provenance,
         suppressions=decision_suppressions,
-        chief=chief,
+        chief=record.chief_editor_decision,
     )
     telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
     record.runtime_metadata = telemetry.snapshot().model_copy(
@@ -1596,6 +1592,7 @@ def compact_review_response(record: ReviewRecordV2) -> dict[str, Any]:
         "deliberation_summary": record.deliberation_summary.model_dump(mode="json"),
         "process_digest": record.process_digest.model_dump(mode="json"),
         "council_value_metrics": record.council_value_metrics.model_dump(mode="json"),
+        "decision_support": record.decision_support.model_dump(mode="json"),
         "display_report": record.display_report,
         "degraded": record.degraded,
         "warnings": record.warnings,

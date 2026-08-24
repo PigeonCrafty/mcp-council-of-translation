@@ -52,6 +52,7 @@ def test_all_structured_clean_reviewers_remain_completed_and_distinct_from_unava
     assert record.runtime_metadata.sampling_calls == 6
     assert all(review["sample_status"] == "structured_success" for review in record.independent_reviews)
     assert compact["runtime_metadata"]["reviewer_coverage"] == "full"
+    assert record.decision_support.level == "supported_with_limits"
 
 
 @pytest.mark.parametrize(
@@ -82,6 +83,8 @@ def test_all_unavailable_reviewer_scenarios_require_human_review(case, script, p
     assert record.runtime_metadata.sampling_calls == 6
     assert record.runtime_metadata.parse_failures == parse_failures
     assert "reviewer_coverage_none" in record.runtime_metadata.fallbacks
+    assert record.decision_support.level == "insufficient"
+    assert record.decision_support.outcome_coherent is True
     assert all(review["sample_status"] == "unavailable" for review in record.independent_reviews)
     assert compact["runtime_metadata"] == record.runtime_metadata.model_dump(mode="json")
     assert "0/6" in record.chief_editor_decision.review_reason
@@ -106,6 +109,8 @@ def test_partial_reviewer_coverage_is_explicit_and_conservatively_requires_revie
     assert compact["fallback_reason"] == "reviewer_coverage_partial"
     assert compact["runtime_metadata"]["reviewer_coverage"] == "partial"
     assert "1/6" in compact["chief_editor"]["review_reason"]
+    assert record.decision_support.level == "insufficient"
+    assert compact["decision_support"] == record.decision_support.model_dump(mode="json")
 
 
 def test_continuation_preserves_partial_parent_coverage_and_cannot_clear_human_review(tmp_path):
@@ -178,3 +183,6 @@ def test_continuation_preserves_partial_parent_coverage_and_cannot_clear_human_r
     assert child.runtime_metadata.reviewer_samples_successful == 5
     assert child.runtime_metadata.reviewer_samples_unavailable == 1
     assert child.runtime_metadata.sampling_calls == 1
+    assert parent.decision_support.level == "insufficient"
+    assert child.decision_support.level == "insufficient"
+    assert child.decision_support.outcome_coherent is True

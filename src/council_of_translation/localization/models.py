@@ -928,6 +928,22 @@ class ReviewRecordV2(DomainModel):
         "record_schema": __schema_version__,
     })
 
+    @model_validator(mode="before")
+    @classmethod
+    def require_current_assessment_for_schema_26(cls, value: Any) -> Any:
+        if isinstance(value, dict) and value.get("schema_version") == "2.6":
+            assessment = value.get("decision_support")
+            level = (
+                assessment.level
+                if isinstance(assessment, DecisionSupportAssessment)
+                else assessment.get("level")
+                if isinstance(assessment, dict)
+                else None
+            )
+            if level in {None, "not_recorded"}:
+                raise ValueError("Schema 2.6 records require a recorded decision support assessment")
+        return value
+
     @field_validator("decision_points")
     @classmethod
     def cap_decision_points(cls, value: list[DecisionPoint]) -> list[DecisionPoint]:

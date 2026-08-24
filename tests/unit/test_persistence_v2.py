@@ -113,7 +113,7 @@ def test_full_write_is_atomic_and_round_trips(monkeypatch, tmp_path):
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
     assert loaded.task.source_text == "SECRET SOURCE"
-    assert loaded.schema_version == "2.5"
+    assert loaded.schema_version == "2.6"
     assert loaded.runtime_metadata.wall_clock_ms == 321
     assert loaded.runtime_metadata.sampling_wait_ms == 654
     assert loaded.runtime_metadata.independent_review_peak_concurrency == 2
@@ -160,7 +160,7 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.task.source_text == ""
     assert loaded.independent_reviews == []
     assert loaded.user_decisions == []
-    assert loaded.schema_version == "2.5"
+    assert loaded.schema_version == "2.6"
     assert loaded.runtime_metadata.wall_clock_ms == 321
     assert loaded.runtime_metadata.sampling_wait_ms == 654
     assert loaded.runtime_metadata.independent_review_concurrency_limit == 3
@@ -177,7 +177,7 @@ def test_v25_routing_provenance_round_trips_in_safe_structured_history(tmp_path,
 
     path = store.save(record, history_mode=history_mode)
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "2.5"
+    assert payload["schema_version"] == "2.6"
     assert payload["council_plan"]["routing_profile"] == "route_legal_risk_standard_v1"
     assert payload["council_plan"]["routing_reason_codes"] == [
         "content_legal_risk",
@@ -210,12 +210,12 @@ def test_new_write_persists_truthful_v0121_runtime_and_version_identifiers(tmp_p
     }
     assert {key: payload["runtime_metadata"][key] for key in expected} == expected
     assert {key: payload["version_metadata"][key] for key in expected} == expected
-    assert payload["version_metadata"]["record_schema"] == "2.5"
+    assert payload["version_metadata"]["record_schema"] == "2.6"
 
     loaded = store.load(record.review_id)
     assert loaded.runtime_metadata.package_version == "0.12.1"
     assert loaded.runtime_metadata.diagnostic_build == "verifiable-evidence-council-v10.1"
-    assert loaded.version_metadata == {**expected, "record_schema": "2.5"}
+    assert loaded.version_metadata == {**expected, "record_schema": "2.6"}
 
 
 def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
@@ -268,13 +268,13 @@ def test_metadata_round_trip_preserves_safe_disposition_and_redacts_chief_prose(
     serialized = path.read_text(encoding="utf-8")
     assert "SECRET" not in serialized
     loaded = store.load(record.review_id)
-    assert loaded.status == "COMPLETED"
-    assert loaded.chief_editor_decision.publishability == "可发布"
-    assert loaded.chief_editor_decision.review_needed == "否"
+    assert loaded.status == "NEEDS_HUMAN_REVIEW"
+    assert loaded.chief_editor_decision.publishability == "需人工复核"
+    assert loaded.chief_editor_decision.review_needed == "是"
     assert loaded.chief_editor_decision.decision_rationale == ""
     listed = list(store.iter_records())
     assert [(item.status, item.chief_editor_decision.publishability, item.chief_editor_decision.review_needed) for item in listed] == [
-        ("COMPLETED", "可发布", "否")
+        ("NEEDS_HUMAN_REVIEW", "需人工复核", "是")
     ]
 
 
@@ -366,15 +366,15 @@ def test_reader_accepts_frozen_eight_character_v2_suffix(tmp_path):
     assert store.load(review_id).review_id == review_id
 
 
-def test_saving_readable_v20_model_writes_new_v25_schema(tmp_path):
+def test_saving_readable_v20_model_writes_new_v26_schema(tmp_path):
     store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
     record = _record(build_review_id()).model_copy(update={"schema_version": "2.0"})
     path = store.save(record)
 
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "2.5"
-    assert payload["version_metadata"]["record_schema"] == "2.5"
-    assert store.load(record.review_id).schema_version == "2.5"
+    assert payload["schema_version"] == "2.6"
+    assert payload["version_metadata"]["record_schema"] == "2.6"
+    assert store.load(record.review_id).schema_version == "2.6"
 
 
 def test_metadata_receipt_uses_only_physically_retained_allowlist_fields(tmp_path):

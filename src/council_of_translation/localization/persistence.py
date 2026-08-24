@@ -18,6 +18,7 @@ from council_of_translation.localization.compatibility import (
     ReviewRecordV1,
     parse_review_record,
 )
+from council_of_translation.localization.decision_support import finalize_decision_support
 from council_of_translation.localization.models import HistoryMode, ReviewRecordV2
 
 
@@ -96,10 +97,10 @@ def default_reviews_dir() -> Path:
 
 
 def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
-    """Create a valid V2.5 allowlist projection without user or model prose."""
+    """Create a valid V2.6 allowlist projection without user or model prose."""
     task = record.task
     return {
-        "schema_version": "2.5",
+        "schema_version": "2.6",
         "review_id": record.review_id,
         "parent_review_id": record.parent_review_id,
         "created_at": record.created_at.isoformat(),
@@ -226,10 +227,11 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
                 if contribution.role_id in _SAFE_ROLE_IDS
             ],
         },
+        "decision_support": record.decision_support.model_dump(mode="json"),
         "version_metadata": {
             "package_version": _CURRENT_PACKAGE_VERSION,
             "diagnostic_build": _CURRENT_DIAGNOSTIC_BUILD,
-            "record_schema": "2.5",
+            "record_schema": "2.6",
         },
     }
 
@@ -289,15 +291,7 @@ class ReviewStore:
             return None
         if not is_supported_review_id(validated.review_id) or _LEGACY_REVIEW_ID.fullmatch(validated.review_id):
             raise InvalidReviewIdError("new V2 records require a sortable V2 review ID")
-        write_record = validated.model_copy(
-            update={
-                "schema_version": "2.5",
-                "version_metadata": {
-                    **validated.version_metadata,
-                    "record_schema": "2.5",
-                },
-            }
-        )
+        write_record = finalize_decision_support(validated.model_copy(deep=True))
         payload = (
             write_record.model_dump(mode="json")
             if mode == "full"

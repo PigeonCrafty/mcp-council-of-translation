@@ -116,7 +116,7 @@ def test_v22_full_metadata_and_off_round_trips_are_privacy_safe(tmp_path):
     full = _record()
     full_path = full_store.save(full)
     assert full_path is not None
-    assert full_store.load(full.review_id).schema_version == "2.5"
+    assert full_store.load(full.review_id).schema_version == "2.6"
     assert "secret markdown" in full_path.read_text(encoding="utf-8")
 
     metadata_store = ReviewStore(tmp_path / "metadata", include_legacy=False)
@@ -125,7 +125,7 @@ def test_v22_full_metadata_and_off_round_trips_are_privacy_safe(tmp_path):
     assert metadata_path is not None
     raw = metadata_path.read_text(encoding="utf-8")
     payload = json.loads(raw)
-    assert payload["schema_version"] == "2.5"
+    assert payload["schema_version"] == "2.6"
     assert payload["runtime_metadata"]["independent_review_concurrency_limit"] == 1
     assert payload["runtime_metadata"]["independent_review_concurrency_disposition"] == "legacy"
     assert payload["effective_brief"] == {"content_type": "ui", "context_confidence": "partial"}
