@@ -22,6 +22,10 @@ from council_of_translation.localization.persistence import (
     default_reviews_dir,
 )
 from council_of_translation.localization.roles import build_council_plan
+from council_of_translation.localization.verification import (
+    build_verification_receipt,
+    render_verification_report,
+)
 
 
 def _record(review_id: str, *, history_mode: str = "full") -> ReviewRecordV2:
@@ -371,3 +375,62 @@ def test_saving_readable_v20_model_writes_new_v25_schema(tmp_path):
     assert payload["schema_version"] == "2.5"
     assert payload["version_metadata"]["record_schema"] == "2.5"
     assert store.load(record.review_id).schema_version == "2.5"
+
+
+def test_metadata_receipt_uses_only_physically_retained_allowlist_fields(tmp_path):
+    store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
+    record = _record(build_review_id(), history_mode="metadata")
+    record.council_plan = build_council_plan("standard", "legal_risk")
+    record.status = "COMPLETED"
+    record.degraded = True
+    record.warnings = ["SECRET WARNING"]
+    record.fallback_reason = "SECRET FALLBACK"
+    record.chief_editor_decision = ChiefEditorDecisionV2(
+        publishability="修改后可发布",
+        review_needed="是",
+        suggested_translation="SECRET TRANSLATION",
+    )
+    path = store.save(record, history_mode="metadata")
+    loaded = store.load(record.review_id)
+
+    receipt = build_verification_receipt(loaded)
+    report = render_verification_report(receipt)
+    unavailable = set(receipt["availability"]["not_recorded_fields"])
+
+    assert receipt["record"]["history_mode"] == "metadata"
+    assert receipt["routing"]["profile"] == "route_legal_risk_standard_v1"
+    assert receipt["routing"]["active_role_ids"] is None
+    assert receipt["reviewer_execution"]["samples"] is None
+    assert receipt["preflight"] == {
+        "blocking": None,
+        "failed_check_count": None,
+        "failed_blocking_check_count": None,
+        "failed_blocking_check_kinds": None,
+    }
+    assert receipt["issues"] == {
+        "cluster_count": None,
+        "blocking_cluster_count": None,
+        "severity_counts": None,
+        "category_counts": None,
+    }
+    assert receipt["outcome"]["warning_count"] is None
+    assert receipt["outcome"]["fallback_reason_code"] is None
+    assert receipt["outcome"]["fallback_reason_redacted"] is None
+    assert receipt["outcome"]["suggested_translation_present"] is None
+    assert all(value is None for value in receipt["coherence"].values())
+    assert {
+        "routing.active_role_ids", "reviewer_execution.samples",
+        "preflight.blocking", "preflight.failed_check_count",
+        "preflight.failed_blocking_check_count", "preflight.failed_blocking_check_kinds",
+        "issues.cluster_count", "issues.blocking_cluster_count", "issues.severity_counts",
+        "issues.category_counts", "outcome.warning_count", "outcome.fallback_reason_code",
+        "outcome.fallback_reason_redacted", "outcome.suggested_translation_present",
+        "coherence.expected_terminal_disposition", "coherence.terminal_disposition_occurrences",
+        "coherence.terminal_disposition_is_last_report_line",
+        "coherence.terminal_disposition_matches_structured",
+    } <= unavailable
+    assert receipt["availability"]["verification_complete"] is False
+    assert receipt["availability"]["redacted_fields"] == []
+    assert "SECRET" not in path.read_text(encoding="utf-8")
+    assert "SECRET" not in str(receipt)
+    assert "SECRET" not in report

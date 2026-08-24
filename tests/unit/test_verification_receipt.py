@@ -12,6 +12,7 @@ from council_of_translation.localization.models import (
     ReviewTaskV2,
     RuntimeMetadata,
 )
+from council_of_translation.localization.compatibility import parse_review_record
 from council_of_translation.localization.verification import (
     build_verification_receipt,
     render_verification_report,
@@ -108,6 +109,7 @@ def _full_record() -> ReviewRecordV2:
             publishability="修改后可发布",
             review_needed="否",
             decision_rationale="SECRET RATIONALE",
+            suggested_translation=None,
         ),
         status="COMPLETED_WITH_FALLBACK",
         fallback_reason="reviewer_coverage_partial",
@@ -331,3 +333,135 @@ def test_projection_has_zero_executor_gateway_orchestration_and_store_save_activ
     render_verification_report(receipt)
 
     assert calls == {"executor": 0, "gateway": 0, "orchestration": 0, "save": 0}
+
+
+@pytest.mark.parametrize("schema_version", ["2.0", "2.1", "2.2", "2.3", "2.4"])
+def test_historical_v2_availability_is_schema_aware_without_compatibility_defaults(schema_version):
+    payload = _full_record().model_dump(mode="json")
+    payload["schema_version"] = schema_version
+    payload["version_metadata"]["record_schema"] = schema_version
+    payload["council_plan"].pop("routing_profile", None)
+    payload["council_plan"].pop("routing_reason_codes", None)
+    if schema_version in {"2.0", "2.1", "2.2"}:
+        for field in (
+            "wall_clock_ms", "sampling_wait_ms", "independent_review_concurrency_limit",
+            "independent_review_peak_concurrency", "independent_review_batch_count",
+            "independent_review_concurrency_disposition",
+        ):
+            payload["runtime_metadata"].pop(field, None)
+    if schema_version in {"2.0", "2.1"}:
+        for field in (
+            "briefing_elicitation_calls", "context_gap_elicitation_calls",
+            "outcome_elicitation_calls",
+        ):
+            payload["runtime_metadata"].pop(field, None)
+        payload.pop("display_report", None)
+    if schema_version == "2.0":
+        payload.pop("degraded", None)
+        payload.pop("warnings", None)
+
+    receipt = build_verification_receipt(parse_review_record(payload))
+    unavailable = set(receipt["availability"]["not_recorded_fields"])
+
+    assert receipt["record"]["schema_version"] == schema_version
+    assert receipt["record"]["history_mode"] == "full"
+    assert receipt["routing"]["profile"] is None
+    assert receipt["routing"]["reason_codes"] is None
+    assert {"routing.profile", "routing.reason_codes"} <= unavailable
+    if schema_version in {"2.0", "2.1", "2.2"}:
+        assert receipt["runtime"]["wall_clock_ms"] is None
+        assert "runtime.independent_review_concurrency_disposition" in unavailable
+    else:
+        assert receipt["runtime"]["wall_clock_ms"] == 876
+    if schema_version in {"2.0", "2.1"}:
+        assert receipt["runtime"]["briefing_elicitation_calls"] is None
+        assert receipt["coherence"]["expected_terminal_disposition"] is None
+    else:
+        assert receipt["runtime"]["briefing_elicitation_calls"] == 1
+        assert receipt["coherence"]["terminal_disposition_matches_structured"] is True
+    assert receipt["availability"]["redacted_fields"] == []
+    assert receipt["availability"]["verification_complete"] is True
+
+
+def test_v1_projects_only_physically_recorded_bounded_fields():
+    legacy = parse_review_record({
+        "review_id": "20260824_010203",
+        "mode": "standard",
+        "status": "completed",
+        "chief_editor_decision": {"publishability": "可发布", "review_needed": "否"},
+        "task": {"source": "PRIVATE SOURCE"},
+        "reviews": [{"feedback": "PRIVATE REVIEW"}],
+    })
+
+    receipt = build_verification_receipt(legacy)
+    report = render_verification_report(receipt)
+
+    assert receipt["record"]["history_mode"] == "legacy"
+    assert receipt["routing"]["mode"] == "standard"
+    assert receipt["outcome"]["status"] == "completed"
+    assert receipt["outcome"]["publishability"] == "可发布"
+    assert receipt["outcome"]["review_needed"] == "否"
+    assert receipt["runtime"]["sampling_calls_total"] is None
+    assert receipt["availability"]["not_recorded_fields"] == sorted(
+        receipt["availability"]["not_recorded_fields"]
+    )
+    assert receipt["availability"]["verification_complete"] is True
+    assert "PRIVATE" not in str(receipt)
+    assert "PRIVATE" not in report
+
+
+def test_hostile_roles_codes_statuses_paths_and_prose_are_redacted_without_echo():
+    record = _full_record()
+    record.version_metadata = {
+        "package_version": "C:/PRIVATE/version",
+        "diagnostic_build": "PRIVATE build prose",
+        "record_schema": "2.5",
+    }
+    record.council_plan = CouncilPlan.model_construct(
+        mode="PRIVATE MODE",
+        content_type="PRIVATE CONTENT",
+        active_role_ids=["PRIVATE ROLE"],
+        routing_profile="PRIVATE PROFILE",
+        routing_reason_codes=["PRIVATE REASON"],
+    )
+    record.independent_reviews = [
+        {"agent_name": "PRIVATE ROLE", "sample_status": "PRIVATE STATUS"}
+    ]
+    record.runtime_metadata.independent_review_concurrency_disposition = "PRIVATE CONCURRENCY"
+    record.preflight = PreflightResult.model_construct(
+        checks=[PreflightCheck.model_construct(status="fail", blocking=True, kind="PRIVATE CHECK")],
+        blocking=True,
+    )
+    record.status = "PRIVATE OUTCOME"
+    record.fallback_reason = "C:/PRIVATE/fallback prose"
+    record.chief_editor_decision.publishability = "PRIVATE VERDICT"
+    record.chief_editor_decision.review_needed = "PRIVATE REVIEW"
+    record.display_report = "PRIVATE REPORT"
+
+    receipt = build_verification_receipt(record)
+    report = render_verification_report(receipt)
+
+    assert receipt["availability"]["verification_complete"] is False
+    assert receipt["availability"]["redacted_fields"] == sorted(
+        receipt["availability"]["redacted_fields"]
+    )
+    for path in (
+        "record.recorded_package_version",
+        "record.recorded_diagnostic_build",
+        "routing.mode",
+        "routing.content_type",
+        "routing.profile",
+        "routing.reason_codes",
+        "routing.active_role_ids",
+        "reviewer_execution.samples",
+        "runtime.independent_review_concurrency_disposition",
+        "preflight.failed_blocking_check_kinds",
+        "outcome.status",
+        "outcome.fallback_reason_code",
+        "outcome.publishability",
+        "outcome.review_needed",
+        "coherence.expected_terminal_disposition",
+    ):
+        assert path in receipt["availability"]["redacted_fields"]
+    assert "PRIVATE" not in str(receipt)
+    assert "PRIVATE" not in report
