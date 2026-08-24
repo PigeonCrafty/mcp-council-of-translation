@@ -33,7 +33,7 @@ _ROLE_FOCUS = {
     "product_context_reviewer": "组件、流程阶段与产品语境",
     "ux_copy_reviewer": "用户理解、行动指引与界面清晰度",
     "fluency_reviewer": "目标语言习惯、自然度与简洁性",
-    "legal_risk_reviewer": "法律含义、承诺边界与风险表达",
+    "risk_ambiguity_reviewer": "法律含义、承诺边界与风险表达",
     "brand_voice_reviewer": "品牌语气、风格一致性与受众感受",
 }
 _INTERNAL_ENTITY_ID = re.compile(
@@ -45,7 +45,18 @@ _INTERNAL_ENTITY_ID = re.compile(
 )
 _INTERNAL_IMPLEMENTATION_LABEL = re.compile(
     r"(?<![A-Za-z0-9_])(?:actor_action_object|schema_version|diagnostic_build|"
-    r"suggested_translation)(?![A-Za-z0-9_])",
+    r"suggested_translation|routing_profile|routing_reason_codes)(?![A-Za-z0-9_])",
+    re.IGNORECASE,
+)
+_INTERNAL_ROUTING_TOKEN = re.compile(
+    r"(?<![A-Za-z0-9_])(?:"
+    r"route_(?:unspecified|ui|marketing|technical_documentation|legal_risk)_"
+    r"(?:lightweight|standard|strict)_v1|"
+    r"content_(?:unspecified|ui|marketing|technical_documentation|legal_risk)|"
+    r"mode_(?:lightweight|standard|strict)|"
+    r"legacy_(?:unrecorded|routing_unrecorded|portfolio_preserved)|"
+    r"risk_(?:focused|panorama|strict)|deterministic_preflight_coverage"
+    r")(?![A-Za-z0-9_])",
     re.IGNORECASE,
 )
 _ROLE_ID_LABELS = {role_id.casefold(): role.display_name for role_id, role in ROLE_REGISTRY.items()}
@@ -257,6 +268,7 @@ def build_process_digest(
         case_brief=_dedupe([
             f"语言方向：{task.source_language} → {task.target_language}",
             f"领域/内容类型：{brief.domain} / {brief.content_type}",
+            _routing_display_line(plan),
             f"受众：{brief.audience or '未提供'}",
             f"审校重点：{brief.primary_focus or '按角色职责执行'}",
         ]),
@@ -299,7 +311,24 @@ def _sanitize_primary_text(value: str) -> str:
         text = pattern.sub(replacement, text)
     text = _ROLE_ID.sub(lambda match: _ROLE_ID_LABELS[match.group(0).casefold()], text)
     text = _INTERNAL_ENTITY_ID.sub("内部引用", text)
+    text = _INTERNAL_ROUTING_TOKEN.sub("内部路由信息", text)
     return _INTERNAL_IMPLEMENTATION_LABEL.sub("内部信息", text)
+
+
+def _routing_display_line(plan: CouncilPlan) -> str:
+    """Describe only fixed legal-risk routes without interpolating provenance values."""
+    return {
+        "route_legal_risk_lightweight_v1": (
+            "风险审校路线：聚焦语义、术语、风险歧义与语言自然度；确定性技术预检照常执行。"
+        ),
+        "route_legal_risk_standard_v1": (
+            "风险审校路线：覆盖语义、术语、产品语境、用户理解、风险歧义与语言自然度；"
+            "确定性技术预检照常执行。"
+        ),
+        "route_legal_risk_strict_v1": (
+            "风险审校路线：在全景覆盖上增加技术完整性复核；确定性技术预检照常执行。"
+        ),
+    }.get(plan.routing_profile, "")
 
 
 def _human_line(value: str, maximum: int = 120) -> str:
@@ -869,6 +898,61 @@ def _value_lines(
     return lines[:5]
 
 
+def _join_sections(sections: list[list[str]]) -> str:
+    return "\n\n".join("\n".join(section) for section in sections if section)
+
+
+def _bound_five_sections(sections: list[list[str]], maximum: int = 3_200) -> str:
+    """Keep every section and whole high-value lines under the primary hard cap."""
+    report = _join_sections(sections)
+    if len(report) <= maximum:
+        return report
+
+    selected: set[tuple[int, int]] = set()
+    for section_index, section in enumerate(sections):
+        selected.add((section_index, 0))
+        if len(section) > 1:
+            selected.add((section_index, 1))
+    final_index = len(sections[-1]) - 1
+    selected.add((len(sections) - 1, final_index))
+    for line_index, line in enumerate(sections[-1][1:final_index], start=1):
+        if "降级" in line or "回退" in line or "尚待补充" in line:
+            selected.add((len(sections) - 1, line_index))
+
+    safety_markers = (
+        "必须修复", "分歧", "盲区", "少数意见", "决定条件",
+        "覆盖风险", "不可用", "降级", "回退", "人工复核",
+    )
+    material_markers = (
+        "建议修复", "新增", "交叉印证",
+    )
+    candidates: list[tuple[int, int, int]] = []
+    for section_index, section in enumerate(sections):
+        for line_index, line in enumerate(section[1:], start=1):
+            if (section_index, line_index) in selected:
+                continue
+            priority = (
+                0 if any(marker in line for marker in safety_markers)
+                else 1 if section_index == 2
+                else 2 if any(marker in line for marker in material_markers)
+                else 3
+            )
+            candidates.append((priority, section_index, line_index))
+
+    def render_current() -> str:
+        chosen = [
+            [line for line_index, line in enumerate(section) if (section_index, line_index) in selected]
+            for section_index, section in enumerate(sections)
+        ]
+        return _join_sections(chosen)
+
+    for _, section_index, line_index in sorted(candidates):
+        selected.add((section_index, line_index))
+        if len(render_current()) > maximum:
+            selected.remove((section_index, line_index))
+    return render_current()
+
+
 def render_display_report(
     digest: ProcessDigestV2,
     *,
@@ -938,10 +1022,11 @@ def render_display_report(
     checklist = _primary_checklist(digest.execution_checklist_final_disposition, clusters)
     final = next((item for item in reversed(checklist) if item.startswith("最终处置：")), "")
     conclusion.extend(item for item in checklist if item != final)
+    status_lines: list[str] = []
     if degraded or warnings or fallback_reason:
-        conclusion.append("本次执行存在降级或回退；相关风险需在发布前人工确认。")
+        status_lines.append("本次执行存在降级或回退；相关风险需在发布前人工确认。")
     if status == "RETURNED_PENDING":
-        conclusion.append("审校尚待补充信息或决定，当前结论不是发布许可。")
+        status_lines.append("审校尚待补充信息或决定，当前结论不是发布许可。")
     if not final:
         final = "最终处置：需人工复核；需人工复核：是"
 
@@ -962,21 +1047,9 @@ def render_display_report(
             coverage_lines or ["尚无可展示的角色覆盖。"],
         ),
         _section("共识、分歧与盲区", [_human_line(value) for value in deliberation] or ["无可展示结论。"]),
-        _section("主编结论", [*conclusion[:5], _human_line(final)]),
+        _section(
+            "主编结论",
+            [*conclusion[: max(0, 5 - len(status_lines))], *status_lines, _human_line(final)],
+        ),
     ]
-    report = "\n\n".join("\n".join(section) for section in sections if section)
-    if len(report) <= 3_200:
-        return report
-
-    final_line = f"- {_human_line(final)}"
-    retained: list[str] = []
-    used = 0
-    for line in report.splitlines():
-        if line == final_line:
-            continue
-        added = len(line) + (1 if retained else 0)
-        if used + added + 1 + len(final_line) > 3_200:
-            break
-        retained.append(line)
-        used += added
-    return "\n".join([*retained, final_line])
+    return _bound_five_sections(sections)
