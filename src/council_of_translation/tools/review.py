@@ -17,6 +17,11 @@ from council_of_translation.localization.orchestration import (
     run_structured_review,
 )
 from council_of_translation.localization.persistence import ReviewPersistenceError, ReviewStore
+from council_of_translation.localization.verification import (
+    RECEIPT_SCHEMA_VERSION,
+    build_verification_receipt,
+    render_verification_report,
+)
 from council_of_translation.localization.runtime import (
     FastMCPModelExecutor,
     FastMCPUserInteractionGateway,
@@ -66,6 +71,8 @@ def _server_info() -> dict[str, Any]:
         "max_independent_review_concurrency": MAX_REVIEW_CONCURRENCY,
         "independent_review_concurrency_disposition": concurrency.disposition,
         "max_decision_points": 3,
+        "verification_receipt_schema_version": RECEIPT_SCHEMA_VERSION,
+        "review_record_detail_levels": ["full", "summary", "verification"],
         "normal_tools": [
             "review_translation",
             "continue_review",
@@ -272,14 +279,26 @@ async def continue_review(
 
 
 @mcp.tool()
-def view_review_record(review_id: str, detail_level: str = "full") -> ToolResult:
-    """Read a V1 or V2 record; use summary for a compact V2 projection."""
+def view_review_record(
+    review_id: str,
+    detail_level: Literal["full", "summary", "verification"] = "full",
+) -> ToolResult:
+    """Read a record as full, compact summary, or privacy-safe verification evidence."""
     try:
         record = ReviewStore().load(review_id)
+        if detail_level == "verification":
+            receipt = build_verification_receipt(record)
+            return dual_channel_result({
+                "review_id": record.review_id,
+                "display_report": render_verification_report(receipt),
+                "verification_receipt": receipt,
+            })
         if isinstance(record, ReviewRecordV2) and detail_level == "summary":
             return dual_channel_result(compact_review_response(record))
-        if detail_level not in {"full", "summary"}:
-            return dual_channel_result({"error": "detail_level must be full or summary"})
+        if detail_level not in {"full", "summary", "verification"}:
+            return dual_channel_result({
+                "error": "detail_level must be full, summary, or verification"
+            })
         return dual_channel_result(record.model_dump(mode="json"))
     except ReviewPersistenceError as exc:
         return dual_channel_result(_error(exc))
