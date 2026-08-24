@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections import Counter
+import json
 import re
 from typing import Any
 
@@ -14,6 +15,22 @@ from council_of_translation.localization.roles import ROLE_REGISTRY
 
 RECEIPT_SCHEMA_VERSION = "1.0"
 MAX_VERIFICATION_REPORT = 3_200
+MAX_VERIFICATION_TEXT = 12_000
+CANONICAL_RECEIPT_LABEL = "Canonical verification_receipt JSON:"
+_CANONICAL_RECEIPT_KEYS = (
+    "receipt_schema_version",
+    "review_id",
+    "record",
+    "serving",
+    "routing",
+    "reviewer_execution",
+    "runtime",
+    "preflight",
+    "issues",
+    "outcome",
+    "coherence",
+    "availability",
+)
 _MAX_SAFE_RECEIPT_INTEGER = 9_007_199_254_740_991
 
 _SAFE_ROLE_IDS = {
@@ -57,6 +74,34 @@ _SAFE_PACKAGE_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[a-z0-9.+-]{0,40}
 _SAFE_BUILD = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,79}$")
 _SAFE_CURRENT_REVIEW_ID = re.compile(r"^[0-9]{8}T[0-9]{12}Z_[0-9a-f]{8,32}$")
 _SAFE_LEGACY_REVIEW_ID = re.compile(r"^[0-9]{8}_[0-9]{6}$")
+
+
+def is_canonical_verification_receipt(value: Any) -> bool:
+    """Recognize the frozen receipt envelope without coercing or deriving it."""
+    return (
+        isinstance(value, dict)
+        and value.get("receipt_schema_version") == RECEIPT_SCHEMA_VERSION
+        and tuple(value) == _CANONICAL_RECEIPT_KEYS
+    )
+
+
+def append_canonical_receipt_json(primary_text: str, receipt: dict[str, Any]) -> str:
+    """Append one compact serialization of the exact canonical receipt object."""
+    try:
+        canonical_json = json.dumps(
+            receipt,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    except (TypeError, ValueError):
+        raise ValueError("verification receipt JSON serialization failed") from None
+    combined = (
+        f"{primary_text}\n\n{CANONICAL_RECEIPT_LABEL}\n"
+        f"```json\n{canonical_json}\n```"
+    )
+    if len(combined) > MAX_VERIFICATION_TEXT:
+        raise ValueError("verification text exceeds hard cap")
+    return combined
 
 
 class _Availability:
