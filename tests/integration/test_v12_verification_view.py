@@ -82,6 +82,13 @@ def test_actual_registered_verification_view_has_exact_dual_channel_wrapper(monk
         "## 风险与裁决",
         "## 一致性与可用性",
     ]
+    serving = payload["verification_receipt"]["serving"]
+    assert (
+        f"当前服务：包 `{serving['package_version']}`；"
+        f"模块 `{serving['module_version']}`；"
+        f"构建 `{serving['diagnostic_build']}`；"
+        f"Schema `{serving['schema_version']}`。"
+    ) in payload["display_report"]
     assert result.content[0].text.endswith(
         f"审校记录：{record.review_id}；可用 view_review_record 获取结构化证据。"
     )
