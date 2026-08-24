@@ -5,25 +5,30 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-012`
-- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_REVALIDATION_PENDING`
+- Campaign state: `PUBLISHED; Q-014-r2_ISSUED`
 - Active contract: `none`
 - Accepted implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
 - Accepted review: `harness/evaluations/CAMPAIGN-012-r4-review.md`
 - Accepted review SHA-256:
   `F9A3B6657299AE2AAC45142B3332A5029EC876D9CFA75A0819D01FF4E9C6CEAF`
 - Accepted features: `58/58`
-- Accepted quality gates: `13/14`; Q-014 revalidation pending
-- Pending post-publication gate: `Q-014`
+- Accepted quality gates: `13/14`; Q-014-r2 issued
+- Pending live gate: `Q-014`
 - Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
-- Live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
-- Publication review: `harness/evaluations/CAMPAIGN-012-r3-publication-ci-review.md`
+- Parent live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
+- Final live contract: `harness/contracts/CAMPAIGN-012-q014-live-r2.md`
+- Final live contract SHA-256:
+  `EAB730940F588B80611AB63784A39AADFB7C455C37A15E7BB6E061F6A7FF9046`
+- Publication review: `harness/evaluations/CAMPAIGN-012-r4-publication-ci-review.md`
+- Publication review SHA-256:
+  `714A5C2675970754549FDD975C8634E8C0DB5A675CC11D5F6504B67298457204`
 - Next Campaign assessment:
   `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
   `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
-- Published protected `main`: `6c4366f7a43135388d0cf68655a6a3638d6bbe1b`
-- Published product implementation: `213cce55bb21d6854f76e89bee33a4e9e2f9dd8c`
+- Published protected `main`: `c5d38a1f2f8ef4cafaada98f93583e1532405a3b`
+- Published product implementation: `47ec9256f0eb55892f5f58ec4bd6609aacf18aa8`
 - Q-014 issuance protected `main` / r4 baseline:
   `aceac3383b2a597bbf5414362d9b71ac6e601267`
 - Last updated: 2026-08-24 Asia/Shanghai
@@ -133,6 +138,17 @@
 - F-058 is accepted. Q-014 remains unaccepted until V0.12.1 is published through
   protected `main`, all six CI jobs pass and fresh normal-Goose A/B/C evidence proves the
   canonical text JSON is available without reconstruction.
+- V0.12.1 publication completed through protected-main PR #28. Published `main` is
+  `c5d38a1f2f8ef4cafaada98f93583e1532405a3b`; published implementation is `47ec925`.
+- PR run `32719721002` and protected-main run `32719838126` each passed all six required
+  Ubuntu/Windows Python 3.10/3.12/3.13 jobs.
+- Accepted/published implementation and archive trees are pairwise identical. Local
+  `main` is reconciled to `origin/main`; user assets remain untouched.
+- Final Q-014 protocol: `harness/contracts/CAMPAIGN-012-q014-live-r2.md`. It requires
+  normal Goose to parse the compact canonical receipt JSON from the verification primary
+  text after the fixed label, with no structuredContent dependency or field rebuilding.
+- Q-014 state is `issued`, not accepted. Fresh A/B/C review IDs and verbatim text JSON are
+  still required for Foreman acceptance.
 
 ## Q-013 live review and r3 correction
 
@@ -729,6 +745,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted r4 contract, reports, review and updated Foreman state; publish
-V0.12.1 through protected `main` with all six required CI jobs green. After exact
-published-version admission, issue the final Q-014 normal-Goose A/B/C revalidation.
+Run the final Q-014-r2 normal-Goose A/B/C protocol against published V0.12.1, then return
+the three fresh review IDs, original reports, full verification text and parsed canonical
+JSON blocks for Foreman acceptance.

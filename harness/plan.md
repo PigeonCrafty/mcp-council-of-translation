@@ -6,7 +6,7 @@
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
 - Active Campaign: `none`
-- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_REVALIDATION_PENDING`
+- Campaign state: `PUBLISHED; Q-014-r2_ISSUED`
 - Active contract: `none`
 - Accepted Campaign contract: `harness/contracts/CAMPAIGN-012-r4.md`
 - Accepted Campaign implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
@@ -17,10 +17,19 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `58/58`
-- Accepted quality gates: `13/14`; Q-014 revalidation pending
-- Pending post-publication gate: `Q-014`
+- Accepted quality gates: `13/14`; Q-014-r2 issued
+- Pending live gate: `Q-014`
 - Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
-- Live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
+- Parent live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
+- Final live contract: `harness/contracts/CAMPAIGN-012-q014-live-r2.md`
+- Final live contract SHA-256:
+  `EAB730940F588B80611AB63784A39AADFB7C455C37A15E7BB6E061F6A7FF9046`
+- V0.12.1 publication review:
+  `harness/evaluations/CAMPAIGN-012-r4-publication-ci-review.md`
+- V0.12.1 publication review SHA-256:
+  `714A5C2675970754549FDD975C8634E8C0DB5A675CC11D5F6504B67298457204`
+- V0.12.1 published protected `main`: `c5d38a1f2f8ef4cafaada98f93583e1532405a3b`
+- V0.12.1 published implementation: `47ec9256f0eb55892f5f58ec4bd6609aacf18aa8`
 - V0.12 publication review:
   `harness/evaluations/CAMPAIGN-012-r3-publication-ci-review.md`
 - V0.12 published protected `main`: `6c4366f7a43135388d0cf68655a6a3638d6bbe1b`
@@ -138,6 +147,14 @@ complete passes, live-shaped A/B/C text JSON equality, ordinary-text byte compat
 bounded hostile failure and root-only lock migration. F-058 is accepted. V0.12.1
 publication through protected `main`, six-job CI and fresh Q-014 normal-Goose A/B/C
 revalidation remain separate gates.
+
+V0.12.1 is published through protected-main PR #28 at
+`c5d38a1f2f8ef4cafaada98f93583e1532405a3b`. Both the PR head and the published main
+passed the exact six-job Ubuntu/Windows Python 3.10/3.12/3.13 matrix. Accepted and
+published implementation/archive trees are pairwise identical. The final live protocol
+is `harness/contracts/CAMPAIGN-012-q014-live-r2.md`: normal Goose must parse the canonical
+receipt JSON appended after the fixed text label, without relying on structuredContent or
+model reconstruction. Q-014 remains unaccepted pending fresh A/B/C evidence.
 
 Q-003 is accepted by
 `harness/evaluations/Q-003-desktop-cli-live-r2-review.md`: Desktop completed native
