@@ -5,13 +5,57 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-011`
-- Campaign state: `ACCEPTED_LOCAL; PUBLICATION_PENDING`
-- Accepted implementation: `565e97d19efbbd7ff009f747a48979fceb002d11`
-- Accepted review: `harness/evaluations/CAMPAIGN-011-r2-review.md`
-- Active quality gate: none (`Q-013 planned, 12/13 accepted; publication prerequisite`)
-- Published protected `main`: `617b696c94624988f03a64ab58e1d42a66697546`
+- Campaign state: `V0.11.1_ACCEPTED; PUBLICATION_PENDING; Q-013_REVALIDATION_PENDING`
+- Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
+- Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
+- Accepted review SHA-256:
+  `EB233D25C115857C36A81F9738DD03CB7C1F8C0ECA11A79D11EA047420F2E08E`
+- Active quality gate: `Q-013 CHANGES_REQUESTED; post-fix live revalidation pending`
+- Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
+- Correction contract SHA-256:
+  `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
+- Published protected `main`: `938c3a4bb9f14c7688286b25eabd8aff9f18a09d`
 - Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Q-013 live review and r3 correction
+
+- CAMPAIGN-011-r3 decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-011-r3-review.md` at
+  `76921ecb69ec26f0034ec772433e102a3f7715bf`.
+- Exact two-commit/11-path scope passed. V0.11.1/build v9.1 preserves Schema 2.5, exact
+  five tools, all routing/adjudication invariants, budgets 6/13/18 and concurrency 3.
+- Independent complete regression: 311 passed. Golden: 24/24 with all eight metrics 1.0.
+  Lock changed only root 0.11.0 to 0.11.1 and retained revision/package/upload-time
+  invariants 3/78/586. Fresh source and isolated-wheel probes passed.
+- Rebuilding all three exact Q-013 records with the accepted production code yields
+  canonical final dispositions once and last: A `修改后可发布 / 否`, B `可发布 / 否`, C
+  `需人工复核 / 是`; raw records and structured objects remain unchanged.
+- V0.11.1 is accepted locally but not published. Q-013 remains unaccepted until protected
+  main publication, required CI and a fresh normal-Goose A/B/C run on the published build.
+
+- Decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-011-q013-live-review.md` (SHA-256
+  `CA5E5098FC18B0C8C9949A6F499FA850EA581BC16EF158E566B2FAFBE4F21A7C`).
+- Preparation and all three persisted records prove V0.11/build v9/Schema 2.5, exact
+  legal-risk lightweight/standard/strict routes, ordered 4/6/7 roles, full structured
+  coverage, bounded sampling, zero elicitation, no degradation and five-section reports.
+- Preserved records: A `20260824T034709461394Z_33b581b3d0b6`, B
+  `20260824T034736890253Z_ee206d53abf7`, C
+  `20260824T034809876049Z_c78aaf84819e`; production load and rerender are exact and raw
+  hashes are recorded in the review.
+- B is a clean accepted control. C correctly retains deterministic `{terms_url}` blockers,
+  the distinct authorization-scope expansion and required human review. Case A correctly
+  exposes authorization, precision, partner-scope and withdrawal-right errors.
+- Failed criterion: Case A's structured chief is `修改后可发布 / 否`, but its primary final
+  line is `需人工复核 / 是`. Root cause is deterministic: the six-entry primary checklist
+  cap discards the terminal disposition and activates the renderer's safety fallback.
+- Goose narrative omitted required structured fields for A/B and invented non-canonical
+  C fields; persisted JSON is the evidence authority. Reported external durations also
+  conflict with record telemetry and are not accepted as timing truth.
+- CAMPAIGN-011-r3 is issued at exact published-main baseline `938c3a4` to preserve the
+  canonical final disposition outside the action cap and release V0.11.1/build v9.1.
+  Routing, roles, structured adjudication, Schema 2.5, tools and budgets are frozen.
 
 ## Campaign 011 r1 review and r2 correction
 
@@ -65,6 +109,21 @@
   verification. Live Goose/provider calls, push, PR, release and deployment are forbidden.
 - Q-013 is planned as a separate post-publication normal-Goose risk-routing gate; no
   Worker or offline Campaign evidence can accept it.
+
+## Campaign 011 publication and Q-013 issuance
+
+- Publication decision: `PUBLISHED; Q-013 READY` by
+  `harness/evaluations/CAMPAIGN-011-publication-ci-review.md`.
+- PR #23 used protected `main` and rebase merge; published `main` is
+  `938c3a4bb9f14c7688286b25eabd8aff9f18a09d`.
+- Accepted implementation `565e97d` maps byte-for-byte to published implementation
+  `7f7d050`; accepted archive `84ddf7b` maps byte-for-byte to published archive `938c3a4`.
+- All six required Ubuntu/Windows Python 3.10/3.12/3.13 CI jobs passed before merge.
+- Local `main` was reconciled to protected `origin/main`; tracked state is synchronized
+  while existing untracked user assets remain untouched.
+- Q-013 is issued by `harness/contracts/CAMPAIGN-011-q013-live.md`. It uses the unchanged
+  normal-main Goose extension and three fresh conversations to prove legal-risk
+  lightweight/standard/strict routing, live provider coverage and concise user value.
 
 ## Q-003 Desktop/CLI r1 review and r2 correction
 
@@ -531,7 +590,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted CAMPAIGN-011 assets and publish accepted implementation
-`565e97d19efbbd7ff009f747a48979fceb002d11` through protected `main`. Confirm all six
-required Windows/Linux Python CI jobs, then issue the pinned normal-Goose Q-013
-risk-routing live gate. Q-013 remains planned until that publication succeeds.
+Restart Goose once without changing the existing extension command. Run the Q-013
+preparation check and Cases A, B and C exactly as issued in
+`harness/contracts/CAMPAIGN-011-q013-live.md`, then return the three review IDs and Goose
+responses for Foreman acceptance. Do not retry a failed or unavailable reviewer silently.
