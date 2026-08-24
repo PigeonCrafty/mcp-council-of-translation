@@ -331,3 +331,52 @@ def test_verification_retrieval_preserves_bytes_counters_timestamps_and_normal_r
     assert after.display_report == before.display_report
     assert payload["verification_receipt"]["runtime"]["sampling_calls_total"] == 7
     assert payload["verification_receipt"]["runtime"]["elicitation_calls_total"] == 2
+
+
+def test_actual_verification_tool_bounds_hostile_parent_and_duplicate_roles(monkeypatch):
+    path_record = _record()
+    path_record.parent_review_id = "C:/PRIVATE_PARENT_SENTINEL"
+    duplicate_record = _record()
+    duplicate_record.review_id = "20260824T020304000006Z_de34fa56"
+    duplicate_record.council_plan.active_role_ids = ["fidelity_reviewer"] * 100
+    duplicate_record.independent_reviews = [
+        {"agent_name": "fidelity_reviewer", "sample_status": "structured_success"}
+    ]
+    records = {
+        path_record.review_id: path_record,
+        duplicate_record.review_id: duplicate_record,
+    }
+
+    class FakeStore:
+        def load(self, review_id):
+            return records[review_id]
+
+    monkeypatch.setattr(review_module, "ReviewStore", FakeStore)
+
+    async def call_both():
+        async with Client(mcp) as client:
+            return [
+                await client.call_tool(
+                    "view_review_record",
+                    {"review_id": review_id, "detail_level": "verification"},
+                )
+                for review_id in records
+            ]
+
+    results = asyncio.run(call_both())
+    path_payload = results[0].structured_content
+    duplicate_payload = results[1].structured_content
+
+    assert path_payload["verification_receipt"]["record"]["parent_review_id"] is None
+    assert path_payload["verification_receipt"]["availability"]["redacted_fields"] == [
+        "record.parent_review_id"
+    ]
+    assert "PRIVATE_PARENT_SENTINEL" not in str(path_payload)
+    assert duplicate_payload["verification_receipt"]["routing"]["active_role_ids"] is None
+    assert duplicate_payload["verification_receipt"]["reviewer_execution"]["samples"] is None
+    assert {
+        "routing.active_role_ids",
+        "reviewer_execution.samples",
+    } <= set(duplicate_payload["verification_receipt"]["availability"]["redacted_fields"])
+    for payload in (path_payload, duplicate_payload):
+        assert len(payload["display_report"]) <= 3_200

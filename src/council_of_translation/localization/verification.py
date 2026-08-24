@@ -54,6 +54,8 @@ _SAFE_REVIEW_NEEDED = {"是", "否"}
 _SAFE_FALLBACK = re.compile(r"^[a-z0-9][a-z0-9_:-]{0,79}$")
 _SAFE_PACKAGE_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[a-z0-9.+-]{0,40})?$")
 _SAFE_BUILD = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,79}$")
+_SAFE_CURRENT_REVIEW_ID = re.compile(r"^[0-9]{8}T[0-9]{12}Z_[0-9a-f]{8,32}$")
+_SAFE_LEGACY_REVIEW_ID = re.compile(r"^[0-9]{8}_[0-9]{6}$")
 
 
 class _Availability:
@@ -96,6 +98,30 @@ def _safe_string_list(
     return list(dict.fromkeys(values))
 
 
+def _safe_parent_review_id(value: Any, state: _Availability) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str) and (
+        _SAFE_CURRENT_REVIEW_ID.fullmatch(value)
+        or _SAFE_LEGACY_REVIEW_ID.fullmatch(value)
+    ):
+        return value
+    state.redact("record.parent_review_id")
+    return None
+
+
+def _safe_active_role_ids(values: Any, state: _Availability) -> list[str] | None:
+    if (
+        not isinstance(values, list)
+        or len(values) > len(_SAFE_ROLE_IDS)
+        or any(not isinstance(item, str) or item not in _SAFE_ROLE_IDS for item in values)
+        or len(values) != len(set(values))
+    ):
+        state.redact("routing.active_role_ids")
+        return None
+    return list(values)
+
+
 def _safe_count(value: Any, path: str, state: _Availability) -> int | None:
     if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
         return value
@@ -103,29 +129,26 @@ def _safe_count(value: Any, path: str, state: _Availability) -> int | None:
     return None
 
 
-def _sample_projection(record: ReviewRecordV2, state: _Availability) -> list[dict[str, Any]] | None:
-    active_role_ids = record.council_plan.active_role_ids
-    if any(role_id not in _SAFE_ROLE_IDS for role_id in active_role_ids):
+def _sample_projection(
+    record: ReviewRecordV2,
+    active_role_ids: list[str] | None,
+    state: _Availability,
+) -> list[dict[str, Any]] | None:
+    if active_role_ids is None or not isinstance(record.independent_reviews, list):
         state.redact("reviewer_execution.samples")
         return None
-    by_role: dict[str, Any] = {}
+    result: list[dict[str, Any]] = []
     for sample in record.independent_reviews:
         if not isinstance(sample, dict):
             state.redact("reviewer_execution.samples")
             return None
         role_id = sample.get("agent_name")
-        if role_id in by_role or role_id not in _SAFE_ROLE_IDS:
-            state.redact("reviewer_execution.samples")
-            return None
-        by_role[role_id] = sample.get("sample_status")
-    result: list[dict[str, Any]] = []
-    for role_id in active_role_ids:
-        status = by_role.get(role_id)
-        if status not in _SAFE_SAMPLE_STATUSES:
+        status = sample.get("sample_status")
+        if role_id not in _SAFE_ROLE_IDS or status not in _SAFE_SAMPLE_STATUSES:
             state.redact("reviewer_execution.samples")
             return None
         result.append({"role_id": role_id, "sample_status": status})
-    if set(by_role) != set(active_role_ids):
+    if [item["role_id"] for item in result] != active_role_ids:
         state.redact("reviewer_execution.samples")
         return None
     return result
@@ -220,16 +243,14 @@ def _v2_projection(record: ReviewRecordV2) -> tuple[dict[str, Any], _Availabilit
     plan = record.council_plan
     runtime = record.runtime_metadata
     chief = record.chief_editor_decision
-    active_roles = _safe_string_list(
-        plan.active_role_ids, _SAFE_ROLE_IDS, "routing.active_role_ids", state
-    )
+    active_roles = _safe_active_role_ids(plan.active_role_ids, state)
     receipt = {
         "receipt_schema_version": RECEIPT_SCHEMA_VERSION,
         "review_id": record.review_id,
         "record": {
             "schema_version": record.schema_version,
             "history_mode": "metadata" if record.task.history_mode == "metadata" else "full",
-            "parent_review_id": record.parent_review_id,
+            "parent_review_id": _safe_parent_review_id(record.parent_review_id, state),
             "recorded_package_version": _recorded_identifier(
                 record.version_metadata.get("package_version"),
                 _SAFE_PACKAGE_VERSION,
@@ -266,7 +287,7 @@ def _v2_projection(record: ReviewRecordV2) -> tuple[dict[str, Any], _Availabilit
             "active_role_ids": active_roles,
         },
         "reviewer_execution": {
-            "samples": _sample_projection(record, state),
+            "samples": _sample_projection(record, active_roles, state),
             "coverage": _safe_scalar(
                 runtime.reviewer_coverage, _SAFE_COVERAGE, "reviewer_execution.coverage", state
             ),

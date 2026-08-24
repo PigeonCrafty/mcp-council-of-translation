@@ -1,4 +1,5 @@
 from copy import deepcopy
+import json
 
 import pytest
 
@@ -465,3 +466,123 @@ def test_hostile_roles_codes_statuses_paths_and_prose_are_redacted_without_echo(
         assert path in receipt["availability"]["redacted_fields"]
     assert "PRIVATE" not in str(receipt)
     assert "PRIVATE" not in report
+
+
+@pytest.mark.parametrize(
+    "parent_review_id",
+    [
+        "20260823T010203000004Z_cd34ef56",
+        "20260823_010203",
+        None,
+    ],
+)
+def test_supported_parent_review_ids_and_null_round_trip_exactly(parent_review_id):
+    record = _full_record()
+    record.parent_review_id = parent_review_id
+
+    receipt = build_verification_receipt(record)
+
+    assert receipt["record"]["parent_review_id"] == parent_review_id
+    assert "record.parent_review_id" not in receipt["availability"]["redacted_fields"]
+
+
+@pytest.mark.parametrize(
+    "parent_review_id",
+    [
+        "C:/PRIVATE_PARENT_SENTINEL",
+        r"..\private",
+        "x" * 1_024,
+        "PRIVATE arbitrary parent prose",
+    ],
+)
+def test_unsafe_parent_review_ids_are_null_redacted_and_absent_from_both_channels(
+    parent_review_id,
+):
+    record = _full_record()
+    record.parent_review_id = parent_review_id
+
+    receipt = build_verification_receipt(record)
+    report = render_verification_report(receipt)
+    serialized = json.dumps(receipt, ensure_ascii=False)
+
+    assert receipt["record"]["parent_review_id"] is None
+    assert receipt["availability"]["redacted_fields"] == ["record.parent_review_id"]
+    assert parent_review_id not in serialized
+    assert parent_review_id not in report
+    assert len(report) <= 3_200
+
+
+@pytest.mark.parametrize(
+    "active_role_ids",
+    [
+        [ROLE_IDS[0]] * 100,
+        [ROLE_IDS[0], ROLE_IDS[1], ROLE_IDS[1]],
+        ["PRIVATE_ROLE"],
+        "technical_safety_reviewer",
+        [{"PRIVATE": "ROLE"}],
+    ],
+)
+def test_invalid_active_role_shapes_redact_routing_and_samples_without_render_failure(
+    active_role_ids,
+):
+    record = _full_record()
+    record.council_plan.active_role_ids = active_role_ids
+
+    receipt = build_verification_receipt(record)
+    report = render_verification_report(receipt)
+    serialized = json.dumps(receipt, ensure_ascii=False)
+
+    assert receipt["routing"]["active_role_ids"] is None
+    assert receipt["reviewer_execution"]["samples"] is None
+    assert {
+        "routing.active_role_ids",
+        "reviewer_execution.samples",
+    } <= set(receipt["availability"]["redacted_fields"])
+    assert "PRIVATE" not in serialized
+    assert "PRIVATE" not in report
+    assert len(report) <= 3_200
+
+
+@pytest.mark.parametrize(
+    "sample_role_ids",
+    [
+        [ROLE_IDS[0], ROLE_IDS[0], ROLE_IDS[2]],
+        ROLE_IDS[:2],
+        [*ROLE_IDS, "product_context_reviewer"],
+        [ROLE_IDS[1], ROLE_IDS[0], ROLE_IDS[2]],
+        [ROLE_IDS[0], "PRIVATE_ROLE", ROLE_IDS[2]],
+    ],
+)
+def test_mismatched_sample_members_are_redacted_without_changing_valid_routing(
+    sample_role_ids,
+):
+    record = _full_record()
+    record.independent_reviews = [
+        {"agent_name": role_id, "sample_status": "structured_success"}
+        for role_id in sample_role_ids
+    ]
+
+    receipt = build_verification_receipt(record)
+    report = render_verification_report(receipt)
+
+    assert receipt["routing"]["active_role_ids"] == ROLE_IDS
+    assert receipt["reviewer_execution"]["samples"] is None
+    assert "reviewer_execution.samples" in receipt["availability"]["redacted_fields"]
+    assert "PRIVATE" not in json.dumps(receipt, ensure_ascii=False)
+    assert "PRIVATE" not in report
+    assert len(report) <= 3_200
+
+
+@pytest.mark.parametrize("independent_reviews", ["PRIVATE samples", None, {"PRIVATE": "sample"}])
+def test_non_list_sample_shapes_are_null_redacted_and_bounded(independent_reviews):
+    record = _full_record()
+    record.independent_reviews = independent_reviews
+
+    receipt = build_verification_receipt(record)
+    report = render_verification_report(receipt)
+
+    assert receipt["reviewer_execution"]["samples"] is None
+    assert "reviewer_execution.samples" in receipt["availability"]["redacted_fields"]
+    assert "PRIVATE" not in json.dumps(receipt, ensure_ascii=False)
+    assert "PRIVATE" not in report
+    assert len(report) <= 3_200
