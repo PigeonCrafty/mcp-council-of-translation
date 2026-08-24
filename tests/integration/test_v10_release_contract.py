@@ -14,15 +14,15 @@ from council_of_translation.server import mcp
 from council_of_translation.tools.review import _server_info
 
 
-def test_v010_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
+def test_v011_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
     monkeypatch.delenv("COUNCIL_REVIEW_CONCURRENCY", raising=False)
     assert (__version__, __diagnostic_build__, __schema_version__) == (
-        "0.10.2", "evidence-value-council-v8.2", "2.4"
+        "0.11.0", "risk-coherent-council-v9", "2.5"
     )
     info = _server_info()
-    assert info["package_version"] == info["module_version"] == "0.10.2"
-    assert info["diagnostic_build"] == "evidence-value-council-v8.2"
-    assert info["schema_version"] == "2.4"
+    assert info["package_version"] == info["module_version"] == "0.11.0"
+    assert info["diagnostic_build"] == "risk-coherent-council-v9"
+    assert info["schema_version"] == "2.5"
     assert info["sample_budgets"] == {"lightweight": 6, "standard": 13, "strict": 18}
     assert info["independent_review_concurrency_limit"] == 3
     assert info["max_independent_review_concurrency"] == 3
@@ -32,7 +32,7 @@ def test_v010_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
     ]
 
 
-def test_v24_full_and_metadata_writes_are_truthful_and_old_records_still_read(tmp_path):
+def test_v25_full_and_metadata_writes_are_truthful_and_old_records_still_read(tmp_path):
     metrics = CouncilValueMetrics(
         role_contributions=[
             RoleContribution(role_id="fidelity_reviewer", contribution_kind="unique_material", unique_issue_count=1),
@@ -49,11 +49,11 @@ def test_v24_full_and_metadata_writes_are_truthful_and_old_records_still_read(tm
         )
         path = store.save(record)
         payload = json.loads(path.read_text(encoding="utf-8"))
-        assert payload["schema_version"] == "2.4"
+        assert payload["schema_version"] == "2.5"
         assert payload["version_metadata"] == {
-            "package_version": "0.10.2",
-            "diagnostic_build": "evidence-value-council-v8.2",
-            "record_schema": "2.4",
+            "package_version": "0.11.0",
+            "diagnostic_build": "risk-coherent-council-v9",
+            "record_schema": "2.5",
         }
         assert payload["council_value_metrics"]["unique_material_issue_count"] == 1
         if mode == "metadata":
@@ -66,7 +66,7 @@ def test_v24_full_and_metadata_writes_are_truthful_and_old_records_still_read(tm
                 "material_finding_count": 0,
             }]
 
-    for version in ("2.0", "2.1", "2.2", "2.3"):
+    for version in ("2.0", "2.1", "2.2", "2.3", "2.4"):
         historical = parse_review_record({
             "schema_version": version,
             "review_id": "20260811T010203000004Z_ab12cd34",

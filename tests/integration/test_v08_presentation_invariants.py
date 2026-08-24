@@ -101,7 +101,7 @@ def test_literal_v22_record_runtime_and_role_invariants(tmp_path):
         store=ReviewStore(tmp_path, include_legacy=False),
     ))
     payload = record.model_dump(mode="json")
-    assert payload["schema_version"] == "2.4"
+    assert payload["schema_version"] == "2.5"
     assert payload["council_plan"]["active_role_ids"] == roles
     assert all(role_id in ROLE_REGISTRY for role_id in roles)
     assert {review["sample_status"] for review in payload["independent_reviews"]} == {"structured_success"}
