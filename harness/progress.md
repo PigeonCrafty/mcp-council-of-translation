@@ -5,16 +5,19 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-012`
-- Campaign state: `PUBLISHED; Q-014-r2_ISSUED`
+- Campaign state: `COMPLETE; Q-014-r2_ACCEPTED`
 - Active contract: `none`
 - Accepted implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
 - Accepted review: `harness/evaluations/CAMPAIGN-012-r4-review.md`
 - Accepted review SHA-256:
   `F9A3B6657299AE2AAC45142B3332A5029EC876D9CFA75A0819D01FF4E9C6CEAF`
 - Accepted features: `58/58`
-- Accepted quality gates: `13/14`; Q-014-r2 issued
-- Pending live gate: `Q-014`
-- Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
+- Accepted quality gates: `14/14`
+- Pending live gate: `none`
+- Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
+- Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
+- Final Q-014 live review SHA-256:
+  `6207A0DDC7798B61C8B2003FE492BE7312186FC0F781E397730C12293CC6EE6A`
 - Parent live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
 - Final live contract: `harness/contracts/CAMPAIGN-012-q014-live-r2.md`
 - Final live contract SHA-256:
@@ -147,8 +150,18 @@
 - Final Q-014 protocol: `harness/contracts/CAMPAIGN-012-q014-live-r2.md`. It requires
   normal Goose to parse the compact canonical receipt JSON from the verification primary
   text after the fixed label, with no structuredContent dependency or field rebuilding.
-- Q-014 state is `issued`, not accepted. Fresh A/B/C review IDs and verbatim text JSON are
-  still required for Foreman acceptance.
+- Q-014-r2 decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`.
+- Fresh normal-Goose records are A `20260824T111549004059Z_30d1db390187`, B
+  `20260824T111624426596Z_fe453690d2fc` and C
+  `20260824T111654722830Z_d4507f740780`.
+- A/B/C expose the fixed label and canonical parseable receipt JSON directly in normal
+  verification text. The parsed objects preserve exact schema/version, route and ordered
+  roles, full coverage, 4/6, 7/13 and 8/18 sampling/budget, zero elicitation, preflight,
+  issues, outcomes, terminal coherence and complete availability.
+- All three report no retry, provider error, missing field or deviation. Their outcomes
+  are respectively `可发布 / 否`, `修改后可发布 / 否` and `需人工复核 / 是`.
+- Campaign 012 is complete: 58/58 features and 14/14 quality gates are accepted.
 
 ## Q-013 live review and r3 correction
 
@@ -745,6 +758,5 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Run the final Q-014-r2 normal-Goose A/B/C protocol against published V0.12.1, then return
-the three fresh review IDs, original reports, full verification text and parsed canonical
-JSON blocks for Foreman acceptance.
+Assess the next product Campaign. No corrective implementation or live quality gate is
+active; V0.12.1 and Campaign 012 are complete.
