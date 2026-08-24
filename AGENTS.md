@@ -16,8 +16,8 @@ Council-of-Translation is a review-only MCP server for localization translation 
 - Default decision fallback: `council_adjudication`
 - Default trace level: `summary`
 - Default history mode: `full`
-- Current expected diagnostic build: `verifiable-evidence-council-v10.1`
-- Current version: `0.12.1`
+- Current expected diagnostic build: `calibrated-evidence-council-v11`
+- Current version: `0.13.0`
 
 Only independent reviewer sampling is concurrent. The per-review default is three;
 `COUNCIL_REVIEW_CONCURRENCY` accepts only `1`, `2`, or `3`, and invalid values visibly
@@ -50,9 +50,9 @@ Before sampling, `briefing_mode=auto` asks source/candidate-only callers for bou
 
 Findings are clustered by issue, optionally discussed once, and adjudicated through a Policy Gate and evidence-weighted Position Matrix. V2.2 reviewers classify `issue`, `choice`, and `affirmation`; only `finding_kind="choice"` with a concrete bounded `proposed_value` can become an outcome, while `action` remains advice even for legacy, missing, invalid, or incomplete classifications. RolePositions and DecisionPoints share one deterministic outcome identity. Repeated or synonymous findings do not multiply a reviewer's authority. A consistent bounded `candidate_span` supplies the issue-local current outcome; proposed replacements are applied only at one provable anchor and deterministic checks run against the reconstructed complete candidate. Missing or repeated anchors persist content-free suppression provenance and surface degraded fallback warnings; ordinary hard-constraint rejection does not. The batched form uses human-readable enum values mapped per field to exact internal outcomes, keeps a known current outcome first, and offers explicit Council delegation last. Only contrary/materially affected roles reconsider; requested/completed/skipped/failed provenance is recorded, and budget/runtime gaps surface as degradation and warnings. Structured reviewer coverage is recorded separately from finding count. Success requires both envelope keys, a string `role_feedback`, a list `findings`, and safely validated finding objects; empty findings additionally require non-blank feedback. If any finding entry is invalid, the whole sample's findings are discarded and it is unavailable. Partial or zero coverage requires human review and is exposed in fallback/runtime metadata. User choices are decisive only among valid options and cannot override technical integrity, semantic correctness, deterministically checked caller hard rules, or critical blockers. Use `hard_constraints` values `numeric_parity`, `markdown_parity`, `required_literal:<text>`, or `forbidden_literal:<text>` for machine-enforced caller rules; other rule packets remain authoritative reviewer context but do not become deterministic blockers by model assertion alone.
 
-Schema 2.5 adds bounded deterministic routing provenance to the existing structured trace. `CouncilPlan.routing_profile` selects one of 15 fixed content/mode portfolios and `routing_reason_codes` records only bounded vocabulary. Legal-risk routing is exactly 4 roles for lightweight, 6 for standard, and 7 for strict; routing never inspects free source, candidate, context, audience, or notes prose and adds no sampling or elicitation. Older V2.0-V2.4 records load with conservative unrecorded-routing defaults.
+Schema 2.6 adds categorical `decision_support` for the chief disposition to the existing bounded routing and value trace. The levels `well_supported`, `supported_with_limits`, and `insufficient` are deterministic structured classifications, never a translation-quality probability, numeric score, vote, or reviewer-confidence average. Context confidence, reviewer coverage, decision support and publishability remain separate concepts. Only insufficient support may tighten a permissive chief result to `需人工复核 / 是`; it never relaxes Policy Gate, blockers or valid user authority. V1 and V2.0-V2.5 reads use exact `not_recorded` semantics.
 
-The opt-in verification history view retains its canonical receipt in structured
+The opt-in receipt 1.1 verification history view retains its canonical receipt in structured
 content and also appends the exact same compact receipt JSON to its first text block for
 clients that ignore MCP structured content. The normal Council report remains unchanged.
 
@@ -108,9 +108,9 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 If Goose appears stale, call `get_server_info()` and verify:
 
-- `package_version`: `0.12.1`
-- `module_version`: `0.12.1`
-- `diagnostic_build`: `verifiable-evidence-council-v10.1`
+- `package_version`: `0.13.0`
+- `module_version`: `0.13.0`
+- `diagnostic_build`: `calibrated-evidence-council-v11`
 
 ## Repository Hygiene
 

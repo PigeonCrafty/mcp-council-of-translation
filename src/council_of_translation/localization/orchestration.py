@@ -10,7 +10,7 @@ from typing import Any, Iterable, Literal
 
 from pydantic import Field, ValidationError, create_model
 
-from council_of_translation import __diagnostic_build__, __schema_version__, __version__
+from council_of_translation import __diagnostic_build__, __version__
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.digest import build_process_digest, render_display_report
 from council_of_translation.localization.decision_support import finalize_decision_support

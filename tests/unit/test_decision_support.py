@@ -14,7 +14,6 @@ from council_of_translation.localization.models import (
     ContextGapInteraction,
     ContextGapV2,
     CouncilPlan,
-    CouncilValueMetrics,
     DecisionSupportAssessment,
     DecisionTrace,
     DecisionTraceEntry,
