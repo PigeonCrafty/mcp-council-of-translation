@@ -5,20 +5,43 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-011`
-- Campaign state: `V0.11.1_ACCEPTED; PUBLICATION_PENDING; Q-013_REVALIDATION_PENDING`
+- Campaign state: `V0.11.1_PUBLISHED; Q-013_ACCEPTED; CAMPAIGN-011_COMPLETE`
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted review SHA-256:
   `EB233D25C115857C36A81F9738DD03CB7C1F8C0ECA11A79D11EA047420F2E08E`
-- Active quality gate: `Q-013 CHANGES_REQUESTED; post-fix live revalidation pending`
+- Active quality gate: none (`13/13 accepted`)
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
   `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
-- Published protected `main`: `938c3a4bb9f14c7688286b25eabd8aff9f18a09d`
+- Published protected `main`: `f64d86fd37a0727d3a0a3ebcd8581fd26cc7e1a3`
 - Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
 
 ## Q-013 live review and r3 correction
+
+- Q-013-r2 decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-011-q013-live-r2-review.md`.
+- Fresh records A `20260824T055437150459Z_57eb0e6c7126`, B
+  `20260824T055650352341Z_13adec94c680` and C
+  `20260824T055754842258Z_76bfb2e3afd1` prove the exact standard/lightweight/strict routes.
+- Runtime truth is A 7/13, B 4/6 and C 8/18 sampling/budget; all reviewer coverage is
+  full, elicitation is zero, no reviewer is unavailable and no run is degraded.
+- Structured chief and primary terminal are coherent exactly once and last: A
+  `修改后可发布 / 否`, B `可发布 / 否`, C `需人工复核 / 是`.
+- Goose narrative misstates some canonical reason codes, role/status names and B/C
+  budgets; persisted full records are authoritative and pass the machine verifier.
+- CAMPAIGN-011 is complete. All 52 features and all 13 quality gates are accepted.
+
+- V0.11.1 publication decision: `PUBLISHED; Q-013-r2 ISSUED` by
+  `harness/evaluations/CAMPAIGN-011-r3-publication-ci-review.md`.
+- Protected-main PR #24 rebase-merged at `f64d86f`; all six required Ubuntu/Windows
+  Python 3.10/3.12/3.13 checks passed.
+- Accepted implementation `76921ec` maps tree-identically to published implementation
+  `6d3a5b6`; accepted archive `428ce1e` maps tree-identically to published main `f64d86f`.
+- Final normal-Goose contract is `harness/contracts/CAMPAIGN-011-q013-live-r2.md`.
+  It requires fresh A/B/C records on V0.11.1/build v9.1 and exact primary/structured
+  terminal coherence. Q-013 remains planned until Foreman accepts all three records.
 
 - CAMPAIGN-011-r3 decision: `ACCEPTED` by
   `harness/evaluations/CAMPAIGN-011-r3-review.md` at
@@ -31,8 +54,8 @@
 - Rebuilding all three exact Q-013 records with the accepted production code yields
   canonical final dispositions once and last: A `修改后可发布 / 否`, B `可发布 / 否`, C
   `需人工复核 / 是`; raw records and structured objects remain unchanged.
-- V0.11.1 is accepted locally but not published. Q-013 remains unaccepted until protected
-  main publication, required CI and a fresh normal-Goose A/B/C run on the published build.
+- At r3 acceptance time V0.11.1 was local and Q-013 remained unaccepted; protected-main
+  publication and fresh normal-Goose A/B/C validation have now completed successfully.
 
 - Decision: `CHANGES_REQUESTED` by
   `harness/evaluations/CAMPAIGN-011-q013-live-review.md` (SHA-256
@@ -590,7 +613,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Restart Goose once without changing the existing extension command. Run the Q-013
-preparation check and Cases A, B and C exactly as issued in
-`harness/contracts/CAMPAIGN-011-q013-live.md`, then return the three review IDs and Goose
-responses for Foreman acceptance. Do not retry a failed or unavailable reviewer silently.
+Archive the accepted Q-013-r2 contract, publication evidence, live review and updated
+Foreman state in the next protected-main maintenance publication. No product feature or
+quality gate remains planned; evaluate the next product Campaign separately before
+authorizing implementation.
