@@ -239,7 +239,7 @@ wheels = [
 
 [[package]]
 name = "council-of-translation"
-version = "0.11.1"
+version = "0.12.0"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },

@@ -1,6 +1,6 @@
 # Council of Translation
 
-Council of Translation V0.11.1 is a Goose-first, review-only MCP server for context-coherent localization QA. It reviews a source/candidate pair, returns a concise Council report as the primary MCP text, and retains the complete existing dictionary as structured content. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
+Council of Translation V0.12.0 is a Goose-first, review-only MCP server for context-coherent localization QA. It reviews a source/candidate pair, returns a concise Council report as the primary MCP text, and retains the complete existing dictionary as structured content. It never translates files or applies edits: the caller supplies relevant terminology, style, project, and technical context and owns the final edit.
 
 ## Public MCP tools
 
@@ -8,7 +8,7 @@ The normal tool surface is frozen to exactly five tools:
 
 - `review_translation(...)` starts a V2 review.
 - `continue_review(review_id, user_decisions, ...)` creates a linked immutable revision and reconsiders only affected roles.
-- `view_review_record(review_id, detail_level="full")` reads V2 records and legacy V1 records.
+- `view_review_record(review_id, detail_level="full")` reads V2 records and legacy V1 records; `detail_level` accepts `full`, `summary`, or the opt-in `verification` evidence view.
 - `list_review_records(...)` returns bounded, privacy-safe record metadata.
 - `get_server_info()` reports version, defaults, budgets, and build diagnostics.
 
@@ -68,6 +68,8 @@ New records use schema `2.5`, adding bounded routing provenance to the existing 
 
 Use `view_review_record(review_id, detail_level="full")` to inspect full structured evidence when `history_mode="full"`; no hidden chain-of-thought is requested or stored. The first normal review response is already suitable for user presentation, so a second history lookup is not required just to obtain the concise Council report.
 
+Use `detail_level="verification"` only when a client needs a deterministic, privacy-safe technical receipt. It returns a five-section Markdown verification report plus a canonical structured receipt with receipt schema `1.0`; it does not return raw record content, persist a receipt, sample reviewers, elicit input, or replace the normal process-first Council report. Historical and metadata records expose unavailable facts as `null` with explicit availability provenance instead of compatibility defaults.
+
 ## Development
 
 ```powershell
@@ -87,4 +89,4 @@ uvx --refresh --from git+https://github.com/PigeonCrafty/mcp-council-of-translat
 
 For Q-010 after publication, replace `<reviewed-commit>` above with the exact accepted commit and run two pinned normal-user recipes. First, review a clean marketing slogan with explicit brand usage and any binding glossary/reference; expect the six marketing lenses in frozen order and a normal outcome only after context is sufficient. Second, deliberately combine marketing with functional-button context and omit whether the text is a slogan or UI action; expect the Council to ask that material question first, and if it remains unanswered, open no wording form and require human review. Audit literal structured JSON for role IDs, sample statuses, coverage and call counts; do not treat an outer agent's prose reconstruction as telemetry truth.
 
-The pinned build reports version `0.11.1`, schema `2.5`, diagnostic build `risk-coherent-council-v9.1`, and budgets 6/13/18.
+The pinned build reports version `0.12.0`, schema `2.5`, verification receipt schema `1.0`, diagnostic build `verifiable-evidence-council-v10`, and budgets 6/13/18.
