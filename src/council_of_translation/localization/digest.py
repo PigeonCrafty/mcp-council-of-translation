@@ -257,11 +257,14 @@ def build_process_digest(
         *(f"背景重审：{value}" for value in context_provenance.change_effects),
         *(f"结果重审：{value}" for value in outcome_provenance.change_effects),
     ]
-    checklist = [
+    action_checklist = [
         *(f"必须修复：{item}" for item in chief.must_fix),
         *(f"建议修复：{item}" for item in chief.should_fix),
         *(f"可选改进：{item}" for item in chief.optional_improvements),
         *(f"执行顺序：{item}" for item in chief.execution_order),
+    ]
+    checklist = [
+        *action_checklist[:7],
         f"最终处置：{chief.publishability}；需人工复核：{chief.review_needed}",
     ]
     return ProcessDigestV2(
@@ -833,7 +836,16 @@ def _primary_checklist(
     result: list[str] = []
     seen_groups: set[str] = set()
     seen_text: set[str] = set()
+    final_disposition = ""
+    action_values: list[str] = []
     for value in values:
+        text = str(value).strip()[:240]
+        if text.startswith("最终处置："):
+            final_disposition = text
+        else:
+            action_values.append(text)
+
+    for value in action_values:
         text = str(value).strip()[:240]
         if not text:
             continue
@@ -857,6 +869,8 @@ def _primary_checklist(
                 break
         if len(result) >= 6:
             break
+    if final_disposition:
+        result.append(final_disposition)
     return result
 
 
