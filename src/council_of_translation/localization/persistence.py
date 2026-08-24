@@ -96,10 +96,10 @@ def default_reviews_dir() -> Path:
 
 
 def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
-    """Create a valid V2.4 allowlist projection without user or model prose."""
+    """Create a valid V2.5 allowlist projection without user or model prose."""
     task = record.task
     return {
-        "schema_version": "2.4",
+        "schema_version": "2.5",
         "review_id": record.review_id,
         "parent_review_id": record.parent_review_id,
         "created_at": record.created_at.isoformat(),
@@ -137,11 +137,18 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         },
         "council_plan": {
             "mode": record.council_plan.mode,
+            "content_type": (
+                record.council_plan.content_type
+                if record.council_plan.content_type in _SAFE_CONTENT_TYPES
+                else "unspecified"
+            ),
             "discussion_enabled": record.council_plan.discussion_enabled,
             "interactive_enabled": record.council_plan.interactive_enabled,
             "sample_budget": record.council_plan.sample_budget,
             "max_discussion_rounds": record.council_plan.max_discussion_rounds,
             "max_decision_points": record.council_plan.max_decision_points,
+            "routing_profile": record.council_plan.routing_profile,
+            "routing_reason_codes": record.council_plan.routing_reason_codes,
         },
         "chief_editor_decision": {
             "publishability": record.chief_editor_decision.publishability,
@@ -222,7 +229,7 @@ def _metadata_projection(record: ReviewRecordV2) -> dict[str, Any]:
         "version_metadata": {
             "package_version": _CURRENT_PACKAGE_VERSION,
             "diagnostic_build": _CURRENT_DIAGNOSTIC_BUILD,
-            "record_schema": "2.4",
+            "record_schema": "2.5",
         },
     }
 
@@ -284,10 +291,10 @@ class ReviewStore:
             raise InvalidReviewIdError("new V2 records require a sortable V2 review ID")
         write_record = validated.model_copy(
             update={
-                "schema_version": "2.4",
+                "schema_version": "2.5",
                 "version_metadata": {
                     **validated.version_metadata,
-                    "record_schema": "2.4",
+                    "record_schema": "2.5",
                 },
             }
         )
