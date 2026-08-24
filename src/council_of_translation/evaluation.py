@@ -277,6 +277,7 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
     critical_recalled = 0
     total_sampling_calls = 0
     total_elicitation_calls = 0
+    total_sample_budget = 0
     for case in values:
         task = ReviewTaskV2.model_validate({
             "source_language": "en",
@@ -328,9 +329,14 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
             "continuation_preference_rejected": deterministic_preference_rejected,
             "sampling_calls": record.runtime_metadata.sampling_calls,
             "elicitation_calls": record.runtime_metadata.elicitation_calls,
+            "sample_budget": record.runtime_metadata.sample_budget,
+            "active_role_ids": list(record.council_plan.active_role_ids),
+            "routing_profile": record.council_plan.routing_profile,
+            "routing_reason_codes": list(record.council_plan.routing_reason_codes),
         })
         total_sampling_calls += record.runtime_metadata.sampling_calls
         total_elicitation_calls += record.runtime_metadata.elicitation_calls
+        total_sample_budget += record.runtime_metadata.sample_budget
         for key in _PROPERTIES:
             matches = observed[key] == case["expected"][key]
             property_matches[key] += int(matches)
@@ -372,6 +378,9 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
         "runtime_observations": {
             "sampling_calls": total_sampling_calls,
             "elicitation_calls": total_elicitation_calls,
+            "sample_budget": total_sample_budget,
+            "routing_calls": 0,
+            "display_calls": 0,
             "case_results": observations,
         },
         "failures": failures,

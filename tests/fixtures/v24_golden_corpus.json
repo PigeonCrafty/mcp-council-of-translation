@@ -159,5 +159,56 @@
       "fluency_reviewer": {"role_feedback": "same issue corroborated", "findings": [{"issue_type": "accuracy", "severity": "minor", "source_span": "Close", "candidate_span": "关闭", "problem": "Object is not explicit", "evidence": "candidate also lacks an object", "action": "Confirm object from context", "confidence": 0.7}]}
     },
     "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "legal_risk_lightweight_modality_shift",
+    "category": "legal_risk_modality",
+    "task": {"source_text": "You may cancel after notice", "candidate_translation": "通知后必须取消", "content_type": "legal_risk", "mode": "lightweight"},
+    "reviewers": {
+      "fidelity_reviewer": {"role_feedback": "modality checked", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "may and must express different obligation levels", "action": "Restore the source modality", "confidence": 0.95}]},
+      "risk_ambiguity_reviewer": {"role_feedback": "rights impact corroborated", "findings": [{"issue_type": "risk", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "the candidate expands the stated obligation", "action": "Restore the source modality", "confidence": 0.9}]}
+    },
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "risk_ambiguity_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "legal_risk_product_state_blind_spot",
+    "category": "legal_risk_product_context",
+    "task": {"source_text": "Binding after verification", "candidate_translation": "已经生效", "content_type": "legal_risk"},
+    "reviewers": {
+      "product_context_reviewer": {"role_feedback": "state transition checked", "findings": [{"issue_type": "context", "severity": "major", "source_span": "after verification", "candidate_span": "已经生效", "problem": "A conditional state is presented as already effective", "evidence": "verification is the stated activation boundary", "action": "Restore the conditional state", "confidence": 0.9}]}
+    },
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"product_context_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "legal_risk_user_understanding_blind_spot",
+    "category": "legal_risk_user_understanding",
+    "task": {"source_text": "Acknowledge and accept the consequence", "candidate_translation": "确认", "content_type": "legal_risk"},
+    "reviewers": {
+      "ux_copy_reviewer": {"role_feedback": "user consequence checked", "findings": [{"issue_type": "ux", "severity": "major", "source_span": "accept the consequence", "candidate_span": "确认", "problem": "The action label hides the material acknowledgment consequence", "evidence": "the source explicitly ties acknowledgment to acceptance", "action": "Make the consequence clear without adding obligations", "confidence": 0.9}]}
+    },
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"ux_copy_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "legal_risk_missing_jurisdiction_context",
+    "category": "legal_risk_context_gap",
+    "task": {"source_text": "This notice applies to the account", "candidate_translation": "本通知适用于该账户", "content_type": "legal_risk"},
+    "reviewers": {
+      "risk_ambiguity_reviewer": {"role_feedback": "jurisdiction context is required for a bounded risk conclusion", "findings": [{"issue_type": "risk", "severity": "major", "source_span": "This notice", "candidate_span": "本通知", "problem": "The applicable jurisdiction context is not supplied", "evidence": "no caller-provided jurisdiction or binding rule is present", "action": "Request caller-supplied jurisdiction context without inferring a law", "confidence": 0.8}], "context_gaps": [{"question": "调用方适用的司法辖区或项目规则是什么？", "materiality": "该背景会改变风险措辞判断", "affected_role_ids": ["risk_ambiguity_reviewer"]}]}
+    },
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "legal_risk_strict_required_literal",
+    "category": "legal_risk_deterministic_blocker",
+    "task": {"source_text": "EU notice applies", "candidate_translation": "本通知适用", "content_type": "legal_risk", "mode": "strict", "hard_constraints": ["required_literal:EU"]},
+    "reviewers": {},
+    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 18, "discussion_marginal_value": "not_applicable"}
+  },
+  {
+    "case_id": "legal_risk_clean_panorama",
+    "category": "clean",
+    "task": {"source_text": "You may withdraw after notice", "candidate_translation": "通知后可以撤回", "content_type": "legal_risk"},
+    "reviewers": {},
+    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "risk_ambiguity_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   }
 ]
