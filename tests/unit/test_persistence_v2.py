@@ -417,6 +417,9 @@ def test_metadata_receipt_uses_only_physically_retained_allowlist_fields(tmp_pat
     assert receipt["outcome"]["fallback_reason_code"] is None
     assert receipt["outcome"]["fallback_reason_redacted"] is None
     assert receipt["outcome"]["suggested_translation_present"] is None
+    assert receipt["decision_support"] == loaded.decision_support.model_dump(mode="json")
+    assert receipt["decision_support"]["level"] == "insufficient"
+    assert "decision_support.level" not in unavailable
     assert all(value is None for value in receipt["coherence"].values())
     assert {
         "routing.active_role_ids", "reviewer_execution.samples",

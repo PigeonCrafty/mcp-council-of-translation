@@ -935,6 +935,7 @@ async def run_structured_review(
             degraded=record.degraded,
             warnings=record.warnings,
             fallback_reason=record.fallback_reason,
+            decision_support=record.decision_support,
         )
         telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
         record.runtime_metadata = telemetry.snapshot()
@@ -1333,6 +1334,7 @@ async def run_structured_review(
         warnings=record.warnings,
         fallback_reason=record.fallback_reason,
         clusters=clusters,
+        decision_support=record.decision_support,
     )
     telemetry.wall_clock_ms = int((perf_counter() - started) * 1_000)
     record.runtime_metadata = telemetry.snapshot().model_copy(
@@ -1538,6 +1540,7 @@ async def continue_structured_review(
         warnings=record.warnings,
         fallback_reason=record.fallback_reason,
         clusters=clusters,
+        decision_support=record.decision_support,
     )
     record.phase_trace = _build_phase_trace(
         briefing=record.briefing_interaction,

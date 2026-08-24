@@ -61,7 +61,7 @@ def test_server_info_and_versioned_defaults(monkeypatch):
     assert info["independent_review_concurrency_limit"] == 3
     assert info["max_independent_review_concurrency"] == 3
     assert info["independent_review_concurrency_disposition"] == "default"
-    assert info["verification_receipt_schema_version"] == "1.0"
+    assert info["verification_receipt_schema_version"] == "1.1"
     assert info["review_record_detail_levels"] == ["full", "summary", "verification"]
 
 

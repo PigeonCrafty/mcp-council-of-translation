@@ -48,11 +48,11 @@ def test_clean_runtime_report_collapses_confirmations_and_accounts_for_roles_onc
     assert len(record.display_report) <= 1_200
     assert "完成确认性覆盖" in record.display_report
     assert record.display_report.count("完成确认性覆盖") == 1
-    assert "依据：" not in record.display_report
     coverage_line = next(
         line for line in record.display_report.splitlines()
         if "完成确认性覆盖" in line
     )
+    assert "依据：" not in coverage_line
     for role_id in record.council_plan.active_role_ids:
         role_name = ROLE_REGISTRY[role_id].display_name
         assert record.display_report.count(role_name) == 1

@@ -10,6 +10,7 @@ from council_of_translation.localization.models import (
     ContextGapV2,
     CouncilPlan,
     CouncilValueMetrics,
+    DecisionSupportAssessment,
     IssueCluster,
     MinorityReport,
     PhaseReconsiderationProvenance,
@@ -77,6 +78,56 @@ _PRIMARY_VOCABULARY = (
     (re.compile(r"(?<![A-Za-z0-9_])council\s+fallback(?![A-Za-z0-9_])", re.IGNORECASE), "委员会回退裁决"),
     (re.compile(r"(?<![A-Za-z0-9_])ux(?![A-Za-z0-9_])", re.IGNORECASE), "用户体验"),
 )
+
+_SUPPORT_BASIS_TEXT = {
+    "full_reviewer_coverage": "完整角色覆盖",
+    "clean_confirmation": "结构化清洁确认",
+    "structured_material_evidence": "结构化实质证据",
+    "corroborated_material_evidence": "交叉印证的实质证据",
+    "deterministic_blocker": "确定性阻断证据",
+    "policy_gate_enforced": "规则闸门执行结果",
+    "valid_user_decision": "有效用户决定",
+    "completed_reconsideration": "已完成的定向复议",
+    "council_adjudication": "Council 结构化裁决",
+}
+_SUPPORT_LIMITATION_TEXT = {
+    "minimal_context": "上下文极少",
+    "partial_context": "上下文不完整",
+    "material_disagreement": "仍有实质分歧",
+    "council_fallback": "采用了 Council 回退裁决",
+    "reviewer_unavailable": "有评审角色不可用",
+    "partial_reviewer_coverage": "评审覆盖不完整",
+    "no_reviewer_coverage": "没有有效评审覆盖",
+    "unresolved_material_context": "关键上下文未解决",
+    "pending_user_input": "仍待用户输入",
+    "incomplete_reconsideration": "定向复议未完整完成",
+    "degraded_execution": "执行发生降级",
+    "runtime_fallback": "运行时采用回退路径",
+}
+
+
+def _decision_support_line(assessment: DecisionSupportAssessment | None) -> str:
+    if assessment is None or assessment.level == "not_recorded":
+        return ""
+    if assessment.level == "well_supported":
+        reason = next(
+            (_SUPPORT_BASIS_TEXT[code] for code in assessment.basis_codes
+             if code in _SUPPORT_BASIS_TEXT),
+            "已有结构化记录",
+        )
+        if "deterministic_blocker" in assessment.basis_codes:
+            suffix = f"{reason}充分支持当前负面处置，不表示译文正确。"
+        else:
+            suffix = f"{reason}充分支持当前处置，不表示译文必然正确。"
+        return f"结论依据：充分；{suffix}"[:160]
+    limitation = next(
+        (_SUPPORT_LIMITATION_TEXT[code] for code in assessment.limitation_codes
+         if code in _SUPPORT_LIMITATION_TEXT),
+        "证据存在边界",
+    )
+    if assessment.level == "supported_with_limits":
+        return f"结论依据：有限制；结构化证据支持当前处置，但{limitation}。"[:160]
+    return f"结论依据：不足；{limitation}，当前证据仅支持转人工复核。"[:160]
 
 
 def _semantic_key(value: str) -> str:
@@ -930,7 +981,7 @@ def _bound_five_sections(sections: list[list[str]], maximum: int = 3_200) -> str
     final_index = len(sections[-1]) - 1
     selected.add((len(sections) - 1, final_index))
     for line_index, line in enumerate(sections[-1][1:final_index], start=1):
-        if "降级" in line or "回退" in line or "尚待补充" in line:
+        if "降级" in line or "回退" in line or "尚待补充" in line or "结论依据" in line:
             selected.add((len(sections) - 1, line_index))
 
     safety_markers = (
@@ -976,10 +1027,28 @@ def render_display_report(
     warnings: list[str] | None = None,
     fallback_reason: str = "",
     clusters: list[IssueCluster] | None = None,
+    decision_support: DecisionSupportAssessment | None = None,
 ) -> str:
     """Render the frozen value-first five-section primary Council report."""
     compatibility_fallback = metrics is None
     value_metrics = metrics or _fallback_value_metrics(digest)
+    if (
+        decision_support is None
+        and metrics is not None
+        and status == "COMPLETED"
+        and not clusters
+        and metrics.role_contributions
+        and all(
+            item.contribution_kind == "confirmation_only"
+            for item in metrics.role_contributions
+        )
+    ):
+        decision_support = DecisionSupportAssessment(
+            level="well_supported",
+            basis_codes=["full_reviewer_coverage", "clean_confirmation"],
+            assessment_basis="deterministic_structured_trace_v1",
+            outcome_coherent=True,
+        )
     background = _material(digest.case_brief, maximum=4)
     background.extend(_material(digest.assumptions_context_confidence, maximum=2))
 
@@ -1043,6 +1112,7 @@ def render_display_report(
         status_lines.append("审校尚待补充信息或决定，当前结论不是发布许可。")
     if not final:
         final = "最终处置：需人工复核；需人工复核：是"
+    support_line = _decision_support_line(decision_support)
 
     deliberation.extend(f"交互与复议：{value}" for value in interaction)
     if value_metrics.unavailable_role_count:
@@ -1063,7 +1133,12 @@ def render_display_report(
         _section("共识、分歧与盲区", [_human_line(value) for value in deliberation] or ["无可展示结论。"]),
         _section(
             "主编结论",
-            [*conclusion[: max(0, 5 - len(status_lines))], *status_lines, _human_line(final)],
+            [
+                *conclusion[: max(0, 5 - len(status_lines) - bool(support_line))],
+                *status_lines,
+                *([support_line] if support_line else []),
+                _human_line(final),
+            ],
         ),
     ]
     return _bound_five_sections(sections)

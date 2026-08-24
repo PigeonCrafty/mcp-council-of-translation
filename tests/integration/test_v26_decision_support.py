@@ -51,6 +51,9 @@ def test_clean_parent_persists_one_coherent_schema_26_assessment(tmp_path):
         "full_reviewer_coverage", "clean_confirmation"
     ]
     assert record.decision_support.outcome_coherent is True
+    assert record.display_report.count("结论依据：充分；") == 1
+    assert "不表示译文必然正确" in record.display_report
+    assert record.display_report.rfind("结论依据：") < record.display_report.rfind("最终处置：")
 
 
 def test_partial_coverage_is_insufficient_and_never_publishable(tmp_path):
@@ -64,6 +67,8 @@ def test_partial_coverage_is_insufficient_and_never_publishable(tmp_path):
     assert record.chief_editor_decision.publishability == "需人工复核"
     assert record.chief_editor_decision.review_needed == "是"
     assert record.decision_support.outcome_coherent is True
+    assert record.display_report.count("结论依据：不足；") == 1
+    assert "当前证据仅支持转人工复核" in record.display_report
 
 
 def test_full_coverage_deterministic_blocker_is_well_supported_negative_disposition(tmp_path):
@@ -77,6 +82,8 @@ def test_full_coverage_deterministic_blocker_is_well_supported_negative_disposit
     assert "deterministic_blocker" in record.decision_support.basis_codes
     assert record.chief_editor_decision.publishability == "需人工复核"
     assert record.status == "NEEDS_HUMAN_REVIEW"
+    assert record.display_report.count("结论依据：充分；") == 1
+    assert "充分支持当前负面处置" in record.display_report
 
 
 def test_required_briefing_pending_is_assessed_before_any_sampling(tmp_path):
@@ -98,3 +105,29 @@ def test_required_briefing_pending_is_assessed_before_any_sampling(tmp_path):
     assert record.decision_support.level == "insufficient"
     assert "pending_user_input" in record.decision_support.limitation_codes
     assert record.decision_support.outcome_coherent is True
+    assert record.display_report.count("结论依据：不足；") == 1
+
+
+def test_material_model_issue_renders_supported_with_limits_without_raw_codes(tmp_path):
+    finding = json.dumps({
+        "role_feedback": "material issue",
+        "findings": [{
+            "source_span": "Save 12",
+            "candidate_span": "保存 12",
+            "issue_type": "meaning",
+            "severity": "major",
+            "finding_kind": "issue",
+            "problem": "meaning risk",
+            "evidence": "bounded anchor",
+            "evidence_type": "source",
+            "action": "clarify wording",
+        }],
+    })
+    record = _run(_rich_task(), [finding, *([_CLEAN] * 5)], tmp_path)
+
+    assert record.decision_support.level == "supported_with_limits"
+    assert record.display_report.count("结论依据：有限制；") == 1
+    assert "structured_material_evidence" not in record.display_report
+    assert "material_disagreement" not in record.display_report
+    assert record.display_report.splitlines()[-1].startswith("- 最终处置：")
+    assert len(record.display_report) <= 3_200
