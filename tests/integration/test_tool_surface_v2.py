@@ -44,9 +44,9 @@ def test_exact_frozen_public_tool_surface():
 def test_server_info_and_versioned_defaults(monkeypatch):
     monkeypatch.delenv("COUNCIL_REVIEW_CONCURRENCY", raising=False)
     info = _server_info()
-    assert info["package_version"] == "0.11.0"
-    assert info["module_version"] == "0.11.0"
-    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "risk-coherent-council-v9"
+    assert info["package_version"] == "0.11.1"
+    assert info["module_version"] == "0.11.1"
+    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "risk-coherent-council-v9.1"
     assert info["schema_version"] == "2.5"
     assert info["default_interactive_mode"] == "auto"
     assert info["default_briefing_mode"] == "auto"
