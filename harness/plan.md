@@ -1,16 +1,23 @@
-# Council of Translation V0.11 Harness Plan
+# Council of Translation V0.12 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: none (`CAMPAIGN-011 COMPLETE`)
-- Campaign state: `V0.11.1_PUBLISHED; Q-013_ACCEPTED; CAMPAIGN-011_COMPLETE`
+- Active Campaign: none (`CAMPAIGN-012 LOCAL_ACCEPTED`)
+- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_PLANNED`
+- Accepted Campaign contract: `harness/contracts/CAMPAIGN-012-r3.md`
+- Accepted Campaign implementation: `e940044c5367ff2ef86e4c58bd75e1f85e4da4cf`
+- Accepted Campaign review: `harness/evaluations/CAMPAIGN-012-r3-review.md`
 - Accepted contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
-- Active quality gate: none (`13/13 accepted`)
+- Accepted features: `57/57`
+- Accepted quality gates: `13/14`; Q-014 planned
+- Planned post-publication gate: `Q-014`
+- Next Campaign assessment:
+  `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
   `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
@@ -18,13 +25,78 @@
 - Final live contract: `harness/contracts/CAMPAIGN-011-q013-live-r2.md`
 - Publication review: `harness/evaluations/CAMPAIGN-011-r3-publication-ci-review.md`
 - Published protected `main`: `f64d86fd37a0727d3a0a3ebcd8581fd26cc7e1a3`
+- Published final archive `main`: `6544d41d308f9ed7ab253dac5a70a94581cd04d8`
 - Published product implementation: `6d3a5b6843550ec37ae61ce2670de51a93580bf8`
 - Accepted product implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
-- Product target: `0.11.1`
-- Diagnostic build target: `risk-coherent-council-v9.1`
+- Product target: `0.12.0`
+- Diagnostic build target: `verifiable-evidence-council-v10`
+- Persisted schema target: `2.5` (unchanged)
+- Verification receipt schema target: `1.0`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
+
+## Campaign 012: Client-verifiable Evidence Receipt
+
+CAMPAIGN-012-r1 freezes an opt-in deterministic verification view on the existing
+`view_review_record` tool. It addresses the repeated live-client gap where Goose can
+render the concise Council report correctly but then rename role IDs, substitute status
+aliases or confuse sampling calls, successful reviewers and budgets when narrating
+structured evidence. Persisted records remain authoritative; the product now needs a
+bounded evidence projection that a client can display without a second interpretive
+model pass.
+
+The receipt has its own protocol version `1.0` and does not change persisted Review
+Schema `2.5`. It exposes exact record/server identity, routing, ordered role execution,
+calls, budget, elicitation, timing, concurrency, preflight counts, bounded issue counts,
+chief outcome and terminal coherence. It contains no source, candidate, reviewer prose,
+evidence prose, paths, credentials or internal issue IDs. Missing historical facts are
+`null` and enumerated in `not_recorded_fields`; compatibility defaults are never treated
+as recorded truth.
+
+The public surface remains exactly five tools. `view_review_record` gains only
+`detail_level="verification"`; existing `full` and `summary` behavior and normal
+`review_translation`/`continue_review` presentation remain unchanged. Receipt generation
+makes zero sampling and elicitation calls and performs no save. F-053 through F-057 are
+accepted under the bounded correction `harness/contracts/CAMPAIGN-012-r3.md`. Q-014 remains a separate
+post-publication normal-Goose gate and cannot be accepted by the Main Worker.
+
+CAMPAIGN-012-r1 reached `CHANGES_REQUESTED` at
+`06b0e378adc99826c48cd9fc7cc4337d8bc25367`. Its five scoped commits, additive history
+view, V0.12 identifiers, lock migration, 334-test regression, Golden corpus and artifact
+evidence are preserved. Foreman review reproduced three receipt-boundary defects: an
+unsafe `parent_review_id` path survives projection, duplicate active roles can exceed the
+primary hard cap and raise from retrieval, and a structured disposition appearing before
+a conflicting final verdict is incorrectly marked coherent. The primary receipt also
+omits serving module/Schema values required by the frozen display contract.
+
+CAMPAIGN-012-r2 is a two-package, receipt-layer-only correction. It validates bounded
+review identity and one canonical active-role list, guarantees safe rendering for hostile
+records, tightens terminal coherence to exactly once and last, and completes serving
+version display. Product version/build, persisted and receipt schemas, five tools,
+routing, sampling, adjudication, persistence and ordinary reports remain frozen.
+
+CAMPAIGN-012-r2 reached `CHANGES_REQUESTED` at
+`5819a92e352c468021c3a8f30aa488508e4223f4`. Its parent-ID privacy correction, bounded
+role identity, exact terminal-coherence truth table, serving-version display, 360-test
+regression and artifact evidence are preserved. Foreman expanded the hostile-record
+matrix and reproduced one remaining count-boundary failure: a 3,501-digit non-negative
+runtime integer is accepted by the receipt and makes the renderer exceed its hard cap.
+
+CAMPAIGN-012-r3 is one receipt-boundary package. It freezes `2**53 - 1` as the maximum
+JSON-safe integer exposed by any canonical count and rejects sample-list cardinality
+mismatch before iteration. No product/version/schema/tool/lock/normal-report behavior is
+authorized to change.
+
+CAMPAIGN-012-r3 is accepted at
+`e940044c5367ff2ef86e4c58bd75e1f85e4da4cf` by
+`harness/evaluations/CAMPAIGN-012-r3-review.md`. Combined r1/r2/r3 evidence accepts
+F-053 through F-057: the canonical receipt, privacy/history projection, existing-tool
+verification view, compatibility/coherence evidence and V0.12 migration. Independent
+Foreman verification passed the 165-test receipt matrix, 441-test complete regression,
+24/24 Golden corpus, JSON-safe integer boundaries, no-tail sample rejection, hostile
+FastMCP wrapper and all frozen public invariants. Protected-main publication and Q-014
+remain separate gates.
 
 Q-003 is accepted by
 `harness/evaluations/Q-003-desktop-cli-live-r2-review.md`: Desktop completed native
@@ -125,6 +197,14 @@ coherence for modified-publishable, clean-publishable and human-review outcomes.
 natural-language summaries rename or misstate several raw fields, but the contract makes
 the persisted full records authoritative. CAMPAIGN-011 is complete with 52/52 accepted
 features and 13/13 accepted quality gates.
+
+The final Q-013 archive is published through protected-main PR #25 at
+`6544d41d308f9ed7ab253dac5a70a94581cd04d8`; all six required CI jobs passed. The next
+product assessment recommends a bounded CAMPAIGN-012 for an opt-in, deterministic
+verification receipt on the existing `view_review_record` tool. Its five feature
+packages plus Q-014 explicitly preserve the normal concise report, exact five-tool
+surface, review-only boundary, budgets and adjudication behavior. The r1 implementation
+is now under the bounded r2 correction above.
 
 CAMPAIGN-009-r1 reached the intended Q-012 A/B outcome but independent Foreman review
 found two bounded counterexamples: an already-present typed rule reference can be counted

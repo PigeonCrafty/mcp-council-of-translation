@@ -4,19 +4,95 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-011`
-- Campaign state: `V0.11.1_PUBLISHED; Q-013_ACCEPTED; CAMPAIGN-011_COMPLETE`
-- Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
-- Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
+- Campaign: `CAMPAIGN-012`
+- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_PLANNED`
+- Active contract: none
+- Accepted implementation: `e940044c5367ff2ef86e4c58bd75e1f85e4da4cf`
+- Accepted review: `harness/evaluations/CAMPAIGN-012-r3-review.md`
 - Accepted review SHA-256:
-  `EB233D25C115857C36A81F9738DD03CB7C1F8C0ECA11A79D11EA047420F2E08E`
-- Active quality gate: none (`13/13 accepted`)
+  `9948709C712A5F39738BA7DA13692CCD818C3E27C833D9571AC835B913956415`
+- Accepted features: `57/57`
+- Accepted quality gates: `13/14`; Q-014 planned
+- Planned post-publication gate: `Q-014`
+- Next Campaign assessment:
+  `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
   `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
-- Published protected `main`: `f64d86fd37a0727d3a0a3ebcd8581fd26cc7e1a3`
+- Published protected `main`: `6544d41d308f9ed7ab253dac5a70a94581cd04d8`
 - Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Campaign 012 assignment and r1 review
+
+- Design assessment: `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`.
+- Parent implementation contract: `harness/contracts/CAMPAIGN-012-r1.md`.
+- r1 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-012-r1-review.md`.
+- r1 implementation HEAD: `06b0e378adc99826c48cd9fc7cc4337d8bc25367`.
+- r2 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-012-r2-review.md`.
+- r2 implementation HEAD: `5819a92e352c468021c3a8f30aa488508e4223f4`.
+- Accepted bounded correction: `harness/contracts/CAMPAIGN-012-r3.md`.
+- Product target: package/module `0.12.0`, build
+  `verifiable-evidence-council-v10`, persisted Review Schema `2.5`, verification receipt
+  schema `1.0`.
+- Accepted features: F-053 through F-057 by combined CAMPAIGN-012-r1/r2/r3 evidence.
+- Frozen tool change: add only `detail_level="verification"` to the existing
+  `view_review_record`; the public tool count remains five.
+- Frozen authority boundary: receipt projection is deterministic, privacy-safe,
+  read-only and sampling-free; normal review reports, routing, Policy Gate, adjudication,
+  persistence and budgets remain unchanged.
+- Q-014 is planned only after local acceptance and protected-main publication. The Main
+  Worker is forbidden from live Goose/provider calls and cannot accept Q-014.
+
+### r1 preserved evidence and correction boundary
+
+- Exact five commits and 14 authorized implementation paths; index empty and protected
+  user/Foreman assets preserved.
+- Independent compile, `334 passed` full regression, `38 passed` focused receipt/tool
+  matrix, Golden selection and `git diff --check` pass.
+- Preserved product: package/module `0.12.0`, build
+  `verifiable-evidence-council-v10`, persisted Schema `2.5`, receipt Schema `1.0`, exact
+  five tools, budgets 6/13/18 and concurrency 3/3.
+- Blocking privacy counterexample: a path-shaped hostile `parent_review_id` survives
+  both receipt channels without redaction.
+- Blocking boundedness counterexample: 100 duplicate active roles produce 100 sample
+  rows and a renderer `ValueError`, so public verification retrieval is not total.
+- Coherence counterexample: the expected disposition can occur once before a conflicting
+  final disposition while `terminal_disposition_matches_structured` remains true.
+- Display omission: serving module and Schema are structured but absent from primary
+  Markdown despite the frozen record/serving-version requirement.
+- r2 scope is only verification projection/rendering plus focused tests. No version,
+  package, lock, orchestration, provider or public-surface change is authorized.
+
+### r2 preserved evidence and remaining count boundary
+
+- Parent-ID path/prose privacy, duplicate active-role redaction, exact ordered sample
+  projection, terminal coherence and serving-version primary display all pass.
+- Independent compile, `84 passed` focused matrix, `360 passed` full regression, Golden
+  selection, five-tool/version/schema/budget/concurrency probes and `git diff --check`
+  pass.
+- Remaining failure: `10**3500` in a non-negative runtime field is emitted as 3,501
+  digits and causes `ValueError: verification report exceeds hard cap`.
+- Remaining static bound: oversized `independent_reviews` is fully iterated before its
+  cardinality mismatch is rejected.
+- r3 fixes only JSON-safe count limits and pre-iteration sample cardinality. All r2
+  product and artifact evidence is preserved by the accepted final review.
+
+### r3 acceptance
+
+- Decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-012-r3-review.md`.
+- Accepted implementation: `e940044c5367ff2ef86e4c58bd75e1f85e4da4cf`.
+- Exact one-commit/three-path scope, 14 protected hashes, byte-identical lock and empty
+  index pass.
+- Independent evidence: compile, `165 passed` V0.12 matrix, `441 passed` full regression,
+  Golden 24/24, JSON-safe count truth table, no-tail sample rejection and actual hostile
+  FastMCP verification wrapper.
+- Product remains 0.12.0/build v10, persisted Schema 2.5, receipt Schema 1.0, exact five
+  tools, budgets 6/13/18 and concurrency 3/3.
+- F-053 through F-057 are accepted. Q-014 remains planned and cannot begin until the
+  accepted implementation and Foreman archive are published through protected `main`.
 
 ## Q-013 live review and r3 correction
 
@@ -613,7 +689,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted Q-013-r2 contract, publication evidence, live review and updated
-Foreman state in the next protected-main maintenance publication. No product feature or
-quality gate remains planned; evaluate the next product Campaign separately before
-authorizing implementation.
+Archive the accepted r1/r2/r3 contracts, reports, reviews and updated Foreman state;
+publish V0.12 through protected `main` with all six required CI jobs green. After exact
+published-version admission, issue Q-014 for normal-Goose verification-receipt evidence.
