@@ -889,6 +889,7 @@ async def run_structured_review(
             reviewer_coverage="not_applicable",
         )
         record = ReviewRecordV2(
+            schema_version="2.5",
             review_id=build_review_id(),
             created_at=datetime.now(timezone.utc),
             completed_at=datetime.now(timezone.utc),
@@ -1275,6 +1276,7 @@ async def run_structured_review(
         chief=chief,
     )
     record = ReviewRecordV2(
+        schema_version="2.5",
         review_id=build_review_id(),
         created_at=datetime.now(timezone.utc),
         completed_at=datetime.now(timezone.utc),
@@ -1459,17 +1461,18 @@ async def continue_structured_review(
         else "COMPLETED"
     )
     record = parent.model_copy(deep=True)
-    record.schema_version = "2.4"
+    record.schema_version = "2.5"
     record.version_metadata = {
         "package_version": __version__,
         "diagnostic_build": __diagnostic_build__,
-        "record_schema": __schema_version__,
+        "record_schema": "2.5",
     }
     record.review_id = build_review_id()
     record.parent_review_id = parent.review_id
     record.created_at = datetime.now(timezone.utc)
     record.completed_at = datetime.now(timezone.utc)
     record.user_decisions = decisions
+    record.council_plan = plan
     record.reconsiderations = reconsiderations
     record.reconsideration_provenance = reconsideration_provenance
     outcome_provenance = PhaseReconsiderationProvenance(
@@ -1597,6 +1600,7 @@ def compact_review_response(record: ReviewRecordV2) -> dict[str, Any]:
         "degraded": record.degraded,
         "warnings": record.warnings,
         "runtime_metadata": record.runtime_metadata.model_dump(mode="json"),
+        "council_plan": record.council_plan.model_dump(mode="json"),
         "retrieval_hint": "Use view_review_record(review_id, detail_level='full') for structured evidence and trace.",
     }
     if record.status == "RETURNED_PENDING":

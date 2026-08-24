@@ -801,7 +801,7 @@ class ChiefEditorDecisionV2(DomainModel):
 
 
 class ReviewRecordV2(DomainModel):
-    schema_version: Literal["2.0", "2.1", "2.2", "2.3", "2.4"] = "2.4"
+    schema_version: Literal["2.0", "2.1", "2.2", "2.3", "2.4", "2.5"] = "2.4"
     review_id: str
     parent_review_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -849,6 +849,14 @@ class ReviewRecordV2(DomainModel):
     @classmethod
     def cap_decision_points(cls, value: list[DecisionPoint]) -> list[DecisionPoint]:
         return value[:3]
+
+    @model_validator(mode="after")
+    def align_version_metadata_schema(self) -> "ReviewRecordV2":
+        self.version_metadata = {
+            **self.version_metadata,
+            "record_schema": self.schema_version,
+        }
+        return self
 
     @field_validator("warnings")
     @classmethod

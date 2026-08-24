@@ -139,6 +139,7 @@ def test_full_mocked_interactive_workflow_is_bounded_compact_and_persisted(tmp_p
     assert compact["review_id"] == record.review_id
     assert "independent_reviews" not in compact
     assert "discussion_rounds" not in compact
+    assert compact["council_plan"] == record.council_plan.model_dump(mode="json")
     assert "reasoning" not in json.dumps(record.model_dump(mode="json"))
 
 
@@ -213,6 +214,7 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     ]
     parent_path = store.path_for(parent.review_id)
     parent_bytes = parent_path.read_bytes()
+    parent_plan_json = parent.council_plan.model_dump_json()
     point = parent.decision_points[0]
 
     selected = point.options[0].option_id
@@ -230,7 +232,11 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     )
     assert child.parent_review_id == parent.review_id
     assert child.review_id != parent.review_id
-    assert parent.schema_version == child.schema_version == "2.4"
+    assert parent.schema_version == child.schema_version == "2.5"
+    assert child.council_plan == parent.council_plan
+    assert parent.council_plan.model_dump_json() == parent_plan_json
+    assert child.council_plan.routing_profile == "route_ui_standard_v1"
+    assert child.council_plan.routing_reason_codes == parent.council_plan.routing_reason_codes
     assert child.status == "COMPLETED"
     assert child.runtime_metadata.sampling_calls == 1
     assert child.runtime_metadata.elicitation_calls == 0

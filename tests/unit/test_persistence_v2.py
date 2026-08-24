@@ -21,6 +21,7 @@ from council_of_translation.localization.persistence import (
     build_review_id,
     default_reviews_dir,
 )
+from council_of_translation.localization.roles import build_council_plan
 
 
 def _record(review_id: str, *, history_mode: str = "full") -> ReviewRecordV2:
@@ -108,7 +109,7 @@ def test_full_write_is_atomic_and_round_trips(monkeypatch, tmp_path):
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
     assert loaded.task.source_text == "SECRET SOURCE"
-    assert loaded.schema_version == "2.4"
+    assert loaded.schema_version == "2.5"
     assert loaded.runtime_metadata.wall_clock_ms == 321
     assert loaded.runtime_metadata.sampling_wait_ms == 654
     assert loaded.runtime_metadata.independent_review_peak_concurrency == 2
@@ -155,13 +156,38 @@ def test_metadata_write_uses_allowlist_and_remains_readable(tmp_path):
     assert loaded.task.source_text == ""
     assert loaded.independent_reviews == []
     assert loaded.user_decisions == []
-    assert loaded.schema_version == "2.4"
+    assert loaded.schema_version == "2.5"
     assert loaded.runtime_metadata.wall_clock_ms == 321
     assert loaded.runtime_metadata.sampling_wait_ms == 654
     assert loaded.runtime_metadata.independent_review_concurrency_limit == 3
     assert loaded.runtime_metadata.independent_review_peak_concurrency == 2
     assert loaded.runtime_metadata.independent_review_batch_count == 3
     assert loaded.runtime_metadata.independent_review_concurrency_disposition == "configured"
+
+
+@pytest.mark.parametrize("history_mode", ["full", "metadata"])
+def test_v25_routing_provenance_round_trips_in_safe_structured_history(tmp_path, history_mode):
+    store = ReviewStore(tmp_path / history_mode, include_legacy=False)
+    record = _record(build_review_id(), history_mode=history_mode)
+    record.council_plan = build_council_plan("standard", "legal_risk")
+
+    path = store.save(record, history_mode=history_mode)
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["schema_version"] == "2.5"
+    assert payload["council_plan"]["routing_profile"] == "route_legal_risk_standard_v1"
+    assert payload["council_plan"]["routing_reason_codes"] == [
+        "content_legal_risk",
+        "mode_standard",
+        "deterministic_preflight_coverage",
+        "risk_panorama",
+    ]
+    loaded = store.load(record.review_id)
+    assert loaded.council_plan.routing_profile == record.council_plan.routing_profile
+    assert loaded.council_plan.routing_reason_codes == record.council_plan.routing_reason_codes
+    if history_mode == "full":
+        assert loaded.council_plan == record.council_plan
+    else:
+        assert loaded.council_plan.active_role_ids == []
 
 
 @pytest.mark.parametrize("history_mode", ["full", "metadata"])
@@ -180,12 +206,12 @@ def test_new_write_persists_truthful_v071_runtime_and_version_identifiers(tmp_pa
     }
     assert {key: payload["runtime_metadata"][key] for key in expected} == expected
     assert {key: payload["version_metadata"][key] for key in expected} == expected
-    assert payload["version_metadata"]["record_schema"] == "2.4"
+    assert payload["version_metadata"]["record_schema"] == "2.5"
 
     loaded = store.load(record.review_id)
     assert loaded.runtime_metadata.package_version == "0.10.2"
     assert loaded.runtime_metadata.diagnostic_build == "evidence-value-council-v8.2"
-    assert loaded.version_metadata == {**expected, "record_schema": "2.4"}
+    assert loaded.version_metadata == {**expected, "record_schema": "2.5"}
 
 
 def test_v21_metadata_redacts_compact_and_reconsideration_text(tmp_path):
@@ -336,12 +362,12 @@ def test_reader_accepts_frozen_eight_character_v2_suffix(tmp_path):
     assert store.load(review_id).review_id == review_id
 
 
-def test_saving_readable_v20_model_writes_new_v22_schema(tmp_path):
+def test_saving_readable_v20_model_writes_new_v25_schema(tmp_path):
     store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
     record = _record(build_review_id()).model_copy(update={"schema_version": "2.0"})
     path = store.save(record)
 
     payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["schema_version"] == "2.4"
-    assert payload["version_metadata"]["record_schema"] == "2.4"
-    assert store.load(record.review_id).schema_version == "2.4"
+    assert payload["schema_version"] == "2.5"
+    assert payload["version_metadata"]["record_schema"] == "2.5"
+    assert store.load(record.review_id).schema_version == "2.5"
