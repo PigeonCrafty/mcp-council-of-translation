@@ -7,31 +7,38 @@
 - Campaign: `CAMPAIGN-010`
 - Campaign state: `CLOSED; Q-012 ACCEPTED`
 - Campaign baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
-- Active quality gate: `Q-003 Desktop/CLI client parity r1 — ISSUED`
-- Active gate contract: `harness/contracts/Q-003-desktop-cli-live-r1.md`
+- Active quality gate: `Q-003 interactive CLI fallback r2 — ISSUED`
+- Active gate contract: `harness/contracts/Q-003-desktop-cli-live-r2.md`
 - Active gate SHA-256:
-  `0811B9A56CF0EBB3D20B9D2B1843BF2FA4ED66F045C009189591F2FCFF623234`
+  `91BD8F488D74B757EFE3CC718603F43DF2CD2FA9273F4D8F1D4D8C2BF3FF1633`
 - Published protected `main`: `617b696c94624988f03a64ab58e1d42a66697546`
-- Last updated: 2026-08-17 Asia/Shanghai
+- Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
 
-## Q-003 Desktop/CLI client parity r1
+## Q-003 Desktop/CLI r1 review and r2 correction
 
-- Decision state: `ISSUED`; Q-003 remains `partial_live_evidence` until independent
-  Foreman review accepts both client records and their privacy-safe client-identity
-  captures.
-- Scope: evidence only. No product, test, dependency, lock, tool, Goose installation,
-  extension-command, release or deployment change is authorized.
-- Fixed product: package/module `0.10.2`, build `evidence-value-council-v8.2`, schema
-  `2.4`, concurrency `3/configured`, budgets `6/13/18` and exact five tools.
-- Probe: the same source/candidate-only review runs once in Desktop and once in the
-  interactive CLI with `briefing_mode=always`; both clients must render and accept the
-  same six-field form before sampling.
-- Evidence return: two review IDs, one privacy-safe Desktop form capture, one
-  privacy-safe CLI form capture/transcript and any bounded retry summary.
-- Next after decision: if accepted, mark Q-003 accepted and design-freeze CAMPAIGN-011
-  for risk-sensitive panoramic role routing; if blocked or changes are requested, keep
-  the new product Campaign unissued until the client evidence is resolved.
+- r1 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/Q-003-desktop-cli-live-r1-review.md` (SHA-256
+  `2625B52D58578B670600F1A032B4CB8864F338B6C578F0E32BDD9DDE235CEE73`).
+- Desktop record `20260824T014417482642Z_da47683d8f04` is accepted for reuse: one
+  accepted six-field briefing before sampling, six successful reviewers, full coverage,
+  `6/13` calls, bounded concurrency, clean completion, five-section 346-code-point report
+  and null suggested translation.
+- CLI record `20260824T014635498220Z_cb108a4de83e` is a truthful negative result:
+  briefing action `error`, zero samples, coverage `not_applicable`, `RETURNED_PENDING`,
+  degraded warning and `briefing_error`; it does not satisfy r1.
+- No screenshots were retained. User client attribution and record notes identify the
+  runs, but r1's visual-evidence criterion remains unmet. Both records also landed in the
+  retained `.tmp/q012` directory rather than the requested q003 directory.
+- Root cause decision: r1 over-specified native form parity without prior CLI evidence.
+  This is not currently classified as a Council orchestration defect: the server stopped
+  before sampling and exposed missing coverage truthfully.
+- Active correction: `harness/contracts/Q-003-desktop-cli-live-r2.md`. Preserve the
+  accepted Desktop and pending CLI records, then run exactly one CLI explicit-context
+  retry with `briefing_mode=auto`; no Desktop rerun or product change is authorized.
+- Q-003 remains `partial_live_evidence`. If r2 succeeds, the Foreman may accept the gate
+  as Desktop native elicitation plus truthful CLI explicit-context fallback, then
+  design-freeze CAMPAIGN-011.
 
 ## Q-012 V0.10.2 final revalidation
 
