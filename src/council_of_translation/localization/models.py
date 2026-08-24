@@ -30,6 +30,34 @@ ContributionKind = Literal[
     "unique_material", "corroborating", "confirmation_only", "unavailable"
 ]
 DiscussionMarginalValue = Literal["not_applicable", "none", "low", "material"]
+DecisionSupportLevel = Literal[
+    "well_supported", "supported_with_limits", "insufficient", "not_recorded"
+]
+DecisionSupportBasisCode = Literal[
+    "full_reviewer_coverage",
+    "clean_confirmation",
+    "structured_material_evidence",
+    "corroborated_material_evidence",
+    "deterministic_blocker",
+    "policy_gate_enforced",
+    "valid_user_decision",
+    "completed_reconsideration",
+    "council_adjudication",
+]
+DecisionSupportLimitationCode = Literal[
+    "minimal_context",
+    "partial_context",
+    "material_disagreement",
+    "council_fallback",
+    "reviewer_unavailable",
+    "partial_reviewer_coverage",
+    "no_reviewer_coverage",
+    "unresolved_material_context",
+    "pending_user_input",
+    "incomplete_reconsideration",
+    "degraded_execution",
+    "runtime_fallback",
+]
 RoutingProfile = Literal[
     "legacy_unrecorded",
     "route_unspecified_lightweight_v1",
@@ -67,6 +95,8 @@ RoutingReasonCode = Literal[
 
 _ROUTING_PROFILES = set(RoutingProfile.__args__)
 _ROUTING_REASON_CODES = set(RoutingReasonCode.__args__)
+DECISION_SUPPORT_BASIS_ORDER: tuple[str, ...] = DecisionSupportBasisCode.__args__
+DECISION_SUPPORT_LIMITATION_ORDER: tuple[str, ...] = DecisionSupportLimitationCode.__args__
 
 
 def option_id_for_action(issue_id: str, action: str) -> str:
@@ -665,6 +695,58 @@ class CouncilValueMetrics(DomainModel):
         return result
 
 
+class DecisionSupportAssessment(DomainModel):
+    """Bounded, deterministic support for the chief editor's disposition."""
+
+    level: DecisionSupportLevel = "not_recorded"
+    support_target: Literal["chief_disposition"] = "chief_disposition"
+    basis_codes: list[DecisionSupportBasisCode] = Field(default_factory=list)
+    limitation_codes: list[DecisionSupportLimitationCode] = Field(default_factory=list)
+    assessment_basis: Literal[
+        "deterministic_structured_trace_v1", "not_recorded"
+    ] = "not_recorded"
+    outcome_coherent: bool | None = None
+
+    @field_validator("basis_codes", mode="before")
+    @classmethod
+    def canonicalize_basis_codes(cls, value: Any) -> list[str]:
+        return cls._canonicalize_codes(value, DECISION_SUPPORT_BASIS_ORDER, "basis_codes")
+
+    @field_validator("limitation_codes", mode="before")
+    @classmethod
+    def canonicalize_limitation_codes(cls, value: Any) -> list[str]:
+        return cls._canonicalize_codes(
+            value, DECISION_SUPPORT_LIMITATION_ORDER, "limitation_codes"
+        )
+
+    @staticmethod
+    def _canonicalize_codes(value: Any, order: tuple[str, ...], field_name: str) -> list[str]:
+        if not isinstance(value, list):
+            raise ValueError(f"{field_name} must be a list")
+        unknown = [item for item in value if not isinstance(item, str) or item not in order]
+        if unknown:
+            raise ValueError(f"unknown {field_name}")
+        selected = set(value)
+        return [item for item in order if item in selected]
+
+    @model_validator(mode="after")
+    def validate_recording_state(self) -> "DecisionSupportAssessment":
+        if self.level == "not_recorded":
+            if (
+                self.basis_codes
+                or self.limitation_codes
+                or self.assessment_basis != "not_recorded"
+                or self.outcome_coherent is not None
+            ):
+                raise ValueError("not_recorded assessment must contain no observed support data")
+            return self
+        if self.assessment_basis != "deterministic_structured_trace_v1":
+            raise ValueError("current assessment requires deterministic structured trace basis")
+        if not isinstance(self.outcome_coherent, bool):
+            raise ValueError("current assessment requires boolean outcome coherence")
+        return self
+
+
 class EffectiveTask(DomainModel):
     content_type: str = "unspecified"
     audience: str = ""
@@ -801,7 +883,7 @@ class ChiefEditorDecisionV2(DomainModel):
 
 
 class ReviewRecordV2(DomainModel):
-    schema_version: Literal["2.0", "2.1", "2.2", "2.3", "2.4", "2.5"] = "2.4"
+    schema_version: Literal["2.0", "2.1", "2.2", "2.3", "2.4", "2.5", "2.6"] = "2.4"
     review_id: str
     parent_review_id: str | None = None
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -838,6 +920,7 @@ class ReviewRecordV2(DomainModel):
     phase_trace: PhaseTrace = Field(default_factory=PhaseTrace)
     process_digest: ProcessDigestV2 = Field(default_factory=ProcessDigestV2)
     council_value_metrics: CouncilValueMetrics = Field(default_factory=CouncilValueMetrics)
+    decision_support: DecisionSupportAssessment = Field(default_factory=DecisionSupportAssessment)
     display_report: str = ""
     version_metadata: dict[str, str] = Field(default_factory=lambda: {
         "package_version": __version__,
