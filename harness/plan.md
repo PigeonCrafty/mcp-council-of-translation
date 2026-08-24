@@ -6,7 +6,7 @@
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
 - Active Campaign: `none`
-- Campaign state: `PUBLISHED; Q-014-r2_ISSUED`
+- Campaign state: `COMPLETE; Q-014-r2_ACCEPTED`
 - Active contract: `none`
 - Accepted Campaign contract: `harness/contracts/CAMPAIGN-012-r4.md`
 - Accepted Campaign implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
@@ -17,9 +17,12 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `58/58`
-- Accepted quality gates: `13/14`; Q-014-r2 issued
-- Pending live gate: `Q-014`
-- Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
+- Accepted quality gates: `14/14`
+- Pending live gate: `none`
+- Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
+- Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
+- Final Q-014 live review SHA-256:
+  `6207A0DDC7798B61C8B2003FE492BE7312186FC0F781E397730C12293CC6EE6A`
 - Parent live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
 - Final live contract: `harness/contracts/CAMPAIGN-012-q014-live-r2.md`
 - Final live contract SHA-256:
@@ -155,6 +158,16 @@ published implementation/archive trees are pairwise identical. The final live pr
 is `harness/contracts/CAMPAIGN-012-q014-live-r2.md`: normal Goose must parse the canonical
 receipt JSON appended after the fixed text label, without relying on structuredContent or
 model reconstruction. Q-014 remains unaccepted pending fresh A/B/C evidence.
+
+Q-014-r2 is accepted by
+`harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`. Fresh normal-Goose records A
+`20260824T111549004059Z_30d1db390187`, B
+`20260824T111624426596Z_fe453690d2fc` and C
+`20260824T111654722830Z_d4507f740780` expose the fixed label and canonical parseable JSON
+directly in verification text. All three preserve exact version, route, ordered roles,
+coverage, budget, preflight, issue, outcome, coherence and availability fields with no
+retry, provider error, missing field or reconstruction. Campaign 012 is complete with
+58/58 features and 14/14 quality gates accepted.
 
 Q-003 is accepted by
 `harness/evaluations/Q-003-desktop-cli-live-r2-review.md`: Desktop completed native
