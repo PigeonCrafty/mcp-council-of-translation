@@ -1,5 +1,6 @@
 import asyncio
 from copy import deepcopy
+import json
 
 from fastmcp import Client
 
@@ -387,3 +388,51 @@ def test_actual_verification_tool_bounds_hostile_parent_and_duplicate_roles(monk
     } <= set(duplicate_payload["verification_receipt"]["availability"]["redacted_fields"])
     for payload in (path_payload, duplicate_payload):
         assert len(payload["display_report"]) <= 3_200
+
+
+def test_actual_verification_tool_redacts_huge_count_and_oversized_samples(monkeypatch):
+    record = _record()
+    hostile_count = 10**3500
+    hostile_decimal = str(hostile_count)
+    record.runtime_metadata.wall_clock_ms = hostile_count
+    record.council_plan.active_role_ids = ["fidelity_reviewer"]
+    record.independent_reviews = [
+        {
+            "agent_name": "fidelity_reviewer",
+            "sample_status": "structured_success",
+        }
+        for _ in range(100)
+    ]
+
+    class FakeStore:
+        def load(self, review_id):
+            assert review_id == record.review_id
+            return record
+
+    monkeypatch.setattr(review_module, "ReviewStore", FakeStore)
+
+    async def call():
+        async with Client(mcp) as client:
+            return await client.call_tool(
+                "view_review_record",
+                {"review_id": record.review_id, "detail_level": "verification"},
+            )
+
+    result = asyncio.run(call())
+    payload = result.structured_content
+    receipt = payload["verification_receipt"]
+    primary_text = result.content[0].text
+    serialized = json.dumps(payload, ensure_ascii=False)
+
+    assert receipt["runtime"]["wall_clock_ms"] is None
+    assert receipt["reviewer_execution"]["samples"] is None
+    assert receipt["availability"]["redacted_fields"] == [
+        "reviewer_execution.samples",
+        "runtime.wall_clock_ms",
+    ]
+    assert receipt["availability"]["verification_complete"] is False
+    assert "验证完整：False" in primary_text
+    assert "脱敏字段 2" in primary_text
+    assert hostile_decimal not in serialized
+    assert hostile_decimal not in primary_text
+    assert len(primary_text) <= 3_200

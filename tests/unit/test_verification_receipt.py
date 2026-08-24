@@ -26,6 +26,28 @@ ROLE_IDS = [
     "fidelity_reviewer",
     "terminology_reviewer",
 ]
+MAX_SAFE_RECEIPT_INTEGER = 9_007_199_254_740_991
+RECORDED_COUNT_PATHS = [
+    ("reviewer_samples_successful", "reviewer_execution.successful_count"),
+    ("reviewer_samples_unavailable", "reviewer_execution.unavailable_count"),
+    ("sampling_calls", "runtime.sampling_calls_total"),
+    ("sample_budget", "runtime.sample_budget_total"),
+    ("elicitation_calls", "runtime.elicitation_calls_total"),
+    ("briefing_elicitation_calls", "runtime.briefing_elicitation_calls"),
+    ("context_gap_elicitation_calls", "runtime.context_gap_elicitation_calls"),
+    ("outcome_elicitation_calls", "runtime.outcome_elicitation_calls"),
+    ("wall_clock_ms", "runtime.wall_clock_ms"),
+    ("sampling_wait_ms", "runtime.sampling_wait_ms"),
+    (
+        "independent_review_concurrency_limit",
+        "runtime.independent_review_concurrency_limit",
+    ),
+    (
+        "independent_review_peak_concurrency",
+        "runtime.independent_review_peak_concurrency",
+    ),
+    ("independent_review_batch_count", "runtime.independent_review_batch_count"),
+]
 
 
 def _full_record() -> ReviewRecordV2:
@@ -650,3 +672,75 @@ def test_non_list_sample_shapes_are_null_redacted_and_bounded(independent_review
     assert "PRIVATE" not in json.dumps(receipt, ensure_ascii=False)
     assert "PRIVATE" not in report
     assert len(report) <= 3_200
+
+
+@pytest.mark.parametrize("model_field,receipt_path", RECORDED_COUNT_PATHS)
+@pytest.mark.parametrize("value", [0, 1, MAX_SAFE_RECEIPT_INTEGER])
+def test_every_recorded_count_accepts_json_safe_integer_boundaries(
+    model_field,
+    receipt_path,
+    value,
+):
+    record = _full_record()
+    setattr(record.runtime_metadata, model_field, value)
+
+    receipt = build_verification_receipt(record)
+    section, field = receipt_path.split(".", 1)
+
+    assert receipt[section][field] == value
+    assert receipt_path not in receipt["availability"]["redacted_fields"]
+
+
+@pytest.mark.parametrize("model_field,receipt_path", RECORDED_COUNT_PATHS)
+@pytest.mark.parametrize("value", [-1, True, MAX_SAFE_RECEIPT_INTEGER + 1])
+def test_every_recorded_count_rejects_non_json_safe_values(
+    model_field,
+    receipt_path,
+    value,
+):
+    record = _full_record()
+    setattr(record.runtime_metadata, model_field, value)
+
+    receipt = build_verification_receipt(record)
+    section, field = receipt_path.split(".", 1)
+
+    assert receipt[section][field] is None
+    assert receipt["availability"]["redacted_fields"] == [receipt_path]
+
+
+def test_huge_count_is_null_redacted_absent_and_renderable():
+    record = _full_record()
+    hostile_count = 10**3500
+    hostile_decimal = str(hostile_count)
+    record.runtime_metadata.wall_clock_ms = hostile_count
+
+    receipt = build_verification_receipt(record)
+    report = render_verification_report(receipt)
+    serialized = json.dumps(receipt, ensure_ascii=False)
+
+    assert receipt["runtime"]["wall_clock_ms"] is None
+    assert receipt["availability"]["redacted_fields"] == ["runtime.wall_clock_ms"]
+    assert hostile_decimal not in serialized
+    assert hostile_decimal not in report
+    assert len(report) <= 3_200
+
+
+def test_oversized_sample_list_is_rejected_before_iteration():
+    class IterationGuard(list):
+        def __iter__(self):
+            raise AssertionError("oversized sample tail must not be traversed")
+
+    record = _full_record()
+    record.independent_reviews = IterationGuard(
+        [
+            {"agent_name": ROLE_IDS[0], "sample_status": "structured_success"},
+            {"agent_name": ROLE_IDS[1], "sample_status": "structured_success"},
+            {"agent_name": ROLE_IDS[2], "sample_status": "structured_success"},
+            {"agent_name": ROLE_IDS[0], "sample_status": "structured_success"},
+        ]
+    )
+
+    receipt = build_verification_receipt(record)
+
+    assert receipt["reviewer_execution"]["samples"] is None
+    assert "reviewer_execution.samples" in receipt["availability"]["redacted_fields"]
