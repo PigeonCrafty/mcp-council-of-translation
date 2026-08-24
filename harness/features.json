@@ -4,7 +4,7 @@
   "target_version": "0.12.1",
   "active_campaign": null,
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "46849c9198213ad6d1e9888e8a0503bb1bccc61c",
+  "source_baseline": "c5d38a1f2f8ef4cafaada98f93583e1532405a3b",
   "features": [
     {
       "id": "F-001",
@@ -720,7 +720,7 @@
     {
       "id": "Q-014",
       "name": "Normal-Goose canonical verification receipt evidence",
-      "status": "revalidation_pending"
+      "status": "issued"
     }
   ]
 }
