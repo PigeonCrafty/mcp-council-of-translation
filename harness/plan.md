@@ -1,16 +1,19 @@
-# Council of Translation V0.10 Harness Plan
+# Council of Translation V0.11 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: none (`CAMPAIGN-010 CLOSED`; Q-012 accepted)
-- Active quality gate: none (`Q-003 ACCEPTED`; all 12 gates accepted)
+- Active Campaign: none (`CAMPAIGN-011 ACCEPTED_LOCAL; publication pending`)
+- Campaign state: `ACCEPTED_LOCAL; PUBLICATION_PENDING`
+- Accepted contract: `harness/contracts/CAMPAIGN-011-r2.md`
+- Accepted implementation: `565e97d19efbbd7ff009f747a48979fceb002d11`
+- Active quality gate: none (`Q-013 awaits protected-main publication`)
 - Published protected `main`: `617b696c94624988f03a64ab58e1d42a66697546`
-- Accepted product implementation: `f58306d0df42fc27d46dd5049348ccfce8a0f6f8`
-- Product target: `0.10.2`
-- Diagnostic build target: `evidence-value-council-v8.2`
+- Accepted product implementation: `565e97d19efbbd7ff009f747a48979fceb002d11`
+- Product target: `0.11.0`
+- Diagnostic build target: `risk-coherent-council-v9`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
@@ -21,8 +24,49 @@ six-field Briefing elicitation, while the interactive CLI truthfully returned pe
 native elicitation and then completed the full six-role review through an explicit rich
 context retry with `briefing_mode=auto`. All 46/46 feature items and 12/12 quality gates
 are accepted for V0.10.2. Native CLI form support is not claimed. The next proposed
-product design gate is CAMPAIGN-011 for risk-sensitive panoramic role routing; no
-implementation contract is issued by this acceptance step.
+product design gate is CAMPAIGN-011 for risk-sensitive panoramic role routing.
+
+## Campaign 011: Risk-coherent Panoramic Routing
+
+CAMPAIGN-011-r1 reached `CHANGES_REQUESTED` at
+`1ae3a7419c1eaeb293a944a49d0873cdf95952e1`. PKG-057 through PKG-061 are preserved:
+their authorized implementation, 15-profile routing matrix, legal-risk 4/6/7 portfolios,
+Schema 2.5 provenance, concise display and executable 24-case Golden evidence passed.
+PKG-062 stopped correctly because one current-runtime Schema assertion lived in a test path
+omitted from the exhaustive r1 allowlist. CAMPAIGN-011-r2 is the active bounded correction:
+it may migrate that assertion and the two stale release identifiers, finish the existing
+release intermediate, refresh only the root lock version and perform final build/smoke.
+
+The frozen design remains unchanged. V0.10.2 routes standard `legal_risk`
+content through only technical, fidelity, terminology and fluency; the existing
+risk-ambiguity, product-context and UX-copy lenses are absent. This can still catch a
+scope omission, as Q-012 Case C did, but it does not reliably provide the panoramic
+blind-spot coverage that defines the product.
+
+The frozen V0.11 correction introduces explicit deterministic content/mode routing
+profiles and safe routing provenance. Every accepted non-legal portfolio is preserved.
+Legal-risk portfolios become four roles in lightweight, six in standard and seven in
+strict; standard adds product-context, UX-copy and risk-ambiguity while remaining at six
+independent calls, so the deepest accepted standard path remains exactly 13. No generic
+legal reviewer, fuzzy keyword routing, vote weight, new tool or larger budget is allowed.
+
+V0.11 targets package/module `0.11.0`, build `risk-coherent-council-v9` and Schema 2.5.
+The accepted 18-case Golden corpus expands to 24 with bounded risk cases. Exact five
+tools, review-only behavior, budgets 6/13/18, concurrency, user authority, five-section
+presentation and old-record readability remain frozen. F-047 through F-052 were planned
+under r1 and are now accepted by r2;
+Q-013 is a separate post-publication normal-Goose live gate and cannot be accepted by the
+Main Worker. The r1 review is `harness/evaluations/CAMPAIGN-011-r1-review.md`; the active
+correction contract is `harness/contracts/CAMPAIGN-011-r2.md`.
+
+CAMPAIGN-011-r2 is accepted by
+`harness/evaluations/CAMPAIGN-011-r2-review.md` at
+`565e97d19efbbd7ff009f747a48979fceb002d11`. The one-commit release correction migrated
+the three stale new-runtime assertions, changed only the editable root lock version and
+completed V0.11 packaging. Independent Foreman evidence includes 307 full passes, exact
+24/24 Golden results with all eight metrics at 1.0, legal-risk 4/6/7 route probes, pinned
+lock verification and a fresh wheel import/registration smoke. F-047 through F-052 are
+accepted. Publication and Q-013 live evidence are not yet accepted.
 
 CAMPAIGN-009-r1 reached the intended Q-012 A/B outcome but independent Foreman review
 found two bounded counterexamples: an already-present typed rule reference can be counted
