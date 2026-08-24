@@ -1,3 +1,3 @@
-__version__ = "0.10.2"
-__diagnostic_build__ = "evidence-value-council-v8.2"
-__schema_version__ = "2.4"
+__version__ = "0.11.0"
+__diagnostic_build__ = "risk-coherent-council-v9"
+__schema_version__ = "2.5"

@@ -1,4 +1,4 @@
-"""Frozen five-tool MCP surface for Council of Translation V0.10."""
+"""Frozen five-tool MCP surface for Council of Translation V0.11."""
 
 from __future__ import annotations
 
