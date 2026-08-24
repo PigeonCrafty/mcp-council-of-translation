@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.8.0",
-  "active_campaign": "CAMPAIGN-006-r3",
+  "target_version": "0.12.0",
+  "active_campaign": "none",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "1f8e6981b9fdef08f42a35fc52c7a216b123a94a",
+  "source_baseline": "e940044c5367ff2ef86e4c58bd75e1f85e4da4cf",
   "features": [
     {
       "id": "F-001",
@@ -582,6 +582,61 @@
         "Exact five tools, review-only default, budgets 6/13/18, concurrency controls and user-authority boundaries remain unchanged",
         "Fresh wheel and sdist, isolated FastMCP smoke, complete regression and authoritative documentation pass"
       ]
+    },
+    {
+      "id": "F-053",
+      "name": "Canonical client-verifiable evidence receipt",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-012-r3",
+      "criteria": [
+        "A versioned receipt_schema_version 1.0 exposes stable record, serving, routing, reviewer-execution, runtime, preflight, issue, outcome, coherence and availability fields with exact documented types",
+        "Total sampling calls, independent-review successes, applicable budget, elicitation calls, server wall time and sampling wait are named separately and cannot be conflated",
+        "The receipt is deterministically derived from one persisted record plus current server identity and adds zero sampling, elicitation, adjudication or persistence mutation"
+      ]
+    },
+    {
+      "id": "F-054",
+      "name": "Privacy-safe and history-aware receipt projection",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-012-r3",
+      "criteria": [
+        "Default receipt channels omit source, candidate, reviewer prose, evidence text, filesystem paths, credentials and internal issue IDs while retaining bounded canonical routing and role IDs",
+        "V1, metadata-only and V2.0 through V2.4 records expose unavailable facts as null with deterministic not_recorded_fields instead of compatibility defaults",
+        "Unknown or prose-shaped codes are redacted conservatively and hostile persisted prose cannot escape through the receipt"
+      ]
+    },
+    {
+      "id": "F-055",
+      "name": "Verification view on the existing history tool",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-012-r3",
+      "criteria": [
+        "view_review_record accepts detail_level=verification without adding a sixth tool or changing the existing full and summary results",
+        "The primary Markdown receipt and structured verification_receipt are generated from the same canonical object and preserve exact enum and count values",
+        "Normal review_translation and continue_review primary presentation remain byte-compatible and review-only safety remains unchanged"
+      ]
+    },
+    {
+      "id": "F-056",
+      "name": "Receipt coherence, compatibility and privacy evidence",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-012-r3",
+      "criteria": [
+        "Live-shaped clean, edit-required and deterministic-blocker fixtures prove exact routing, coverage, calls, budgets and terminal-disposition coherence in both channels",
+        "Negative controls cover metadata and legacy availability, unsafe codes, hostile prose, unavailable reviewers, continuation records and zero side effects",
+        "The accepted 24-case Golden corpus, complete regression, exact five tools and supported FastMCP dual-channel behavior remain intact"
+      ]
+    },
+    {
+      "id": "F-057",
+      "name": "V0.12 verifiable-evidence migration",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-012-r3",
+      "criteria": [
+        "Package and module version 0.12.0 and diagnostic build verifiable-evidence-council-v10 keep persisted Schema 2.5 and advertise receipt schema 1.0",
+        "Exact five tools, defaults, review-only boundary, budgets 6/13/18, concurrency 1 through 3 and all routing/adjudication behavior remain unchanged",
+        "Canonical root-only lock migration, fresh wheel and sdist, isolated FastMCP smoke, complete regression and authoritative documentation pass"
+      ]
     }
   ],
   "quality_gates": [
@@ -649,6 +704,11 @@
       "id": "Q-013",
       "name": "Risk-sensitive panoramic routing live evidence",
       "status": "accepted"
+    },
+    {
+      "id": "Q-014",
+      "name": "Normal-Goose canonical verification receipt evidence",
+      "status": "planned"
     }
   ]
 }
