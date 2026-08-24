@@ -14,6 +14,7 @@ from council_of_translation.localization.roles import ROLE_REGISTRY
 
 RECEIPT_SCHEMA_VERSION = "1.0"
 MAX_VERIFICATION_REPORT = 3_200
+_MAX_SAFE_RECEIPT_INTEGER = 9_007_199_254_740_991
 
 _SAFE_ROLE_IDS = {
     role_id for role_id, role in ROLE_REGISTRY.items() if role.role_type == "reviewer"
@@ -123,7 +124,11 @@ def _safe_active_role_ids(values: Any, state: _Availability) -> list[str] | None
 
 
 def _safe_count(value: Any, path: str, state: _Availability) -> int | None:
-    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+    if (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and 0 <= value <= _MAX_SAFE_RECEIPT_INTEGER
+    ):
         return value
     state.redact(path)
     return None
@@ -134,11 +139,16 @@ def _sample_projection(
     active_role_ids: list[str] | None,
     state: _Availability,
 ) -> list[dict[str, Any]] | None:
-    if active_role_ids is None or not isinstance(record.independent_reviews, list):
+    samples = record.independent_reviews
+    if (
+        active_role_ids is None
+        or not isinstance(samples, list)
+        or len(samples) != len(active_role_ids)
+    ):
         state.redact("reviewer_execution.samples")
         return None
     result: list[dict[str, Any]] = []
-    for sample in record.independent_reviews:
+    for sample in samples:
         if not isinstance(sample, dict):
             state.redact("reviewer_execution.samples")
             return None
