@@ -5,15 +5,16 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-012`
-- Campaign state: `PUBLISHED; Q-014_ISSUED`
-- Active contract: none
-- Accepted implementation: `e940044c5367ff2ef86e4c58bd75e1f85e4da4cf`
-- Accepted review: `harness/evaluations/CAMPAIGN-012-r3-review.md`
+- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_REVALIDATION_PENDING`
+- Active contract: `none`
+- Accepted implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
+- Accepted review: `harness/evaluations/CAMPAIGN-012-r4-review.md`
 - Accepted review SHA-256:
-  `9948709C712A5F39738BA7DA13692CCD818C3E27C833D9571AC835B913956415`
-- Accepted features: `57/57`
-- Accepted quality gates: `13/14`; Q-014 issued
-- Active post-publication gate: `Q-014`
+  `F9A3B6657299AE2AAC45142B3332A5029EC876D9CFA75A0819D01FF4E9C6CEAF`
+- Accepted features: `58/58`
+- Accepted quality gates: `13/14`; Q-014 revalidation pending
+- Pending post-publication gate: `Q-014`
+- Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
 - Publication review: `harness/evaluations/CAMPAIGN-012-r3-publication-ci-review.md`
 - Next Campaign assessment:
@@ -23,6 +24,8 @@
   `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
 - Published protected `main`: `6c4366f7a43135388d0cf68655a6a3638d6bbe1b`
 - Published product implementation: `213cce55bb21d6854f76e89bee33a4e9e2f9dd8c`
+- Q-014 issuance protected `main` / r4 baseline:
+  `aceac3383b2a597bbf5414362d9b71ac6e601267`
 - Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -101,6 +104,35 @@
 - PR and protected-main CI each passed Ubuntu/Windows Python 3.10/3.12/3.13.
 - Q-014 is issued by `harness/contracts/CAMPAIGN-012-q014-live.md`; acceptance requires
   fresh normal-Goose A/B/C receipts and remains with the Foreman.
+
+### Q-014 live result and r4 assignment
+
+- Decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-012-q014-live-review.md`.
+- Admitted records: A `20260824T095456034110Z_514515745f1b`, B
+  `20260824T095527488257Z_6de232ca08b6`, C
+  `20260824T095612817693Z_6928cdb00539`.
+- Council behavior passes: A 4/6 clean publishable, B 7/13 material edits, C 8/18
+  deterministic blocker plus separate scope issue; all have full reviewer coverage,
+  zero elicitation/degradation and coherent terminal dispositions.
+- Client handoff fails: A/C expose only Markdown; B reconstructs renamed noncanonical
+  JSON instead of returning receipt Schema 1.0 fields unchanged.
+- Root cause boundary: the server's canonical object is present only in FastMCP
+  `structured_content`, while normal Goose exposes the first `TextContent` to the agent.
+- Assigned correction: `harness/contracts/CAMPAIGN-012-r4.md`, adding one bounded exact
+  JSON fallback to verification text only and releasing 0.12.1/build v10.1.
+- r4 decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-012-r4-review.md` at
+  `46849c9198213ad6d1e9888e8a0503bb1bccc61c`.
+- Exact two commits and 15 authorized paths pass; all 15 protected hashes reconcile,
+  `git diff --check` passes and the index is empty.
+- Independent verification passes compile, `171 passed` focused and `444 passed` full.
+  Critical A/B/C text-only JSON equality, normal-text compatibility, retrieval purity,
+  hostile bounds and exact receipt/schema/tool/budget/concurrency invariants pass.
+- Worker fresh artifacts and isolated Python 3.12.9/FastMCP 3.4.7 five-tool smoke pass;
+  `uv.lock` changes only root 0.12.0 to 0.12.1 and preserves 3/78/586.
+- F-058 is accepted. Q-014 remains unaccepted until V0.12.1 is published through
+  protected `main`, all six CI jobs pass and fresh normal-Goose A/B/C evidence proves the
+  canonical text JSON is available without reconstruction.
 
 ## Q-013 live review and r3 correction
 
@@ -697,6 +729,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted r1/r2/r3 contracts, reports, reviews and updated Foreman state;
-publish V0.12 through protected `main` with all six required CI jobs green. After exact
-published-version admission, issue Q-014 for normal-Goose verification-receipt evidence.
+Archive the accepted r4 contract, reports, review and updated Foreman state; publish
+V0.12.1 through protected `main` with all six required CI jobs green. After exact
+published-version admission, issue the final Q-014 normal-Goose A/B/C revalidation.

@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.12.0",
-  "active_campaign": "none",
+  "target_version": "0.12.1",
+  "active_campaign": null,
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "6c4366f7a43135388d0cf68655a6a3638d6bbe1b",
+  "source_baseline": "46849c9198213ad6d1e9888e8a0503bb1bccc61c",
   "features": [
     {
       "id": "F-001",
@@ -637,6 +637,18 @@
         "Exact five tools, defaults, review-only boundary, budgets 6/13/18, concurrency 1 through 3 and all routing/adjudication behavior remain unchanged",
         "Canonical root-only lock migration, fresh wheel and sdist, isolated FastMCP smoke, complete regression and authoritative documentation pass"
       ]
+    },
+    {
+      "id": "F-058",
+      "name": "Normal-Goose canonical receipt text fallback",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-012-r4",
+      "criteria": [
+        "The verification TextContent contains the unchanged human receipt followed by one compact parseable canonical verification_receipt JSON object",
+        "The appended JSON parses equal to structured_content.verification_receipt and preserves exact field names, enums, nulls, lists, counts and order without model reconstruction",
+        "The fallback is privacy-safe and bounded, adds no sampling, elicitation or persistence mutation, and leaves all normal review, continuation, full and summary text unchanged",
+        "Package and module 0.12.1 with build verifiable-evidence-council-v10.1 preserve record Schema 2.5, receipt Schema 1.0, five tools, budgets 6/13/18 and concurrency behavior"
+      ]
     }
   ],
   "quality_gates": [
@@ -708,7 +720,7 @@
     {
       "id": "Q-014",
       "name": "Normal-Goose canonical verification receipt evidence",
-      "status": "issued"
+      "status": "revalidation_pending"
     }
   ]
 }

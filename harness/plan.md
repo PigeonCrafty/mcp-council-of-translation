@@ -5,22 +5,28 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: none (`CAMPAIGN-012 PUBLISHED`)
-- Campaign state: `PUBLISHED; Q-014_ISSUED`
-- Accepted Campaign contract: `harness/contracts/CAMPAIGN-012-r3.md`
-- Accepted Campaign implementation: `e940044c5367ff2ef86e4c58bd75e1f85e4da4cf`
-- Accepted Campaign review: `harness/evaluations/CAMPAIGN-012-r3-review.md`
+- Active Campaign: `none`
+- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_REVALIDATION_PENDING`
+- Active contract: `none`
+- Accepted Campaign contract: `harness/contracts/CAMPAIGN-012-r4.md`
+- Accepted Campaign implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
+- Accepted Campaign review: `harness/evaluations/CAMPAIGN-012-r4-review.md`
+- Accepted Campaign review SHA-256:
+  `F9A3B6657299AE2AAC45142B3332A5029EC876D9CFA75A0819D01FF4E9C6CEAF`
 - Accepted contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
-- Accepted features: `57/57`
-- Accepted quality gates: `13/14`; Q-014 issued
-- Active post-publication gate: `Q-014`
+- Accepted features: `58/58`
+- Accepted quality gates: `13/14`; Q-014 revalidation pending
+- Pending post-publication gate: `Q-014`
+- Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
 - V0.12 publication review:
   `harness/evaluations/CAMPAIGN-012-r3-publication-ci-review.md`
 - V0.12 published protected `main`: `6c4366f7a43135388d0cf68655a6a3638d6bbe1b`
 - V0.12 published implementation: `213cce55bb21d6854f76e89bee33a4e9e2f9dd8c`
+- Q-014 issuance protected `main` / r4 baseline:
+  `aceac3383b2a597bbf5414362d9b71ac6e601267`
 - Next Campaign assessment:
   `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
@@ -29,12 +35,12 @@
 - Parent live contract: `harness/contracts/CAMPAIGN-011-q013-live.md`
 - Final live contract: `harness/contracts/CAMPAIGN-011-q013-live-r2.md`
 - Publication review: `harness/evaluations/CAMPAIGN-011-r3-publication-ci-review.md`
-- Published protected `main`: `f64d86fd37a0727d3a0a3ebcd8581fd26cc7e1a3`
-- Published final archive `main`: `6544d41d308f9ed7ab253dac5a70a94581cd04d8`
-- Published product implementation: `6d3a5b6843550ec37ae61ce2670de51a93580bf8`
-- Accepted product implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
-- Product target: `0.12.0`
-- Diagnostic build target: `verifiable-evidence-council-v10`
+- Historical V0.11.1 protected `main`: `f64d86fd37a0727d3a0a3ebcd8581fd26cc7e1a3`
+- Historical V0.11.1 final archive `main`: `6544d41d308f9ed7ab253dac5a70a94581cd04d8`
+- Historical V0.11.1 published implementation: `6d3a5b6843550ec37ae61ce2670de51a93580bf8`
+- Historical V0.11.1 accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
+- Product target: `0.12.1`
+- Diagnostic build target: `verifiable-evidence-council-v10.1`
 - Persisted schema target: `2.5` (unchanged)
 - Verification receipt schema target: `1.0`
 - Acceptance authority: Foreman only
@@ -105,6 +111,33 @@ at `6c4366f7a43135388d0cf68655a6a3638d6bbe1b` through PR #26, with the six-job m
 passing before and after merge. Q-014 is issued by
 `harness/contracts/CAMPAIGN-012-q014-live.md` and remains a separate user-operated
 normal-Goose acceptance gate.
+
+### Q-014 live result and CAMPAIGN-012-r4 correction
+
+Q-014 live evidence is reviewed at
+`harness/evaluations/CAMPAIGN-012-q014-live-review.md` with decision
+`CHANGES_REQUESTED`. All three Council paths passed routing, coverage, budget, issue and
+terminal-coherence checks, but normal Goose did not expose MCP `structuredContent` to
+the agent. A and C returned only the verification Markdown; B reconstructed a renamed,
+noncanonical JSON object. This reproduces the exact client handoff defect CAMPAIGN-012
+was intended to remove.
+
+CAMPAIGN-012-r4 freezes a text-channel compatibility fallback: verification only will
+append the exact compact canonical receipt JSON to the same first `TextContent`, while
+preserving the existing human receipt, canonical structured object, five headings,
+privacy bounds and every normal tool response. PKG-073 implements and verifies the
+fallback; PKG-074 releases package/module 0.12.1 and build v10.1 without changing record
+Schema 2.5 or receipt Schema 1.0. Q-014 requires fresh revalidation after protected-main
+publication of an accepted correction.
+
+CAMPAIGN-012-r4 is accepted by
+`harness/evaluations/CAMPAIGN-012-r4-review.md` at
+`46849c9198213ad6d1e9888e8a0503bb1bccc61c`. Independent Foreman evidence includes the
+exact two-commit/15-path scope, all protected hashes, compile, 171 focused passes, 444
+complete passes, live-shaped A/B/C text JSON equality, ordinary-text byte compatibility,
+bounded hostile failure and root-only lock migration. F-058 is accepted. V0.12.1
+publication through protected `main`, six-job CI and fresh Q-014 normal-Goose A/B/C
+revalidation remain separate gates.
 
 Q-003 is accepted by
 `harness/evaluations/Q-003-desktop-cli-live-r2-review.md`: Desktop completed native
