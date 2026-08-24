@@ -5,8 +5,8 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: none (`CAMPAIGN-012 LOCAL_ACCEPTED`)
-- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_PLANNED`
+- Active Campaign: none (`CAMPAIGN-012 PUBLISHED`)
+- Campaign state: `PUBLISHED; Q-014_ISSUED`
 - Accepted Campaign contract: `harness/contracts/CAMPAIGN-012-r3.md`
 - Accepted Campaign implementation: `e940044c5367ff2ef86e4c58bd75e1f85e4da4cf`
 - Accepted Campaign review: `harness/evaluations/CAMPAIGN-012-r3-review.md`
@@ -14,8 +14,13 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `57/57`
-- Accepted quality gates: `13/14`; Q-014 planned
-- Planned post-publication gate: `Q-014`
+- Accepted quality gates: `13/14`; Q-014 issued
+- Active post-publication gate: `Q-014`
+- Live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
+- V0.12 publication review:
+  `harness/evaluations/CAMPAIGN-012-r3-publication-ci-review.md`
+- V0.12 published protected `main`: `6c4366f7a43135388d0cf68655a6a3638d6bbe1b`
+- V0.12 published implementation: `213cce55bb21d6854f76e89bee33a4e9e2f9dd8c`
 - Next Campaign assessment:
   `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
@@ -95,8 +100,11 @@ F-053 through F-057: the canonical receipt, privacy/history projection, existing
 verification view, compatibility/coherence evidence and V0.12 migration. Independent
 Foreman verification passed the 165-test receipt matrix, 441-test complete regression,
 24/24 Golden corpus, JSON-safe integer boundaries, no-tail sample rejection, hostile
-FastMCP wrapper and all frozen public invariants. Protected-main publication and Q-014
-remain separate gates.
+FastMCP wrapper and all frozen public invariants. Protected-main publication completed
+at `6c4366f7a43135388d0cf68655a6a3638d6bbe1b` through PR #26, with the six-job matrix
+passing before and after merge. Q-014 is issued by
+`harness/contracts/CAMPAIGN-012-q014-live.md` and remains a separate user-operated
+normal-Goose acceptance gate.
 
 Q-003 is accepted by
 `harness/evaluations/Q-003-desktop-cli-live-r2-review.md`: Desktop completed native

@@ -5,21 +5,24 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-012`
-- Campaign state: `LOCAL_ACCEPTED; PUBLICATION_PENDING; Q-014_PLANNED`
+- Campaign state: `PUBLISHED; Q-014_ISSUED`
 - Active contract: none
 - Accepted implementation: `e940044c5367ff2ef86e4c58bd75e1f85e4da4cf`
 - Accepted review: `harness/evaluations/CAMPAIGN-012-r3-review.md`
 - Accepted review SHA-256:
   `9948709C712A5F39738BA7DA13692CCD818C3E27C833D9571AC835B913956415`
 - Accepted features: `57/57`
-- Accepted quality gates: `13/14`; Q-014 planned
-- Planned post-publication gate: `Q-014`
+- Accepted quality gates: `13/14`; Q-014 issued
+- Active post-publication gate: `Q-014`
+- Live contract: `harness/contracts/CAMPAIGN-012-q014-live.md`
+- Publication review: `harness/evaluations/CAMPAIGN-012-r3-publication-ci-review.md`
 - Next Campaign assessment:
   `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
   `BA884359309326C179E5A42AF44D24872B960FD0D717130B59E88C534066C64A`
-- Published protected `main`: `6544d41d308f9ed7ab253dac5a70a94581cd04d8`
+- Published protected `main`: `6c4366f7a43135388d0cf68655a6a3638d6bbe1b`
+- Published product implementation: `213cce55bb21d6854f76e89bee33a4e9e2f9dd8c`
 - Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
 
@@ -43,8 +46,9 @@
 - Frozen authority boundary: receipt projection is deterministic, privacy-safe,
   read-only and sampling-free; normal review reports, routing, Policy Gate, adjudication,
   persistence and budgets remain unchanged.
-- Q-014 is planned only after local acceptance and protected-main publication. The Main
-  Worker is forbidden from live Goose/provider calls and cannot accept Q-014.
+- Q-014 is issued after local acceptance and protected-main publication. It is a
+  user-operated normal-Goose gate; the Main Worker is forbidden from live
+  Goose/provider calls and cannot accept Q-014.
 
 ### r1 preserved evidence and correction boundary
 
@@ -91,8 +95,12 @@
   FastMCP verification wrapper.
 - Product remains 0.12.0/build v10, persisted Schema 2.5, receipt Schema 1.0, exact five
   tools, budgets 6/13/18 and concurrency 3/3.
-- F-053 through F-057 are accepted. Q-014 remains planned and cannot begin until the
-  accepted implementation and Foreman archive are published through protected `main`.
+- F-053 through F-057 are accepted and published through protected `main` by PR #26.
+- Accepted implementation `e940044` maps tree-identically to published `213cce5`; the
+  accepted archive maps tree-identically to published main `6c4366f`.
+- PR and protected-main CI each passed Ubuntu/Windows Python 3.10/3.12/3.13.
+- Q-014 is issued by `harness/contracts/CAMPAIGN-012-q014-live.md`; acceptance requires
+  fresh normal-Goose A/B/C receipts and remains with the Foreman.
 
 ## Q-013 live review and r3 correction
 
