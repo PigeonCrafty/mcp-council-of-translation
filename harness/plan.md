@@ -6,10 +6,7 @@
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
 - Active Campaign: none (`CAMPAIGN-010 CLOSED`; Q-012 accepted)
-- Active quality gate: `Q-003` interactive CLI fallback r2, issued by
-  `harness/contracts/Q-003-desktop-cli-live-r2.md`
-- Active gate contract SHA-256:
-  `91BD8F488D74B757EFE3CC718603F43DF2CD2FA9273F4D8F1D4D8C2BF3FF1633`
+- Active quality gate: none (`Q-003 ACCEPTED`; all 12 gates accepted)
 - Published protected `main`: `617b696c94624988f03a64ab58e1d42a66697546`
 - Accepted product implementation: `f58306d0df42fc27d46dd5049348ccfce8a0f6f8`
 - Product target: `0.10.2`
@@ -18,16 +15,14 @@
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
 
-Q-003 is the only incomplete quality gate: 46/46 feature items and the other 11/12
-quality gates are accepted. The r1 evidence independently accepts the Desktop native
-Briefing path but the CLI returned a truthful sampling-free pending record because native
-elicitation failed. The Foreman decision is `CHANGES_REQUESTED`, recorded in
-`harness/evaluations/Q-003-desktop-cli-live-r1-review.md`. The evidence-only r2 preserves
-both records and tests one CLI explicit-context retry with `briefing_mode=auto`; it
-authorizes no product code change and does not reopen CAMPAIGN-010. After Q-003 is
-independently decided, the next proposed product design gate is CAMPAIGN-011 for
-risk-sensitive panoramic role routing; no implementation contract for that Campaign is
-currently issued.
+Q-003 is accepted by
+`harness/evaluations/Q-003-desktop-cli-live-r2-review.md`: Desktop completed native
+six-field Briefing elicitation, while the interactive CLI truthfully returned pending for
+native elicitation and then completed the full six-role review through an explicit rich
+context retry with `briefing_mode=auto`. All 46/46 feature items and 12/12 quality gates
+are accepted for V0.10.2. Native CLI form support is not claimed. The next proposed
+product design gate is CAMPAIGN-011 for risk-sensitive panoramic role routing; no
+implementation contract is issued by this acceptance step.
 
 CAMPAIGN-009-r1 reached the intended Q-012 A/B outcome but independent Foreman review
 found two bounded counterexamples: an already-present typed rule reference can be counted

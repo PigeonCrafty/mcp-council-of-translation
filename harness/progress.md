@@ -7,15 +7,28 @@
 - Campaign: `CAMPAIGN-010`
 - Campaign state: `CLOSED; Q-012 ACCEPTED`
 - Campaign baseline: `144ecebb6bfbd507ccdfb09a9b87efac3d59e9e1`
-- Active quality gate: `Q-003 interactive CLI fallback r2 — ISSUED`
-- Active gate contract: `harness/contracts/Q-003-desktop-cli-live-r2.md`
-- Active gate SHA-256:
-  `91BD8F488D74B757EFE3CC718603F43DF2CD2FA9273F4D8F1D4D8C2BF3FF1633`
+- Active quality gate: none (`Q-003 ACCEPTED`; 12/12 accepted)
 - Published protected `main`: `617b696c94624988f03a64ab58e1d42a66697546`
 - Last updated: 2026-08-24 Asia/Shanghai
 - Completion authority: Foreman only
 
 ## Q-003 Desktop/CLI r1 review and r2 correction
+
+- Final decision: `ACCEPTED` by
+  `harness/evaluations/Q-003-desktop-cli-live-r2-review.md` (SHA-256
+  `6757FDB858F46E9251050B4A285FC8D55353E4A14C3FEB296EC5D80FBD87DEA6`).
+- CLI-r2 record `20260824T020404602512Z_8a7b36aca994` passed: exact V0.10.2/build
+  v8.2/schema 2.4, explicit rich UI context, `briefing_mode=auto` skipped elicitation,
+  six successful reviewers, full coverage, `6/13` calls, concurrency peak 3, clean
+  completion, five-section 355-code-point report and null suggested translation.
+- The r1 CLI pending record remains byte-identical and is retained as truthful evidence
+  that native CLI elicitation is unavailable in this workflow; it is not counted as a
+  successful review.
+- Combined client boundary: Desktop supports native Briefing form round trip; interactive
+  CLI supports the documented explicit-context fallback. Identical client widgets are
+  not claimed.
+- Q-003 is accepted. V0.10.2 now has 46/46 accepted feature items and 12/12 accepted
+  quality gates.
 
 - r1 decision: `CHANGES_REQUESTED` by
   `harness/evaluations/Q-003-desktop-cli-live-r1-review.md` (SHA-256
