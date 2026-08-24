@@ -30,6 +30,43 @@ ContributionKind = Literal[
     "unique_material", "corroborating", "confirmation_only", "unavailable"
 ]
 DiscussionMarginalValue = Literal["not_applicable", "none", "low", "material"]
+RoutingProfile = Literal[
+    "legacy_unrecorded",
+    "route_unspecified_lightweight_v1",
+    "route_unspecified_standard_v1",
+    "route_unspecified_strict_v1",
+    "route_ui_lightweight_v1",
+    "route_ui_standard_v1",
+    "route_ui_strict_v1",
+    "route_marketing_lightweight_v1",
+    "route_marketing_standard_v1",
+    "route_marketing_strict_v1",
+    "route_technical_documentation_lightweight_v1",
+    "route_technical_documentation_standard_v1",
+    "route_technical_documentation_strict_v1",
+    "route_legal_risk_lightweight_v1",
+    "route_legal_risk_standard_v1",
+    "route_legal_risk_strict_v1",
+]
+RoutingReasonCode = Literal[
+    "legacy_routing_unrecorded",
+    "content_unspecified",
+    "content_ui",
+    "content_marketing",
+    "content_technical_documentation",
+    "content_legal_risk",
+    "mode_lightweight",
+    "mode_standard",
+    "mode_strict",
+    "legacy_portfolio_preserved",
+    "risk_focused",
+    "risk_panorama",
+    "risk_strict",
+    "deterministic_preflight_coverage",
+]
+
+_ROUTING_PROFILES = set(RoutingProfile.__args__)
+_ROUTING_REASON_CODES = set(RoutingReasonCode.__args__)
 
 
 def option_id_for_action(issue_id: str, action: str) -> str:
@@ -137,6 +174,34 @@ class CouncilPlan(DomainModel):
     sample_budget: int = Field(default=13, ge=0, le=18)
     max_discussion_rounds: int = Field(default=1, ge=0, le=1)
     max_decision_points: int = Field(default=3, ge=0, le=3)
+    routing_profile: RoutingProfile = "legacy_unrecorded"
+    routing_reason_codes: list[RoutingReasonCode] = Field(
+        default_factory=lambda: ["legacy_routing_unrecorded"]
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_routing_provenance(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        data = dict(value)
+        profile = data.get("routing_profile")
+        if profile not in _ROUTING_PROFILES:
+            data["routing_profile"] = "legacy_unrecorded"
+            data["routing_reason_codes"] = ["legacy_routing_unrecorded"]
+            return data
+        data["routing_profile"] = profile
+        raw_codes = data.get("routing_reason_codes", [])
+        if not isinstance(raw_codes, list):
+            raw_codes = []
+        codes = list(dict.fromkeys(
+            code for code in raw_codes
+            if isinstance(code, str) and code in _ROUTING_REASON_CODES
+        ))[:5]
+        if profile == "legacy_unrecorded" and "legacy_routing_unrecorded" not in codes:
+            codes.insert(0, "legacy_routing_unrecorded")
+        data["routing_reason_codes"] = codes
+        return data
 
 
 class PreflightCheck(DomainModel):

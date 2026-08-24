@@ -68,6 +68,17 @@ def test_v23_is_authoritative_and_older_v2_records_remain_readable():
         assert parse_review_record(payload).schema_version == version
 
 
+def test_older_v2_plan_without_routing_provenance_gets_conservative_defaults():
+    for version in ("2.0", "2.1", "2.2", "2.3", "2.4"):
+        payload = _record().model_dump(mode="json")
+        payload["schema_version"] = version
+        payload["council_plan"].pop("routing_profile")
+        payload["council_plan"].pop("routing_reason_codes")
+        loaded = parse_review_record(payload)
+        assert loaded.council_plan.routing_profile == "legacy_unrecorded"
+        assert loaded.council_plan.routing_reason_codes == ["legacy_routing_unrecorded"]
+
+
 def test_v22_runtime_metadata_loads_with_conservative_parallel_defaults():
     payload = _record().model_dump(mode="json")
     payload["schema_version"] = "2.2"

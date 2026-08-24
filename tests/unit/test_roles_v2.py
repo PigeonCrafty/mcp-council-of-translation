@@ -6,11 +6,13 @@ from council_of_translation.localization.roles import (
     REVIEWER_ROLES,
     ROLE_DEFINITIONS,
     ROLE_REGISTRY,
+    ROUTING_PORTFOLIOS,
     SAMPLE_BUDGETS,
     build_council_plan,
     get_reviewers_for_mode,
     get_reviewers_for_plan,
     normalize_content_type,
+    routing_profile_for,
 )
 
 
@@ -174,3 +176,39 @@ def test_interaction_toggle_does_not_change_role_or_budget_routing():
     assert off.interactive_enabled is False
     assert auto.active_role_ids == off.active_role_ids
     assert auto.sample_budget == off.sample_budget == 13
+
+
+def test_all_fifteen_profiles_are_explicit_deterministic_and_registry_backed():
+    contents = ("unspecified", "ui", "marketing", "technical_documentation", "legal_risk")
+    modes = ("lightweight", "standard", "strict")
+    observed = {}
+    for content in contents:
+        for mode in modes:
+            first = build_council_plan(mode, content)
+            second = build_council_plan(mode, content)
+            expected_profile = f"route_{content}_{mode}_v1"
+            assert first == second
+            assert first.routing_profile == expected_profile == routing_profile_for(mode, content)
+            assert first.active_role_ids == list(ROUTING_PORTFOLIOS[expected_profile])
+            assert all(role_id in ROLE_REGISTRY for role_id in first.active_role_ids)
+            assert first.routing_reason_codes[:2] == [f"content_{content}", f"mode_{mode}"]
+            assert "deterministic_preflight_coverage" in first.routing_reason_codes
+            observed[first.routing_profile] = tuple(first.active_role_ids)
+    assert len(observed) == len(ROUTING_PORTFOLIOS) == 15
+
+
+def test_council_plan_routing_provenance_rejects_arbitrary_prose_and_role_ids():
+    from council_of_translation.localization.models import CouncilPlan
+
+    hostile = CouncilPlan.model_validate({
+        "routing_profile": "PRIVATE caller prose / arbitrary_profile",
+        "routing_reason_codes": [
+            "content_ui", "PRIVATE user explanation", "fidelity_reviewer", "content_ui",
+        ],
+    })
+    assert hostile.routing_profile == "legacy_unrecorded"
+    assert hostile.routing_reason_codes == ["legacy_routing_unrecorded"]
+
+    legacy = CouncilPlan.model_validate({"mode": "standard", "active_role_ids": ["unknown"]})
+    assert legacy.routing_profile == "legacy_unrecorded"
+    assert legacy.routing_reason_codes == ["legacy_routing_unrecorded"]

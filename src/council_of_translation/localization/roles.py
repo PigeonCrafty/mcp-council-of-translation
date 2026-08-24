@@ -5,7 +5,13 @@ from __future__ import annotations
 from types import MappingProxyType
 from typing import Literal, Mapping
 
-from council_of_translation.localization.models import CouncilPlan, ReviewMode, RoleDefinition
+from council_of_translation.localization.models import (
+    CouncilPlan,
+    ReviewMode,
+    RoleDefinition,
+    RoutingProfile,
+    RoutingReasonCode,
+)
 
 
 ContentType = Literal["unspecified", "ui", "marketing", "technical_documentation", "legal_risk"]
@@ -241,6 +247,67 @@ _CONTENT_ALIASES: Mapping[str, ContentType] = MappingProxyType({
 })
 
 
+ROUTING_PORTFOLIOS: Mapping[RoutingProfile, tuple[str, ...]] = MappingProxyType({
+    "route_unspecified_lightweight_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "fluency_reviewer",
+    ),
+    "route_unspecified_standard_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "product_context_reviewer", "ux_copy_reviewer", "fluency_reviewer",
+    ),
+    "route_unspecified_strict_v1": tuple(role.id for role in REVIEWER_ROLES),
+    "route_ui_lightweight_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "fluency_reviewer",
+    ),
+    "route_ui_standard_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "product_context_reviewer", "ux_copy_reviewer", "fluency_reviewer",
+    ),
+    "route_ui_strict_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "product_context_reviewer", "ux_copy_reviewer", "fluency_reviewer",
+    ),
+    "route_marketing_lightweight_v1": (
+        "fidelity_reviewer", "terminology_reviewer", "fluency_reviewer",
+    ),
+    "route_marketing_standard_v1": (
+        "fidelity_reviewer", "terminology_reviewer", "product_context_reviewer",
+        "brand_voice_reviewer", "risk_ambiguity_reviewer", "fluency_reviewer",
+    ),
+    "route_marketing_strict_v1": (
+        "fidelity_reviewer", "terminology_reviewer", "product_context_reviewer",
+        "brand_voice_reviewer", "risk_ambiguity_reviewer", "fluency_reviewer",
+    ),
+    "route_technical_documentation_lightweight_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "fluency_reviewer",
+    ),
+    "route_technical_documentation_standard_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "product_context_reviewer", "fluency_reviewer",
+    ),
+    "route_technical_documentation_strict_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "product_context_reviewer", "fluency_reviewer",
+    ),
+    "route_legal_risk_lightweight_v1": (
+        "fidelity_reviewer", "terminology_reviewer", "risk_ambiguity_reviewer",
+        "fluency_reviewer",
+    ),
+    "route_legal_risk_standard_v1": (
+        "fidelity_reviewer", "terminology_reviewer", "product_context_reviewer",
+        "ux_copy_reviewer", "risk_ambiguity_reviewer", "fluency_reviewer",
+    ),
+    "route_legal_risk_strict_v1": (
+        "technical_safety_reviewer", "fidelity_reviewer", "terminology_reviewer",
+        "product_context_reviewer", "ux_copy_reviewer", "risk_ambiguity_reviewer",
+        "fluency_reviewer",
+    ),
+})
+
+
 ROLE_PRIORITY_RULES = """裁决优先级：
 1. 显式项目规则、TB、SG、known_exceptions
 2. 技术约束
@@ -284,28 +351,40 @@ def get_reviewers_for_mode(mode: ReviewMode) -> list[ReviewerRole]:
 
 
 def get_reviewers_for_plan(mode: str | None, content_type: str | None = None) -> list[ReviewerRole]:
-    """Select reviewers by mode and normalized localization content type."""
-
+    """Select reviewers through one explicit deterministic routing profile."""
     normalized_content = normalize_content_type(content_type)
     normalized_mode = normalize_mode(mode)
-    if normalized_content == "marketing" and normalized_mode in {"standard", "strict"}:
-        frozen_marketing_ids = {
-            "fidelity_reviewer",
-            "terminology_reviewer",
-            "product_context_reviewer",
-            "brand_voice_reviewer",
-            "risk_ambiguity_reviewer",
-            "fluency_reviewer",
-        }
-        return [role for role in REVIEWER_ROLES if role.id in frozen_marketing_ids]
-    reviewers = get_reviewers_for_mode(normalized_mode)
-    if normalized_content == "unspecified":
-        return reviewers
-    return [
-        role
-        for role in reviewers
-        if "*" in role.applicable_content_types or normalized_content in role.applicable_content_types
+    profile = routing_profile_for(normalized_mode, normalized_content)
+    return [ROLE_REGISTRY[role_id] for role_id in ROUTING_PORTFOLIOS[profile]]  # type: ignore[list-item]
+
+
+def routing_profile_for(mode: str | None, content_type: str | None = None) -> RoutingProfile:
+    normalized_mode = normalize_mode(mode)
+    normalized_content = normalize_content_type(content_type)
+    return f"route_{normalized_content}_{normalized_mode}_v1"  # type: ignore[return-value]
+
+
+def routing_reason_codes_for(
+    mode: str | None,
+    content_type: str | None = None,
+) -> list[RoutingReasonCode]:
+    normalized_mode = normalize_mode(mode)
+    normalized_content = normalize_content_type(content_type)
+    codes: list[RoutingReasonCode] = [
+        f"content_{normalized_content}",  # type: ignore[list-item]
+        f"mode_{normalized_mode}",  # type: ignore[list-item]
+        "deterministic_preflight_coverage",
     ]
+    if normalized_content == "legal_risk":
+        risk_code: RoutingReasonCode = {
+            "lightweight": "risk_focused",
+            "standard": "risk_panorama",
+            "strict": "risk_strict",
+        }[normalized_mode]  # type: ignore[assignment]
+        codes.append(risk_code)
+    else:
+        codes.append("legacy_portfolio_preserved")
+    return codes
 
 
 def build_council_plan(
@@ -328,4 +407,6 @@ def build_council_plan(
         sample_budget=SAMPLE_BUDGETS[normalized_mode],
         max_discussion_rounds=0 if normalized_mode == "lightweight" else 1,
         max_decision_points=3,
+        routing_profile=routing_profile_for(normalized_mode, normalized_content),
+        routing_reason_codes=routing_reason_codes_for(normalized_mode, normalized_content),
     )
