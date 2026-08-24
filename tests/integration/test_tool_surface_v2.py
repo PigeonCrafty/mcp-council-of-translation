@@ -39,6 +39,12 @@ def test_exact_frozen_public_tool_surface():
         "enum": ["auto", "always", "off"],
         "type": "string",
     }
+    detail = tools["view_review_record"].parameters["properties"]["detail_level"]
+    assert detail == {
+        "default": "full",
+        "enum": ["full", "summary", "verification"],
+        "type": "string",
+    }
 
 
 def test_server_info_and_versioned_defaults(monkeypatch):
@@ -55,6 +61,8 @@ def test_server_info_and_versioned_defaults(monkeypatch):
     assert info["independent_review_concurrency_limit"] == 3
     assert info["max_independent_review_concurrency"] == 3
     assert info["independent_review_concurrency_disposition"] == "default"
+    assert info["verification_receipt_schema_version"] == "1.0"
+    assert info["review_record_detail_levels"] == ["full", "summary", "verification"]
 
 
 @pytest.mark.parametrize("configured", ["1", "2", "3"])
