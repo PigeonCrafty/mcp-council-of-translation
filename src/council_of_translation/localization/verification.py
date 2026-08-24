@@ -209,11 +209,12 @@ def _coherence_projection(record: ReviewRecordV2, state: _Availability) -> dict[
     )
     lines = [line.strip() for line in record.display_report.splitlines() if line.strip()]
     occurrences = sum(line == expected for line in lines)
+    is_last = bool(lines) and lines[-1] == expected
     return {
         "expected_terminal_disposition": expected,
         "terminal_disposition_occurrences": occurrences,
-        "terminal_disposition_is_last_report_line": bool(lines) and lines[-1] == expected,
-        "terminal_disposition_matches_structured": occurrences > 0,
+        "terminal_disposition_is_last_report_line": is_last,
+        "terminal_disposition_matches_structured": occurrences == 1 and is_last,
     }
 
 
@@ -605,7 +606,7 @@ def render_verification_report(receipt: dict[str, Any]) -> str:
         "## 记录与路由",
         "",
         f"- 回执 `{receipt['receipt_schema_version']}`；记录 `{receipt['review_id']}`；记录 Schema `{record['schema_version']}`；历史 `{record['history_mode']}`。",
-        f"- 记录版本 {code(record['recorded_package_version'])} / {code(record['recorded_diagnostic_build'])}；当前服务 `{serving['package_version']}` / `{serving['diagnostic_build']}`。",
+        f"- 记录版本 {code(record['recorded_package_version'])} / {code(record['recorded_diagnostic_build'])}；当前服务：包 {code(serving['package_version'])}；模块 {code(serving['module_version'])}；构建 {code(serving['diagnostic_build'])}；Schema {code(serving['schema_version'])}。",
         f"- 路由：模式 {code(routing['mode'])}；内容 {code(routing['content_type'])}；配置 {code(routing['profile'])}；原因 {reason_text}。",
         f"- 活跃角色：{role_text}。",
         "",

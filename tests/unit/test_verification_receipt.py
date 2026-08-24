@@ -225,6 +225,70 @@ def test_receipt_and_report_are_deterministic_pure_and_privacy_safe():
         assert prohibited not in str(first)
 
 
+@pytest.mark.parametrize(
+    ("report_lines", "occurrences", "is_last", "matches"),
+    [
+        (["# 审校背景", "EXPECTED"], 1, True, True),
+        (["# 审校背景", "EXPECTED", "CONFLICTING"], 1, False, False),
+        (["EXPECTED", "# 主编结论", "EXPECTED"], 2, True, False),
+        (["# 审校背景", "CONFLICTING"], 0, False, False),
+    ],
+)
+def test_terminal_coherence_requires_exactly_one_expected_final_line(
+    report_lines,
+    occurrences,
+    is_last,
+    matches,
+):
+    record = _full_record()
+    expected = "- 最终处置：修改后可发布；需人工复核：否"
+    conflicting = "- 最终处置：需人工复核；需人工复核：是"
+    record.display_report = "\n\n".join(
+        expected if line == "EXPECTED" else conflicting if line == "CONFLICTING" else line
+        for line in report_lines
+    )
+    before = deepcopy(record.model_dump(mode="json"))
+
+    coherence = build_verification_receipt(record)["coherence"]
+
+    assert coherence == {
+        "expected_terminal_disposition": expected,
+        "terminal_disposition_occurrences": occurrences,
+        "terminal_disposition_is_last_report_line": is_last,
+        "terminal_disposition_matches_structured": matches,
+    }
+    assert record.model_dump(mode="json") == before
+
+
+def test_serving_identity_is_complete_in_bounded_full_partial_and_redacted_reports():
+    full = _full_record()
+    partial = _full_record()
+    partial.task.history_mode = "metadata"
+    redacted = _full_record()
+    redacted.parent_review_id = "C:/PRIVATE_PARENT_SENTINEL"
+
+    for record in (full, partial, redacted):
+        receipt = build_verification_receipt(record)
+        report = render_verification_report(receipt)
+        serving = receipt["serving"]
+        expected = (
+            f"当前服务：包 `{serving['package_version']}`；"
+            f"模块 `{serving['module_version']}`；"
+            f"构建 `{serving['diagnostic_build']}`；"
+            f"Schema `{serving['schema_version']}`。"
+        )
+
+        assert expected in report
+        assert [line for line in report.splitlines() if line.startswith("#")] == [
+            "# Council 验证回执",
+            "## 记录与路由",
+            "## 覆盖与调用",
+            "## 风险与裁决",
+            "## 一致性与可用性",
+        ]
+        assert len(report) <= 3_200
+
+
 def test_unknown_codes_are_null_redacted_and_never_echoed():
     record = _full_record()
     record.fallback_reason = "PRIVATE prose with a path C:/SECRET"
