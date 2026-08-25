@@ -6,7 +6,7 @@
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
 - Active Campaign: `CAMPAIGN-013-r3`
-- Campaign state: `ACCEPTED; LOCAL_RELEASE_PENDING_PUBLICATION`
+- Campaign state: `PUBLISHED; Q-015_ISSUED`
 - Active contract: `harness/contracts/CAMPAIGN-013-r3.md`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
 - r2 review: `harness/evaluations/CAMPAIGN-013-r2-review.md`
@@ -19,12 +19,20 @@
 - Accepted Campaign review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
 - Accepted Campaign review SHA-256:
   `D33EEFE60F1F23B5574F9B17725C6080B17002137D5E2DFB1B3B0DCE0DABFC05`
+- V0.13 publication review:
+  `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`
+- V0.13 publication review SHA-256:
+  `6DB2A06357647346B80521EEEAAB0114AE887E0918C80498509C1A21EA9958E9`
+- V0.13 published protected `main`: `95d90cf383d045778ce61afaa50dbcec199579ce`
+- Q-015 live contract: `harness/contracts/CAMPAIGN-013-q015-live.md`
+- Q-015 live contract SHA-256:
+  `74C4179BA020629D9F34966B0756FFB3547D29710A01A0A820B779A38788EC99`
 - Accepted contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `63/63`
 - Accepted quality gates: `14/15`; Q-015 planned
-- Pending live gate: `Q-015` after local acceptance and protected-main publication
+- Pending live gate: `Q-015` issued for user-operated normal-Goose A/B/C validation
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -131,6 +139,13 @@ CAMPAIGN-013-r3 is accepted at `4f976c2764a463dceb403084fa3faead5300211e`.
 The exact documentation correction and regression pass independently with the complete
 480-test suite. Combined r1-r3 evidence accepts F-059 through F-063. Local V0.13 work is
 closed; protected-main publication, six-job CI and Q-015 remain external gates.
+
+V0.13 was published through protected-main PR #31 at
+`95d90cf383d045778ce61afaa50dbcec199579ce`. All six PR jobs and all six post-merge
+Linux/Windows Python 3.10/3.12/3.13 jobs passed. The published product tree is identical
+to accepted HEAD. Q-015 is issued by `harness/contracts/CAMPAIGN-013-q015-live.md` for
+three fresh normal-Goose cases; it remains unaccepted pending Foreman review of live
+records.
 
 ## Campaign 012: Client-verifiable Evidence Receipt
 

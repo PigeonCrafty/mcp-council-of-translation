@@ -5,7 +5,7 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-013-r3`
-- Campaign state: `ACCEPTED; LOCAL_RELEASE_PENDING_PUBLICATION`
+- Campaign state: `PUBLISHED; Q-015_ISSUED`
 - Active contract: `harness/contracts/CAMPAIGN-013-r3.md`
 - Active baseline: `b01461b792ecb5eeda20229d47a404015ec6910c`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
@@ -16,9 +16,17 @@
 - Accepted review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
 - Accepted review SHA-256:
   `D33EEFE60F1F23B5574F9B17725C6080B17002137D5E2DFB1B3B0DCE0DABFC05`
+- V0.13 publication review:
+  `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`
+- V0.13 publication review SHA-256:
+  `6DB2A06357647346B80521EEEAAB0114AE887E0918C80498509C1A21EA9958E9`
+- Published protected `main`: `95d90cf383d045778ce61afaa50dbcec199579ce`
+- Q-015 live contract: `harness/contracts/CAMPAIGN-013-q015-live.md`
+- Q-015 live contract SHA-256:
+  `74C4179BA020629D9F34966B0756FFB3547D29710A01A0A820B779A38788EC99`
 - Accepted features: `63/63`
 - Accepted quality gates: `14/15`; Q-015 planned
-- Pending live gate: `Q-015` after local acceptance and publication
+- Pending live gate: `Q-015` issued for user-operated normal-Goose A/B/C validation
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -113,6 +121,20 @@
   protected hashes exact, lock byte-identical and stale/current phrase counts 0/1.
 - Combined CAMPAIGN-013-r1/r2/r3 evidence accepts F-059 through F-063. Local V0.13 is
   accepted; Q-015 remains planned after protected-main publication and six-job CI.
+
+## V0.13 publication and Q-015 issuance
+
+- Protected-main PR #31 was squash-merged at
+  `95d90cf383d045778ce61afaa50dbcec199579ce`.
+- PR workflow `32805729165` passed Ubuntu and Windows on Python 3.10, 3.12 and 3.13;
+  post-merge main workflow `32805814076` passed the same six-job matrix.
+- Published product bytes match accepted implementation `4f976c2`; the final PR branch
+  tree matches published main exactly.
+- Publication review:
+  `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`.
+- Q-015 contract: `harness/contracts/CAMPAIGN-013-q015-live.md`; state `ISSUED`.
+- Q-015 remains unaccepted until the Foreman jointly reviews fresh normal-Goose clean,
+  material-edit and unresolved-context records.
 
 ## Campaign 012 assignment and r1 review
 
@@ -835,6 +857,8 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted CAMPAIGN-013 assets, publish V0.13 through protected `main`, confirm
-the required six-job CI matrix, then issue Q-015 normal-Goose validation. Publication and
-live validation require separate explicit execution authority and evidence.
+Run the three fresh normal-Goose cases in
+`harness/contracts/CAMPAIGN-013-q015-live.md` without changing the extension command or
+provider/account. Return the admission response, A/B/C review IDs, original reports,
+full-view support objects when exposed, and canonical verification JSON for Foreman
+acceptance.
