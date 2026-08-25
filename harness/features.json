@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.13.0",
-  "active_campaign": "CAMPAIGN-013-r3",
+  "target_version": "0.13.1",
+  "active_campaign": "CAMPAIGN-014-r2",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "44b1969677cd6b1fda63047ca514aede6609bdad",
+  "source_baseline": "95d90cf383d045778ce61afaa50dbcec199579ce",
   "features": [
     {
       "id": "F-001",
@@ -704,6 +704,83 @@
         "Exact five tools, review-only defaults, budgets 6/13/18, concurrency 1 through 3, routing portfolios and all non-calibration adjudication behavior remain stable",
         "Canonical root-only lock migration, authoritative documentation, complete regression, fresh artifacts and isolated FastMCP wheel smoke pass"
       ]
+    },
+    {
+      "id": "F-064",
+      "name": "Fail-closed incomplete-input review",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-014-r2",
+      "criteria": [
+        "Any source or candidate truncation is visible in primary, compact and verification channels and cannot be represented as complete coverage",
+        "Known truncation deterministically yields degraded execution, insufficient decision support, NEEDS_HUMAN_REVIEW and 需人工复核 / 是",
+        "The repair preserves useful bounded-prefix evidence without adding document chunking or cross-chunk synthesis"
+      ]
+    },
+    {
+      "id": "F-065",
+      "name": "High-precision deterministic token scanning",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-014-r2",
+      "criteria": [
+        "Ordinary percentage prose and localized punctuation around URLs cannot create deterministic protected-token blockers",
+        "Legitimate printf placeholders, variables, commands, flags, URLs and caller literals retain their current deterministic protection",
+        "A dedicated positive and negative corpus proves scanner precision without weakening deterministic authority"
+      ]
+    },
+    {
+      "id": "F-066",
+      "name": "Safe Targeted Discussion envelope degradation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-014-r2",
+      "criteria": [
+        "Malformed or wrong-shaped discussion envelopes are rejected as a whole without an unhandled exception",
+        "Invalid discussion preserves the complete pre-discussion matrix and cannot create blockers, actions or position changes",
+        "Failure is represented by bounded degradation, warning and phase provenance while valid Round 1 evidence remains usable"
+      ]
+    },
+    {
+      "id": "F-067",
+      "name": "Post-discussion consensus and choice coherence",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-014-r2",
+      "criteria": [
+        "Role consensus is recomputed from final material positions after every valid discussion update",
+        "Digest, minority report, value metrics and decision support consume the same post-discussion truth",
+        "User-choice usefulness remains independent and may persist only because multiple Policy-valid outcomes exist, never because disagreement state is stale"
+      ]
+    },
+    {
+      "id": "F-068",
+      "name": "Privacy-minimized legacy V1 summary",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-014-r2",
+      "criteria": [
+        "V1 summary returns only bounded identity, mode, status and terminal disposition metadata",
+        "V1 summary excludes task content, source/candidate text, reviewer/conflict prose and full chief rationale",
+        "V1 full and verification behavior remain compatible and retrieval remains free of save, sampling and elicitation side effects"
+      ]
+    },
+    {
+      "id": "F-069",
+      "name": "Truthful Golden metrics and blind-evaluation contract",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-014-r2",
+      "criteria": [
+        "Existing evaluator metrics are versioned or renamed so their public names match the exact predicates they measure",
+        "The deterministic 30-case corpus remains production-path regression evidence and does not claim independent blind quality validity",
+        "A machine-readable blind-set contract defines expected issue identity, bounded anchors, severity range, allowed alternatives and forbidden findings for later independent curation"
+      ]
+    },
+    {
+      "id": "F-070",
+      "name": "Evidence-bounded FastMCP compatibility policy",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-014-r2",
+      "criteria": [
+        "The supported range is based on actual Goose/runtime requirements plus evidence for the locked 2.13.0.2 floor and isolated 3.4.7 behavior",
+        "A justified upper bound, a minimum/current/latest-compatible CI matrix or both prevents unsupported future-major compatibility claims",
+        "FastMCP 2.x support is not removed without an explicit downstream compatibility reason"
+      ]
     }
   ],
   "quality_gates": [
@@ -781,6 +858,11 @@
       "id": "Q-015",
       "name": "Normal-Goose calibrated decision-support evidence",
       "status": "accepted"
+    },
+    {
+      "id": "Q-016",
+      "name": "Independent audit-remediation and incomplete-input Goose evidence",
+      "status": "planned"
     }
   ]
 }

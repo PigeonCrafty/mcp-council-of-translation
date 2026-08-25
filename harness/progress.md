@@ -4,18 +4,25 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-013-r3`
-- Campaign state: `COMPLETE; Q-015_ACCEPTED`
-- Active contract: `harness/contracts/CAMPAIGN-013-r3.md`
-- Active baseline: `b01461b792ecb5eeda20229d47a404015ec6910c`
+- Campaign: `CAMPAIGN-014-r2`
+- Campaign state: `ACCEPTED; PUBLICATION_PENDING`
+- Active contract: `harness/contracts/CAMPAIGN-014-r2.md`
+- CAMPAIGN-014 r2 review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
+- CAMPAIGN-014 r1 review: `harness/evaluations/CAMPAIGN-014-r1-review.md`
+- Audited product baseline: `95d90cf383d045778ce61afaa50dbcec199579ce`
+- Audited governance baseline: `bcdb0e2bc282e907e975b43882906872913f6bec`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
 - r2 review: `harness/evaluations/CAMPAIGN-013-r2-review.md`
 - r3 review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
-- Design assessment: `harness/evaluations/NEXT-CAMPAIGN-013-ASSESSMENT.md`
-- Accepted implementation: `4f976c2764a463dceb403084fa3faead5300211e`
-- Accepted review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
+- Design assessment:
+  `harness/evaluations/NEXT-CAMPAIGN-014-AUDIT-REMEDIATION-ASSESSMENT.md`
+- Independent audit: `mcp-council-of-translation-v0.13-independent-audit.md`
+- Foreman response:
+  `harness/evaluations/CAMPAIGN-013-INDEPENDENT-AUDIT-FOREMAN-RESPONSE.md`
+- Accepted implementation: `9d23ed01f94be2ef0c724b3e0a3e7e1beba75c09`
+- Accepted review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - Accepted review SHA-256:
-  `D33EEFE60F1F23B5574F9B17725C6080B17002137D5E2DFB1B3B0DCE0DABFC05`
+  `83BC19972BEE72BC2D92EF36D32A16F26617B169A148F4E77A1A66505B95585E`
 - V0.13 publication review:
   `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`
 - V0.13 publication review SHA-256:
@@ -27,9 +34,9 @@
 - Q-015 live review: `harness/evaluations/CAMPAIGN-013-q015-live-review.md`
 - Q-015 live review SHA-256:
   `9675941275A44C11188E794A0908CB7ACF1A3F9AC32377803CCD92598E1AD54B`
-- Accepted features: `63/63`
-- Accepted quality gates: `15/15`
-- Pending live gate: none; Q-015 accepted from three fresh normal-Goose records
+- Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
+- Accepted quality gates: `15/16`; Q-016 is planned and not issued
+- Pending gate: Q-016 external remediation re-audit
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -52,6 +59,66 @@
   `aceac3383b2a597bbf5414362d9b71ac6e601267`
 - Last updated: 2026-08-25 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Campaign 014 independent-audit assessment
+
+- Decision: `AUDIT FINDINGS ADOPTED; DESIGN FROZEN; CAMPAIGN-014-r1 ASSIGNED`.
+- The audit's `BLOCK NEXT CAMPAIGN` applies to new feature expansion. A narrow repair
+  Campaign is the only recommended next implementation.
+- AUD-001 through AUD-005 are confirmed production defects and mandatory scope.
+- AUD-006 is accepted as an evaluation-semantics gap; existing Golden evidence remains
+  useful regression evidence but cannot claim blind defect-identity recall or general
+  false-positive performance.
+- AUD-007 is partially accepted. The unbounded future-major range is a risk, while the
+  evidence record already covers FastMCP 2.13.0.2 in six locked CI jobs and FastMCP
+  3.4.7 in isolated wheel smoke. Compatibility policy must be investigated before a cap,
+  and the Campaign must record a supported-range decision even if code remains unchanged.
+- The audit conditionally requests accurate Targeted Discussion terminology. Foreman
+  found no conflicting claim in the current README/architecture/stage report; the next
+  documentation will explicitly say single-sample simulated cross-role deliberation.
+- Planned scope: F-064 through F-070; recommended target V0.13.1/build
+  `truthful-boundaries-council-v11.1`; Review Schema 2.6 and receipt Schema 1.1 remain
+  preferred.
+- After independent Foreman acceptance, V0.13.1 may be published through protected main
+  to enable the post-publication Q-016 normal-Goose test. Publication does not lift the
+  feature-expansion block.
+- Q-016 will independently re-audit AUD-001 through AUD-005, accept F-069's truthful
+  semantics/blind-set schema and F-070's supported-range decision, and verify that
+  truncated input is visible and fail-closed in normal Goose.
+- The r1 contract authorizes bounded local implementation only. Foreman review,
+  publication and post-publication Q-016 remain separate gates.
+
+## Campaign 014 r1 review and r2 correction
+
+- r1 decision: `CHANGES_REQUESTED`; the Worker correctly obeyed the exact-path stop
+  condition.
+- Preserved implementation HEAD: `742128a1dfc2282d7aad4ee016d37ff94922c9ca`, containing
+  seven scoped PKG-080 through PKG-086 commits.
+- Independent focused replay produced `31 passed, 3 failed`. Two failures are the
+  `full` and `metadata` parameterizations in omitted
+  `tests/unit/test_persistence_v2.py`; one is an already-authorized tool-surface release
+  assertion. All three expect V0.13.0/v11 while the admitted PKG-087 intermediate
+  truthfully emits V0.13.1/v11.1.
+- r2 adds only the omitted persistence test path, preserves the exact release
+  intermediate and requires PKG-087 to become the eighth and only new commit.
+- F-064 through F-070 remain unaccepted until r2 completes every skipped build, archive,
+  installed-wheel and full-regression check.
+
+## Campaign 014 r2 acceptance
+
+- Decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-014-r2-review.md`.
+- Accepted implementation: `9d23ed01f94be2ef0c724b3e0a3e7e1beba75c09`.
+- Scope: exact 10-path r2 correction and exact 29-path original Campaign diff; no
+  allowlist violation, index residue or protected-hash mismatch.
+- Independent verification: compile PASS; focused recovery 34/34; affected matrix
+  180/180; complete regression 575/575; Golden Schema 2.1 exact 30/30 with truthful
+  aggregate semantics and zero false reassurance.
+- Package verification: V0.13.1/build v11.1, schemas 2.6/1.1/2.1, five tools,
+  6/13/18 budgets, 3/3 concurrency, fresh archive inspection, and isolated wheel smoke
+  on FastMCP 2.13.0.2 and 3.4.7 all passed.
+- Accepted features: F-064 through F-070. Local implementation is complete.
+- Next gate: protected-main publication and six-way CI, followed by Q-016 external
+  remediation re-audit. Feature expansion remains blocked until Q-016 acceptance.
 
 ## Campaign 013 assignment
 
@@ -876,8 +943,7 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Run the three fresh normal-Goose cases in
-`harness/contracts/CAMPAIGN-013-q015-live.md` without changing the extension command or
-provider/account. Return the admission response, A/B/C review IDs, original reports,
-full-view support objects when exposed, and canonical verification JSON for Foreman
-acceptance.
+Archive the accepted CAMPAIGN-014-r2 assets and publish V0.13.1 through protected main.
+After all six Windows/Linux Python CI jobs pass, issue Q-016 for the independent
+audit-remediation replay and normal-Goose truncation receipt. Do not begin ordinary
+feature expansion until Q-016 is accepted.
