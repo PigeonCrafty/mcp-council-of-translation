@@ -4,9 +4,11 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-014-r2`
-- Campaign state: `ACCEPTED; PUBLICATION_PENDING`
-- Active contract: `harness/contracts/CAMPAIGN-014-r2.md`
+- Campaign: `CAMPAIGN-014-Q016`
+- Campaign state: `PUBLISHED; Q-016_ISSUED`
+- Active contract: `harness/contracts/CAMPAIGN-014-q016-live.md`
+- Q-016 contract SHA-256:
+  `CE7BE423518D976D6C63417CDC4A93E097EEFAD0BABDB4054C4BA5AB146F92F6`
 - CAMPAIGN-014 r2 review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - CAMPAIGN-014 r1 review: `harness/evaluations/CAMPAIGN-014-r1-review.md`
 - Audited product baseline: `95d90cf383d045778ce61afaa50dbcec199579ce`
@@ -23,6 +25,11 @@
 - Accepted review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - Accepted review SHA-256:
   `83BC19972BEE72BC2D92EF36D32A16F26617B169A148F4E77A1A66505B95585E`
+- V0.13.1 publication review:
+  `harness/evaluations/CAMPAIGN-014-r2-publication-ci-review.md`
+- V0.13.1 publication review SHA-256:
+  `E685A257DCA91605B41BB33E930423F19CAA3DEF300EF231381357212D71C480`
+- V0.13.1 published protected `main`: `9d8f1f987efe73946377883e6ad3a681abe11989`
 - V0.13 publication review:
   `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`
 - V0.13 publication review SHA-256:
@@ -35,8 +42,8 @@
 - Q-015 live review SHA-256:
   `9675941275A44C11188E794A0908CB7ACF1A3F9AC32377803CCD92598E1AD54B`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016 is planned and not issued
-- Pending gate: Q-016 external remediation re-audit
+- Accepted quality gates: `15/16`; Q-016 is issued and awaiting evidence
+- Pending gate: Q-016 normal-Goose A/B/C plus independent remediation re-audit
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -117,8 +124,11 @@
   6/13/18 budgets, 3/3 concurrency, fresh archive inspection, and isolated wheel smoke
   on FastMCP 2.13.0.2 and 3.4.7 all passed.
 - Accepted features: F-064 through F-070. Local implementation is complete.
-- Next gate: protected-main publication and six-way CI, followed by Q-016 external
-  remediation re-audit. Feature expansion remains blocked until Q-016 acceptance.
+- Publication: protected-main PR #34 merged at
+  `9d8f1f987efe73946377883e6ad3a681abe11989`; PR run `32841766264` and post-merge main
+  run `32841918734` each passed all six Windows/Linux Python 3.10/3.12/3.13 jobs.
+- Q-016 is issued by `harness/contracts/CAMPAIGN-014-q016-live.md`. Feature expansion
+  remains blocked until Foreman accepts its live and independent-audit evidence together.
 
 ## Campaign 013 assignment
 
@@ -943,7 +953,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted CAMPAIGN-014-r2 assets and publish V0.13.1 through protected main.
-After all six Windows/Linux Python CI jobs pass, issue Q-016 for the independent
-audit-remediation replay and normal-Goose truncation receipt. Do not begin ordinary
-feature expansion until Q-016 is accepted.
+Execute the issued Q-016 contract against published protected main. Return three fresh
+normal-Goose records plus the independent AUD-001..AUD-007 repository re-audit. Do not
+begin ordinary feature expansion until Q-016 is accepted.
