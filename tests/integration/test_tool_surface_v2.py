@@ -50,10 +50,10 @@ def test_exact_frozen_public_tool_surface():
 def test_server_info_and_versioned_defaults(monkeypatch):
     monkeypatch.delenv("COUNCIL_REVIEW_CONCURRENCY", raising=False)
     info = _server_info()
-    assert info["package_version"] == "0.12.1"
-    assert info["module_version"] == "0.12.1"
-    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "verifiable-evidence-council-v10.1"
-    assert info["schema_version"] == "2.5"
+    assert info["package_version"] == "0.13.0"
+    assert info["module_version"] == "0.13.0"
+    assert info["diagnostic_build"] == DIAGNOSTIC_BUILD == "calibrated-evidence-council-v11"
+    assert info["schema_version"] == "2.6"
     assert info["default_interactive_mode"] == "auto"
     assert info["default_briefing_mode"] == "auto"
     assert info["default_history_mode"] == "full"
@@ -61,7 +61,7 @@ def test_server_info_and_versioned_defaults(monkeypatch):
     assert info["independent_review_concurrency_limit"] == 3
     assert info["max_independent_review_concurrency"] == 3
     assert info["independent_review_concurrency_disposition"] == "default"
-    assert info["verification_receipt_schema_version"] == "1.0"
+    assert info["verification_receipt_schema_version"] == "1.1"
     assert info["review_record_detail_levels"] == ["full", "summary", "verification"]
 
 

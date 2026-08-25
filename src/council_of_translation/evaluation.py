@@ -32,6 +32,13 @@ _PROPERTIES = (
     "sample_budget",
     "discussion_marginal_value",
 )
+_CALIBRATION_PROPERTIES = (
+    "decision_support_level",
+    "publishability",
+    "review_needed",
+    "status",
+    "support_disposition_coherent",
+)
 _PACKET = re.compile(r"=== (?P<name>[A-Z_]+) START ===\n(?P<body>.*?)\n=== (?P=name) END ===", re.DOTALL)
 
 
@@ -51,6 +58,15 @@ def _safe_case(value: Any) -> dict[str, Any]:
     missing = [key for key in _PROPERTIES if key not in expected]
     if missing:
         raise ValueError(f"golden case {case_id} lacks properties: {', '.join(missing)}")
+    if value.get("calibration_case") is True:
+        calibration_missing = [
+            key for key in _CALIBRATION_PROPERTIES if key not in expected
+        ]
+        if calibration_missing:
+            raise ValueError(
+                f"golden calibration case {case_id} lacks properties: "
+                f"{', '.join(calibration_missing)}"
+            )
     return value
 
 
@@ -261,6 +277,11 @@ def _observed(
         "sampling_calls": record.runtime_metadata.sampling_calls,
         "sample_budget": record.runtime_metadata.sample_budget,
         "discussion_marginal_value": record.council_value_metrics.discussion_marginal_value,
+        "decision_support_level": record.decision_support.level,
+        "publishability": record.chief_editor_decision.publishability,
+        "review_needed": record.chief_editor_decision.review_needed,
+        "status": record.status,
+        "support_disposition_coherent": record.decision_support.outcome_coherent is True,
     }
 
 
@@ -273,6 +294,10 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
     failures: list[dict[str, Any]] = []
     observations: list[dict[str, Any]] = []
     property_matches = {key: 0 for key in _PROPERTIES}
+    calibration_matches = {key: 0 for key in _CALIBRATION_PROPERTIES}
+    calibration_total = 0
+    insufficient_total = 0
+    insufficient_false_reassurance = 0
     critical_expected = 0
     critical_recalled = 0
     total_sampling_calls = 0
@@ -347,6 +372,25 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
                     "expected": case["expected"][key],
                     "observed": observed[key],
                 })
+        if case.get("calibration_case") is True:
+            calibration_total += 1
+            for key in _CALIBRATION_PROPERTIES:
+                matches = observed[key] == case["expected"][key]
+                calibration_matches[key] += int(matches)
+                if not matches:
+                    failures.append({
+                        "case_id": case["case_id"],
+                        "property": key,
+                        "expected": case["expected"][key],
+                        "observed": observed[key],
+                    })
+            if observed["decision_support_level"] == "insufficient":
+                insufficient_total += 1
+                insufficient_false_reassurance += int(
+                    observed["publishability"] != "需人工复核"
+                    or observed["review_needed"] != "是"
+                    or observed["status"] not in {"NEEDS_HUMAN_REVIEW", "RETURNED_PENDING"}
+                )
         if case["expected"]["critical_issue_recalled"]:
             critical_expected += 1
             critical_recalled += int(bool(observed["critical_issue_recalled"]))
@@ -375,6 +419,18 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
             property_matches["sampling_calls"] + property_matches["sample_budget"]
         ) / (2 * total),
         "discussion_marginal_value_accuracy": property_matches["discussion_marginal_value"] / total,
+        "decision_support_accuracy": (
+            calibration_matches["decision_support_level"] / calibration_total
+            if calibration_total else 1.0
+        ),
+        "support_disposition_coherence": (
+            calibration_matches["support_disposition_coherent"] / calibration_total
+            if calibration_total else 1.0
+        ),
+        "insufficient_false_reassurance_rate": (
+            insufficient_false_reassurance / insufficient_total
+            if insufficient_total else 0.0
+        ),
         "runtime_observations": {
             "sampling_calls": total_sampling_calls,
             "elicitation_calls": total_elicitation_calls,

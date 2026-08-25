@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.12.1",
-  "active_campaign": null,
+  "target_version": "0.13.0",
+  "active_campaign": "CAMPAIGN-013-r3",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "481908c9bc3e5447d182f5e364d4872c1d24e1f7",
+  "source_baseline": "44b1969677cd6b1fda63047ca514aede6609bdad",
   "features": [
     {
       "id": "F-001",
@@ -649,6 +649,61 @@
         "The fallback is privacy-safe and bounded, adds no sampling, elicitation or persistence mutation, and leaves all normal review, continuation, full and summary text unchanged",
         "Package and module 0.12.1 with build verifiable-evidence-council-v10.1 preserve record Schema 2.5, receipt Schema 1.0, five tools, budgets 6/13/18 and concurrency behavior"
       ]
+    },
+    {
+      "id": "F-059",
+      "name": "Deterministic decision-support assessment",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-013-r3",
+      "criteria": [
+        "Schema 2.6 records one deterministic categorical assessment with level well_supported, supported_with_limits or insufficient plus bounded basis and limitation codes",
+        "The assessment uses only validated structured trace facts and never averages reviewer confidence, reads free prose or introduces a numeric score",
+        "A deterministic blocker can strongly support a needs-human-review disposition; support level never means candidate quality"
+      ]
+    },
+    {
+      "id": "F-060",
+      "name": "Decision-support coherence and compatibility",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-013-r3",
+      "criteria": [
+        "Pending interaction, unresolved material context, partial or zero coverage, incomplete required reconsideration and degraded execution classify conservatively as insufficient",
+        "Insufficient evidence can only tighten an accidentally permissive chief result to needs human review and no level can relax Policy Gate, blockers or user-authority rules",
+        "V1 and V2.0 through V2.5 records load with not_recorded support provenance and metadata history retains only bounded content-free fields"
+      ]
+    },
+    {
+      "id": "F-061",
+      "name": "Concise calibrated support presentation",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-013-r3",
+      "criteria": [
+        "The normal five-section report adds at most one concise conclusion-support line before the canonical final disposition",
+        "The final disposition remains exactly once and last, clean output remains concise and every report remains under the existing 3200-code-point cap",
+        "Verification receipt 1.1 exposes the exact categorical assessment and canonical codes in both channels without changing retrieval purity or the five-tool surface"
+      ]
+    },
+    {
+      "id": "F-062",
+      "name": "Thirty-case calibrated Golden evidence",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-013-r3",
+      "criteria": [
+        "The executable Golden corpus expands from 24 to exactly 30 cases with clean, deterministic blocker, material edit, unresolved context, partial coverage and valid-decision calibration controls",
+        "All existing eight aggregate metrics remain 1.0 and new metrics prove exact support-level accuracy, zero false reassurance and blocker/disposition coherence",
+        "Live-shaped, compatibility, privacy, continuation and hostile-value regressions add no provider call or fixture-authored observation"
+      ]
+    },
+    {
+      "id": "F-063",
+      "name": "V0.13 calibrated-evidence migration",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-013-r3",
+      "criteria": [
+        "Package/module 0.13.0 and diagnostic build calibrated-evidence-council-v11 write Review Schema 2.6 and advertise verification receipt Schema 1.1",
+        "Exact five tools, review-only defaults, budgets 6/13/18, concurrency 1 through 3, routing portfolios and all non-calibration adjudication behavior remain stable",
+        "Canonical root-only lock migration, authoritative documentation, complete regression, fresh artifacts and isolated FastMCP wheel smoke pass"
+      ]
     }
   ],
   "quality_gates": [
@@ -721,6 +776,11 @@
       "id": "Q-014",
       "name": "Normal-Goose canonical verification receipt evidence",
       "status": "accepted"
+    },
+    {
+      "id": "Q-015",
+      "name": "Normal-Goose calibrated decision-support evidence",
+      "status": "planned"
     }
   ]
 }

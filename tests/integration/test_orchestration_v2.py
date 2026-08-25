@@ -155,7 +155,7 @@ def test_unsupported_interaction_falls_back_explicitly_without_hanging(tmp_path)
             store=ReviewStore(tmp_path / "records", legacy_dir=tmp_path / "legacy"),
         )
     )
-    assert record.status == "COMPLETED_WITH_FALLBACK"
+    assert record.status == "NEEDS_HUMAN_REVIEW"
     assert record.fallback_reason == "user_interaction_unsupported"
     assert record.runtime_metadata.sampling_calls == 7
     assert record.runtime_metadata.elicitation_calls == 0
@@ -164,6 +164,8 @@ def test_unsupported_interaction_falls_back_explicitly_without_hanging(tmp_path)
     assert record.decision_trace.entries[0].selected_option_id in {
         option.option_id for option in record.decision_points[0].options
     }
+    assert record.decision_support.level == "insufficient"
+    assert record.decision_support.outcome_coherent is True
 
 
 def test_clean_translation_skips_conflict_discussion_and_interaction(tmp_path):
@@ -232,7 +234,7 @@ def test_return_pending_then_continue_creates_immutable_linked_revision(tmp_path
     )
     assert child.parent_review_id == parent.review_id
     assert child.review_id != parent.review_id
-    assert parent.schema_version == child.schema_version == "2.5"
+    assert parent.schema_version == child.schema_version == "2.6"
     assert child.council_plan == parent.council_plan
     assert parent.council_plan.model_dump_json() == parent_plan_json
     assert child.council_plan.routing_profile == "route_ui_standard_v1"

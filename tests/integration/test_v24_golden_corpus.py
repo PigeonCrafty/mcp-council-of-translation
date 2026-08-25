@@ -24,21 +24,36 @@ RISK_CASE_IDS = [
     "legal_risk_strict_required_literal",
     "legal_risk_clean_panorama",
 ]
-EXPECTED_CASE_IDS = [*ORIGINAL_CASE_IDS, *RISK_CASE_IDS]
+CALIBRATION_CASE_IDS = [
+    "calibration_clean_full_coverage",
+    "calibration_deterministic_blocker",
+    "calibration_material_model_edits",
+    "calibration_unresolved_material_context",
+    "calibration_partial_coverage",
+    "calibration_valid_user_decision_reconsidered",
+]
+EXPECTED_CASE_IDS = [*ORIGINAL_CASE_IDS, *RISK_CASE_IDS, *CALIBRATION_CASE_IDS]
 ORIGINAL_CANONICAL_SHA256 = "2b00acceaa6b34563686a65b3256bbbead1b26cdd20bd5b62b91e7c4e017120d"
+PRIOR_TWENTY_FOUR_CANONICAL_SHA256 = "e8178a926eaf099998956e46e2f132f1c004f14ae5150d04477ac2fef181ba32"
 
 
 def _cases():
     return json.loads(CORPUS.read_text(encoding="utf-8"))
 
 
-def test_golden_corpus_has_exact_twenty_four_input_cases_and_preserves_original_eighteen():
+def test_golden_corpus_has_exact_thirty_input_cases_and_preserves_prior_twenty_four():
     cases = _cases()
     assert [case["case_id"] for case in cases] == EXPECTED_CASE_IDS
     original_bytes = json.dumps(
         cases[:18], ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode()
     assert hashlib.sha256(original_bytes).hexdigest() == ORIGINAL_CANONICAL_SHA256
+    prior_bytes = json.dumps(
+        cases[:24], ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode()
+    assert hashlib.sha256(prior_bytes).hexdigest() == PRIOR_TWENTY_FOUR_CANONICAL_SHA256
+    assert [case["case_id"] for case in cases[24:]] == CALIBRATION_CASE_IDS
+    assert all(case.get("calibration_case") is True for case in cases[24:])
     assert len({case["category"] for case in cases}) >= 10
     assert all("observed" not in case for case in cases)
     assert all(isinstance(case["task"], dict) for case in cases)
@@ -56,7 +71,7 @@ def test_offline_runner_executes_actual_orchestration_and_matches_frozen_corpus(
     json.dumps(aggregate, ensure_ascii=False)
 
     assert aggregate["schema_version"] == "2.0"
-    assert aggregate["total_cases"] == aggregate["passed_cases"] == 24
+    assert aggregate["total_cases"] == aggregate["passed_cases"] == 30
     assert aggregate["failed_case_ids"] == []
     for metric in (
         "critical_issue_recall", "false_positive_free_rate",
@@ -65,13 +80,16 @@ def test_offline_runner_executes_actual_orchestration_and_matches_frozen_corpus(
         "call_budget_accuracy", "discussion_marginal_value_accuracy",
     ):
         assert aggregate[metric] == 1.0
+    assert aggregate["decision_support_accuracy"] == 1.0
+    assert aggregate["support_disposition_coherence"] == 1.0
+    assert aggregate["insufficient_false_reassurance_rate"] == 0.0
 
     runtime = aggregate["runtime_observations"]
-    assert runtime["sampling_calls"] == 148
-    assert runtime["elicitation_calls"] == 4
-    assert runtime["sample_budget"] == 296
+    assert runtime["sampling_calls"] == 186
+    assert runtime["elicitation_calls"] == 5
+    assert runtime["sample_budget"] == 374
     assert runtime["routing_calls"] == runtime["display_calls"] == 0
-    assert len(runtime["case_results"]) == 24
+    assert len(runtime["case_results"]) == 30
     assert all(item["sampling_calls"] <= 18 for item in runtime["case_results"])
 
     by_id = {item["case_id"]: item for item in runtime["case_results"]}
@@ -134,5 +152,26 @@ def test_negative_mutations_rerun_production_instead_of_editing_observed_values(
     assert "clean_translation" in result["failed_case_ids"]
     assert any(
         item["case_id"] == "clean_translation" and item["property"] == "false_positive_free"
+        for item in result["failures"]
+    )
+
+    support_mutation = deepcopy(cases)
+    support_mutation[26]["expected"]["decision_support_level"] = "well_supported"
+    result = evaluate_golden_cases(support_mutation)
+    assert result["failed_case_ids"] == ["calibration_material_model_edits"]
+    assert any(
+        item["case_id"] == "calibration_material_model_edits"
+        and item["property"] == "decision_support_level"
+        for item in result["failures"]
+    )
+
+    permissive_insufficient_mutation = deepcopy(cases)
+    permissive_insufficient_mutation[28]["expected"]["publishability"] = "可发布"
+    result = evaluate_golden_cases(permissive_insufficient_mutation)
+    assert result["failed_case_ids"] == ["calibration_partial_coverage"]
+    assert any(
+        item["case_id"] == "calibration_partial_coverage"
+        and item["property"] == "publishability"
+        and item["observed"] == "需人工复核"
         for item in result["failures"]
     )

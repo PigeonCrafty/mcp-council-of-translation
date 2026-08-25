@@ -146,7 +146,11 @@ def test_anchor_suppression_persists_and_surfaces_truthful_degradation(
     assert record.warnings == compact["warnings"] == [warning]
     assert record.degraded is compact["degraded"] is True
     assert record.fallback_reason == compact["fallback_reason"] == "decision_validation_degraded"
-    assert record.status == compact["status"] == "COMPLETED_WITH_FALLBACK"
+    assert record.decision_support.level == "insufficient"
+    assert record.decision_support.outcome_coherent is True
+    assert record.chief_editor_decision.publishability == "需人工复核"
+    assert record.chief_editor_decision.review_needed == "是"
+    assert record.status == compact["status"] == "NEEDS_HUMAN_REVIEW"
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
     assert loaded.policy_gate_result["decision_suppressions"] == expected
@@ -170,7 +174,11 @@ def test_metadata_keeps_safe_degraded_disposition_but_not_suppression_details(tm
     payload = store.path_for(record.review_id).read_text(encoding="utf-8")
     loaded = store.load(record.review_id)
     assert isinstance(loaded, ReviewRecordV2)
-    assert loaded.status == "COMPLETED_WITH_FALLBACK"
+    assert loaded.decision_support.level == "insufficient"
+    assert loaded.decision_support.outcome_coherent is True
+    assert loaded.chief_editor_decision.publishability == "需人工复核"
+    assert loaded.chief_editor_decision.review_needed == "是"
+    assert loaded.status == "NEEDS_HUMAN_REVIEW"
     assert loaded.degraded is True
     assert loaded.policy_gate_result == {}
     assert loaded.warnings == []

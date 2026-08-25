@@ -6,6 +6,7 @@ import pytest
 from council_of_translation.localization.models import (
     ChiefEditorDecisionV2,
     CouncilPlan,
+    DecisionSupportAssessment,
     IssueCluster,
     PreflightCheck,
     PreflightResult,
@@ -30,6 +31,14 @@ ROLE_IDS = [
     "terminology_reviewer",
 ]
 MAX_SAFE_RECEIPT_INTEGER = 9_007_199_254_740_991
+HISTORICAL_SUPPORT_PATHS = [
+    "decision_support.assessment_basis",
+    "decision_support.basis_codes",
+    "decision_support.level",
+    "decision_support.limitation_codes",
+    "decision_support.outcome_coherent",
+    "decision_support.support_target",
+]
 RECORDED_COUNT_PATHS = [
     ("reviewer_samples_successful", "reviewer_execution.successful_count"),
     ("reviewer_samples_unavailable", "reviewer_execution.unavailable_count"),
@@ -155,8 +164,8 @@ def test_full_v25_receipt_has_exact_canonical_shape_and_values():
 
     assert list(receipt) == [
         "receipt_schema_version", "review_id", "record", "serving", "routing",
-        "reviewer_execution", "runtime", "preflight", "issues", "outcome", "coherence",
-        "availability",
+        "reviewer_execution", "runtime", "preflight", "issues", "outcome",
+        "decision_support", "coherence", "availability",
     ]
     assert list(receipt["record"]) == [
         "schema_version", "history_mode", "parent_review_id", "recorded_package_version",
@@ -194,7 +203,19 @@ def test_full_v25_receipt_has_exact_canonical_shape_and_values():
         "expected_terminal_disposition", "terminal_disposition_occurrences",
         "terminal_disposition_is_last_report_line", "terminal_disposition_matches_structured",
     ]
-    assert receipt["receipt_schema_version"] == "1.0"
+    assert list(receipt["decision_support"]) == [
+        "level", "support_target", "basis_codes", "limitation_codes",
+        "assessment_basis", "outcome_coherent",
+    ]
+    assert receipt["receipt_schema_version"] == "1.1"
+    assert receipt["decision_support"] == {
+        "level": None,
+        "support_target": None,
+        "basis_codes": None,
+        "limitation_codes": None,
+        "assessment_basis": None,
+        "outcome_coherent": None,
+    }
     assert receipt["record"]["recorded_package_version"] == "0.11.1"
     assert receipt["routing"]["active_role_ids"] == ROLE_IDS
     assert receipt["reviewer_execution"]["samples"] == [
@@ -220,9 +241,31 @@ def test_full_v25_receipt_has_exact_canonical_shape_and_values():
     }
     assert receipt["availability"] == {
         "verification_complete": True,
-        "not_recorded_fields": [],
+        "not_recorded_fields": HISTORICAL_SUPPORT_PATHS,
         "redacted_fields": [],
     }
+
+
+def test_current_v26_receipt_projects_exact_recorded_decision_support():
+    payload = _full_record().model_dump(mode="json")
+    payload["schema_version"] = "2.6"
+    payload["version_metadata"]["record_schema"] = "2.6"
+    payload["decision_support"] = DecisionSupportAssessment(
+        level="supported_with_limits",
+        basis_codes=["full_reviewer_coverage", "structured_material_evidence"],
+        limitation_codes=["material_disagreement"],
+        assessment_basis="deterministic_structured_trace_v1",
+        outcome_coherent=True,
+    ).model_dump(mode="json")
+    receipt = build_verification_receipt(ReviewRecordV2.model_validate(payload))
+    report = render_verification_report(receipt)
+
+    assert receipt["decision_support"] == payload["decision_support"]
+    assert not (
+        set(receipt["availability"]["not_recorded_fields"])
+        & set(HISTORICAL_SUPPORT_PATHS)
+    )
+    assert "结论依据：`supported_with_limits`" in report
 
 
 def test_receipt_and_report_are_deterministic_pure_and_privacy_safe():
@@ -351,7 +394,7 @@ def test_unknown_codes_are_null_redacted_and_never_echoed():
     assert receipt["outcome"]["fallback_reason_redacted"] is True
     assert receipt["availability"] == {
         "verification_complete": False,
-        "not_recorded_fields": [],
+        "not_recorded_fields": HISTORICAL_SUPPORT_PATHS,
         "redacted_fields": ["outcome.fallback_reason_code"],
     }
     assert "PRIVATE" not in str(receipt)
@@ -452,13 +495,14 @@ def test_projection_has_zero_executor_gateway_orchestration_and_store_save_activ
     assert calls == {"executor": 0, "gateway": 0, "orchestration": 0, "save": 0}
 
 
-@pytest.mark.parametrize("schema_version", ["2.0", "2.1", "2.2", "2.3", "2.4"])
+@pytest.mark.parametrize("schema_version", ["2.0", "2.1", "2.2", "2.3", "2.4", "2.5"])
 def test_historical_v2_availability_is_schema_aware_without_compatibility_defaults(schema_version):
     payload = _full_record().model_dump(mode="json")
     payload["schema_version"] = schema_version
     payload["version_metadata"]["record_schema"] = schema_version
-    payload["council_plan"].pop("routing_profile", None)
-    payload["council_plan"].pop("routing_reason_codes", None)
+    if schema_version != "2.5":
+        payload["council_plan"].pop("routing_profile", None)
+        payload["council_plan"].pop("routing_reason_codes", None)
     if schema_version in {"2.0", "2.1", "2.2"}:
         for field in (
             "wall_clock_ms", "sampling_wait_ms", "independent_review_concurrency_limit",
@@ -482,9 +526,22 @@ def test_historical_v2_availability_is_schema_aware_without_compatibility_defaul
 
     assert receipt["record"]["schema_version"] == schema_version
     assert receipt["record"]["history_mode"] == "full"
-    assert receipt["routing"]["profile"] is None
-    assert receipt["routing"]["reason_codes"] is None
-    assert {"routing.profile", "routing.reason_codes"} <= unavailable
+    if schema_version == "2.5":
+        assert receipt["routing"]["profile"] == "route_technical_documentation_standard_v1"
+        assert receipt["routing"]["reason_codes"]
+    else:
+        assert receipt["routing"]["profile"] is None
+        assert receipt["routing"]["reason_codes"] is None
+        assert {"routing.profile", "routing.reason_codes"} <= unavailable
+    assert receipt["decision_support"] == {
+        "level": None,
+        "support_target": None,
+        "basis_codes": None,
+        "limitation_codes": None,
+        "assessment_basis": None,
+        "outcome_coherent": None,
+    }
+    assert set(HISTORICAL_SUPPORT_PATHS) <= unavailable
     if schema_version in {"2.0", "2.1", "2.2"}:
         assert receipt["runtime"]["wall_clock_ms"] is None
         assert "runtime.independent_review_concurrency_disposition" in unavailable

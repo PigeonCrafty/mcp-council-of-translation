@@ -13,7 +13,7 @@ from council_of_translation.localization.models import ReviewRecordV2
 from council_of_translation.localization.roles import ROLE_REGISTRY
 
 
-RECEIPT_SCHEMA_VERSION = "1.0"
+RECEIPT_SCHEMA_VERSION = "1.1"
 MAX_VERIFICATION_REPORT = 3_200
 MAX_VERIFICATION_TEXT = 12_000
 CANONICAL_RECEIPT_LABEL = "Canonical verification_receipt JSON:"
@@ -28,6 +28,7 @@ _CANONICAL_RECEIPT_KEYS = (
     "preflight",
     "issues",
     "outcome",
+    "decision_support",
     "coherence",
     "availability",
 )
@@ -69,6 +70,20 @@ _SAFE_SEVERITIES = ("critical", "major", "minor", "preference")
 _SAFE_CATEGORIES = {"integrity", "correctness", "language_choice", "signal"}
 _SAFE_PUBLISHABILITY = {"可发布", "修改后可发布", "需人工复核"}
 _SAFE_REVIEW_NEEDED = {"是", "否"}
+_SAFE_SUPPORT_LEVELS = {"well_supported", "supported_with_limits", "insufficient"}
+_SAFE_SUPPORT_TARGETS = {"chief_disposition"}
+_SAFE_SUPPORT_BASIS_CODES = {
+    "full_reviewer_coverage", "clean_confirmation", "structured_material_evidence",
+    "corroborated_material_evidence", "deterministic_blocker", "policy_gate_enforced",
+    "valid_user_decision", "completed_reconsideration", "council_adjudication",
+}
+_SAFE_SUPPORT_LIMITATION_CODES = {
+    "minimal_context", "partial_context", "material_disagreement", "council_fallback",
+    "reviewer_unavailable", "partial_reviewer_coverage", "no_reviewer_coverage",
+    "unresolved_material_context", "pending_user_input", "incomplete_reconsideration",
+    "degraded_execution", "runtime_fallback",
+}
+_SAFE_ASSESSMENT_BASIS = {"deterministic_structured_trace_v1"}
 _SAFE_FALLBACK = re.compile(r"^[a-z0-9][a-z0-9_:-]{0,79}$")
 _SAFE_PACKAGE_VERSION = re.compile(r"^[0-9]+\.[0-9]+\.[0-9]+(?:[a-z0-9.+-]{0,40})?$")
 _SAFE_BUILD = re.compile(r"^[a-z0-9][a-z0-9_.-]{0,79}$")
@@ -389,6 +404,43 @@ def _v2_projection(record: ReviewRecordV2) -> tuple[dict[str, Any], _Availabilit
             "review_needed": _safe_scalar(chief.review_needed, _SAFE_REVIEW_NEEDED, "outcome.review_needed", state),
             "suggested_translation_present": chief.suggested_translation is not None,
         },
+        "decision_support": {
+            "level": _safe_scalar(
+                record.decision_support.level,
+                _SAFE_SUPPORT_LEVELS,
+                "decision_support.level",
+                state,
+            ),
+            "support_target": _safe_scalar(
+                record.decision_support.support_target,
+                _SAFE_SUPPORT_TARGETS,
+                "decision_support.support_target",
+                state,
+            ),
+            "basis_codes": _safe_string_list(
+                record.decision_support.basis_codes,
+                _SAFE_SUPPORT_BASIS_CODES,
+                "decision_support.basis_codes",
+                state,
+            ),
+            "limitation_codes": _safe_string_list(
+                record.decision_support.limitation_codes,
+                _SAFE_SUPPORT_LIMITATION_CODES,
+                "decision_support.limitation_codes",
+                state,
+            ),
+            "assessment_basis": _safe_scalar(
+                record.decision_support.assessment_basis,
+                _SAFE_ASSESSMENT_BASIS,
+                "decision_support.assessment_basis",
+                state,
+            ),
+            "outcome_coherent": (
+                record.decision_support.outcome_coherent
+                if isinstance(record.decision_support.outcome_coherent, bool)
+                else None
+            ),
+        },
         "coherence": _coherence_projection(record, state),
         "availability": {},
     }
@@ -440,7 +492,7 @@ def _apply_v2_availability(
     for field, model_field in (("mode", "mode"), ("content_type", "content_type")):
         if not plan_recorded or not _physically_set(plan, model_field):
             _mark_missing(receipt, state, f"routing.{field}")
-    if schema != "2.5":
+    if schema not in {"2.5", "2.6"}:
         _mark_missing(receipt, state, "routing.profile", required=False)
         _mark_missing(receipt, state, "routing.reason_codes", required=False)
     else:
@@ -514,6 +566,18 @@ def _apply_v2_availability(
     if metadata or not chief_recorded or not _physically_set(chief, "suggested_translation"):
         _mark_missing(receipt, state, "outcome.suggested_translation_present", required=metadata)
 
+    support_paths = (
+        "decision_support.level",
+        "decision_support.support_target",
+        "decision_support.basis_codes",
+        "decision_support.limitation_codes",
+        "decision_support.assessment_basis",
+        "decision_support.outcome_coherent",
+    )
+    if schema != "2.6" or not _physically_set(record, "decision_support"):
+        for path in support_paths:
+            _mark_missing(receipt, state, path, required=schema == "2.6")
+
     coherence_paths = (
         "coherence.expected_terminal_disposition",
         "coherence.terminal_disposition_occurrences",
@@ -559,6 +623,11 @@ def _legacy_receipt(record: ReviewRecordV1) -> dict[str, Any]:
             "publishability": None, "review_needed": None,
             "suggested_translation_present": None,
         },
+        "decision_support": {
+            "level": None, "support_target": None, "basis_codes": None,
+            "limitation_codes": None, "assessment_basis": None,
+            "outcome_coherent": None,
+        },
         "coherence": {
             "expected_terminal_disposition": None,
             "terminal_disposition_occurrences": None,
@@ -567,7 +636,10 @@ def _legacy_receipt(record: ReviewRecordV1) -> dict[str, Any]:
         },
         "availability": {},
     }
-    for section in ("record", "routing", "reviewer_execution", "runtime", "preflight", "issues", "outcome", "coherence"):
+    for section in (
+        "record", "routing", "reviewer_execution", "runtime", "preflight", "issues",
+        "outcome", "decision_support", "coherence",
+    ):
         for field in receipt[section]:
             path = f"{section}.{field}"
             if path not in {"record.schema_version", "record.history_mode"}:
@@ -622,6 +694,7 @@ def render_verification_report(receipt: dict[str, Any]) -> str:
     preflight = receipt["preflight"]
     issues = receipt["issues"]
     outcome = receipt["outcome"]
+    decision_support = receipt["decision_support"]
     coherence = receipt["coherence"]
     availability = receipt["availability"]
 
@@ -677,6 +750,7 @@ def render_verification_report(receipt: dict[str, Any]) -> str:
         f"- 议题：{shown(issues['cluster_count'])} 个，阻断 {shown(issues['blocking_cluster_count'])}；类别 {category_text}；严重度 {severity_text}。",
         f"- 状态 {code(outcome['status'])}；降级 {shown(outcome['degraded'])}；警告 {shown(outcome['warning_count'])}；回退 {code(outcome['fallback_reason_code'])}；回退已脱敏 {shown(outcome['fallback_reason_redacted'])}。",
         f"- 主编：{shown(outcome['publishability'])}；需人工复核：{shown(outcome['review_needed'])}；含建议译文：{shown(outcome['suggested_translation_present'])}。",
+        f"- 结论依据：{code(decision_support['level'])}；支持对象 {code(decision_support['support_target'])}；与当前处置一致 {shown(decision_support['outcome_coherent'])}。",
         "",
         "## 一致性与可用性",
         "",
