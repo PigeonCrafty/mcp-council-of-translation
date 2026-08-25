@@ -5,7 +5,7 @@
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
 - Campaign: `CAMPAIGN-013-r3`
-- Campaign state: `PUBLISHED; Q-015_ISSUED`
+- Campaign state: `COMPLETE; Q-015_ACCEPTED`
 - Active contract: `harness/contracts/CAMPAIGN-013-r3.md`
 - Active baseline: `b01461b792ecb5eeda20229d47a404015ec6910c`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
@@ -24,9 +24,12 @@
 - Q-015 live contract: `harness/contracts/CAMPAIGN-013-q015-live.md`
 - Q-015 live contract SHA-256:
   `74C4179BA020629D9F34966B0756FFB3547D29710A01A0A820B779A38788EC99`
+- Q-015 live review: `harness/evaluations/CAMPAIGN-013-q015-live-review.md`
+- Q-015 live review SHA-256:
+  `9675941275A44C11188E794A0908CB7ACF1A3F9AC32377803CCD92598E1AD54B`
 - Accepted features: `63/63`
-- Accepted quality gates: `14/15`; Q-015 planned
-- Pending live gate: `Q-015` issued for user-operated normal-Goose A/B/C validation
+- Accepted quality gates: `15/15`
+- Pending live gate: none; Q-015 accepted from three fresh normal-Goose records
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -133,8 +136,24 @@
 - Publication review:
   `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`.
 - Q-015 contract: `harness/contracts/CAMPAIGN-013-q015-live.md`; state `ISSUED`.
-- Q-015 remains unaccepted until the Foreman jointly reviews fresh normal-Goose clean,
-  material-edit and unresolved-context records.
+- Q-015 is accepted by `harness/evaluations/CAMPAIGN-013-q015-live-review.md` after joint
+  Foreman review of fresh normal-Goose clean, material-edit and unresolved-context
+  records. The B/C labels were transposed in the return packet and normalized by their
+  unique case content without rerun.
+
+## Q-015 acceptance and Campaign 013 completion
+
+- Decision: `ACCEPTED`.
+- Canonical A/B/C review IDs are respectively
+  `20260825T054541425417Z_82948e153def`,
+  `20260825T054611911676Z_93268941479c` and
+  `20260825T054626792852Z_2e49a2805b07`.
+- The three decision-support levels are respectively `well_supported`,
+  `supported_with_limits` and `insufficient`, with coherent terminal dispositions and
+  complete receipt-Schema 1.1 evidence.
+- Q-015 is accepted; CAMPAIGN-013 is complete at 63/63 features and 15/15 quality gates.
+- Next action: evaluate the next product Campaign; no corrective V0.13 revision is
+  required.
 
 ## Campaign 012 assignment and r1 review
 
