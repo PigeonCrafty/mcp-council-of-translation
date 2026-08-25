@@ -5,9 +5,11 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-014-r2`
-- Campaign state: `ACCEPTED; PUBLICATION_PENDING`
-- Active contract: `harness/contracts/CAMPAIGN-014-r2.md`
+- Active Campaign: `CAMPAIGN-014-Q016`
+- Campaign state: `PUBLISHED; Q-016_ISSUED`
+- Active contract: `harness/contracts/CAMPAIGN-014-q016-live.md`
+- Q-016 contract SHA-256:
+  `CE7BE423518D976D6C63417CDC4A93E097EEFAD0BABDB4054C4BA5AB146F92F6`
 - CAMPAIGN-014 r2 review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - CAMPAIGN-014 r1 review: `harness/evaluations/CAMPAIGN-014-r1-review.md`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
@@ -26,6 +28,11 @@
 - Accepted Campaign review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - Accepted Campaign review SHA-256:
   `83BC19972BEE72BC2D92EF36D32A16F26617B169A148F4E77A1A66505B95585E`
+- V0.13.1 publication review:
+  `harness/evaluations/CAMPAIGN-014-r2-publication-ci-review.md`
+- V0.13.1 publication review SHA-256:
+  `E685A257DCA91605B41BB33E930423F19CAA3DEF300EF231381357212D71C480`
+- V0.13.1 published protected `main`: `9d8f1f987efe73946377883e6ad3a681abe11989`
 - V0.13 publication review:
   `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`
 - V0.13 publication review SHA-256:
@@ -41,8 +48,8 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016 is planned and not issued
-- Pending gate: Q-016 external remediation re-audit after implementation/publication
+- Accepted quality gates: `15/16`; Q-016 is issued and awaiting evidence
+- Pending gate: Q-016 normal-Goose A/B/C plus independent remediation re-audit
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -116,12 +123,12 @@ cross-role deliberation. Existing documentation already limits it to one call/ro
 states that only independent reviewer sampling is concurrent; this is a terminology
 clarification, not an architecture redesign.
 
-Q-016 remains planned. After independent Foreman acceptance, V0.13.1 may be published
-through protected main solely so Q-016 can exercise published bytes in normal Goose.
-Q-016 will externally replay the five mandatory counterexamples, inspect V1 data
-minimization, accept F-069 semantics/schema and the F-070 compatibility decision, and
-require a normal-Goose truncation receipt. Publication does not lift the feature-
-expansion block; Q-016 acceptance does.
+V0.13.1 is published through protected main at `9d8f1f9`; PR and post-merge six-way CI
+both passed. Q-016 is issued by `harness/contracts/CAMPAIGN-014-q016-live.md`. It combines
+three normal-Goose published-main cases with an independent repository re-audit of the
+mandatory counterexamples, V1 minimization, F-069 evaluator semantics/schema and F-070
+compatibility evidence. Publication does not lift the feature-expansion block; Q-016
+acceptance does.
 
 Explicit non-goals are long-document chunking, new roles/routes/providers/tools,
 translation generation, file editing, UI, A2A, context-MCP coupling and multi-round peer
@@ -136,9 +143,11 @@ debate.
 - Independent evidence: exact 29-path Campaign scope and 10-path r2 scope, 575 full
   regressions, 30/30 Golden cases, fresh archives, and installed-wheel five-tool smokes
   under FastMCP 2.13.0.2 and 3.4.7.
-- State: local acceptance complete; protected-main publication, six-way CI and Q-016
-  issuance remain separate gates. The external feature-expansion block remains until
-  Q-016 acceptance.
+- Publication: protected-main PR #34 merged at
+  `9d8f1f987efe73946377883e6ad3a681abe11989`; all six PR jobs and all six post-merge
+  Windows/Linux Python 3.10/3.12/3.13 jobs passed.
+- State: Q-016 is issued. The external feature-expansion block remains until its three
+  fresh Goose cases and independent repository re-audit are accepted together.
 
 ## Campaign 013: Calibrated Decision Support
 
