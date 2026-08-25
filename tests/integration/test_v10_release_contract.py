@@ -1,6 +1,7 @@
 import asyncio
 import json
 from pathlib import Path
+import tomllib
 
 from council_of_translation import __diagnostic_build__, __schema_version__, __version__
 from council_of_translation.localization.compatibility import parse_review_record
@@ -13,6 +14,14 @@ from council_of_translation.localization.models import (
 from council_of_translation.localization.persistence import ReviewStore, build_review_id
 from council_of_translation.server import mcp
 from council_of_translation.tools.review import _server_info
+
+
+def test_fastmcp_declared_compatibility_is_bounded_to_tested_major_versions():
+    project = tomllib.loads(
+        (Path(__file__).parents[2] / "pyproject.toml").read_text(encoding="utf-8")
+    )["project"]
+    fastmcp = [item for item in project["dependencies"] if item.startswith("fastmcp")]
+    assert fastmcp == ["fastmcp>=2.13.0.2,<4"]
 
 
 def test_v0130_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
