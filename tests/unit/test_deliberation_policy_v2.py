@@ -1,6 +1,7 @@
 import pytest
 
 from council_of_translation.localization.deliberation import (
+    DiscussionEnvelopeUnavailable,
     MODE_SAMPLE_BUDGETS,
     SampleBudget,
     build_decision_points,
@@ -48,18 +49,46 @@ def test_discussion_is_bounded_by_mode_and_participants():
     assert len(strict) == 2 and all(len(issue.participant_role_ids) == 4 for issue in strict)
 
 
-def test_discussion_trace_filters_unaffected_roles_and_hidden_fields():
+def test_discussion_trace_preserves_valid_turn_and_filters_hidden_fields():
     issue = _issue()
     round_ = normalize_discussion_round(
         "round_1",
         [issue],
         [
             {"issue_id": issue.issue_id, "speaker": "terminology_reviewer", "stance": "challenge", "claim": "claim", "reasoning": "hidden"},
-            {"issue_id": issue.issue_id, "speaker": "unrelated", "stance": "support", "claim": "ignore"},
         ],
     )
     assert len(round_.turns) == 1
     assert "reasoning" not in round_.turns[0].model_dump()
+
+
+@pytest.mark.parametrize("raw_turns", [None, "turns", 1, ["turn"], [1], [None]])
+def test_discussion_rejects_wrong_container_or_entry_shape(raw_turns):
+    with pytest.raises(DiscussionEnvelopeUnavailable):
+        normalize_discussion_round("round_1", [_issue()], raw_turns)
+
+
+@pytest.mark.parametrize(
+    "turn",
+    [
+        {},
+        {"issue_id": "issue_1"},
+        {"speaker": "terminology_reviewer"},
+        {"issue_id": "unknown", "speaker": "terminology_reviewer"},
+        {"issue_id": "issue_1", "speaker": "unknown"},
+        {"issue_id": "issue_1", "speaker": "terminology_reviewer", "stance": "invalid"},
+        {"issue_id": "issue_1", "speaker": "terminology_reviewer", "confidence": 2},
+        {"issue_id": "issue_1", "speaker": "terminology_reviewer", "proposed_action": "invalid"},
+    ],
+)
+def test_discussion_rejects_invalid_turn_fields_and_references(turn):
+    with pytest.raises(DiscussionEnvelopeUnavailable):
+        normalize_discussion_round("round_1", [_issue()], [turn])
+
+
+def test_explicit_empty_discussion_is_valid():
+    round_ = normalize_discussion_round("round_1", [_issue()], [])
+    assert round_.turns == []
 
 
 @pytest.mark.parametrize("mode", ["lightweight", "standard", "strict"])

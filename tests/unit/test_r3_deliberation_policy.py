@@ -1,5 +1,8 @@
+import pytest
+
 from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.deliberation import (
+    DiscussionEnvelopeUnavailable,
     apply_discussion_updates,
     build_decision_points,
     normalize_discussion_round,
@@ -64,18 +67,6 @@ def test_discussion_applies_only_safe_existing_option_changes():
                 "blocking": True,
                 "constraint_tier": "hard",
             },
-            {
-                "issue_id": cluster.issue_id,
-                "speaker": "unrelated_role",
-                "proposed_action": "下一步",
-                "position_changed": True,
-            },
-            {
-                "issue_id": cluster.issue_id,
-                "speaker": "fluency_reviewer",
-                "proposed_action": "不存在的选项",
-                "position_changed": True,
-            },
         ],
     )
 
@@ -87,6 +78,31 @@ def test_discussion_applies_only_safe_existing_option_changes():
     assert after["terminology_reviewer"].blocking is False
     assert after["terminology_reviewer"].constraint_tier == "advisory"
     assert after["terminology_reviewer"].evidence_origin == "model"
+
+
+def test_invalid_later_turn_rejects_valid_earlier_turn_atomically():
+    cluster = _production_cluster()
+    before = cluster.model_dump(mode="json")
+    with pytest.raises(DiscussionEnvelopeUnavailable):
+        normalize_discussion_round(
+            "round_1",
+            [cluster],
+            [
+                {
+                    "issue_id": cluster.issue_id,
+                    "speaker": "terminology_reviewer",
+                    "proposed_action": "下一步",
+                    "position_changed": True,
+                },
+                {
+                    "issue_id": cluster.issue_id,
+                    "speaker": "fluency_reviewer",
+                    "proposed_action": "不存在的选项",
+                    "position_changed": True,
+                },
+            ],
+        )
+    assert cluster.model_dump(mode="json") == before
 
 
 def test_position_matrix_uses_provenance_tier_blocking_and_confidence_without_majority():
