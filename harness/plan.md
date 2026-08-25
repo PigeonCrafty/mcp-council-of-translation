@@ -1,24 +1,30 @@
-# Council of Translation V0.12 Harness Plan
+# Council of Translation V0.13 Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `none`
-- Campaign state: `COMPLETE; Q-014-r2_ACCEPTED`
-- Active contract: `none`
-- Accepted Campaign contract: `harness/contracts/CAMPAIGN-012-r4.md`
-- Accepted Campaign implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
-- Accepted Campaign review: `harness/evaluations/CAMPAIGN-012-r4-review.md`
+- Active Campaign: `CAMPAIGN-013-r3`
+- Campaign state: `ACCEPTED; LOCAL_RELEASE_PENDING_PUBLICATION`
+- Active contract: `harness/contracts/CAMPAIGN-013-r3.md`
+- r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
+- r2 review: `harness/evaluations/CAMPAIGN-013-r2-review.md`
+- r3 review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
+- Active design assessment:
+  `harness/evaluations/NEXT-CAMPAIGN-013-ASSESSMENT.md`
+- Active baseline: `44b1969677cd6b1fda63047ca514aede6609bdad`
+- Accepted Campaign contract: `harness/contracts/CAMPAIGN-013-r3.md`
+- Accepted Campaign implementation: `4f976c2764a463dceb403084fa3faead5300211e`
+- Accepted Campaign review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
 - Accepted Campaign review SHA-256:
-  `F9A3B6657299AE2AAC45142B3332A5029EC876D9CFA75A0819D01FF4E9C6CEAF`
+  `D33EEFE60F1F23B5574F9B17725C6080B17002137D5E2DFB1B3B0DCE0DABFC05`
 - Accepted contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
-- Accepted features: `58/58`
-- Accepted quality gates: `14/14`
-- Pending live gate: `none`
+- Accepted features: `63/63`
+- Accepted quality gates: `14/15`; Q-015 planned
+- Pending live gate: `Q-015` after local acceptance and protected-main publication
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -39,7 +45,7 @@
 - V0.12 published implementation: `213cce55bb21d6854f76e89bee33a4e9e2f9dd8c`
 - Q-014 issuance protected `main` / r4 baseline:
   `aceac3383b2a597bbf5414362d9b71ac6e601267`
-- Next Campaign assessment:
+- Prior Campaign assessment:
   `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
@@ -51,13 +57,80 @@
 - Historical V0.11.1 final archive `main`: `6544d41d308f9ed7ab253dac5a70a94581cd04d8`
 - Historical V0.11.1 published implementation: `6d3a5b6843550ec37ae61ce2670de51a93580bf8`
 - Historical V0.11.1 accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
-- Product target: `0.12.1`
-- Diagnostic build target: `verifiable-evidence-council-v10.1`
-- Persisted schema target: `2.5` (unchanged)
-- Verification receipt schema target: `1.0`
+- Product target: `0.13.0`
+- Diagnostic build target: `calibrated-evidence-council-v11`
+- Persisted schema target: `2.6`
+- Verification receipt schema target: `1.1`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
+
+## Campaign 013: Calibrated Decision Support
+
+CAMPAIGN-013-r2 continues the deterministic categorical answer to a question the existing
+record makes users infer: how well does the validated evidence support the actual chief
+disposition? The feature does not score translation quality. A clean full-coverage
+approval and a deterministic-blocker human-review result can both be well supported;
+missing context or incomplete reviewer execution is insufficient.
+
+The frozen levels are `well_supported`, `supported_with_limits`, `insufficient` and the
+historical compatibility value `not_recorded`. Basis and limitation reason codes come
+from a bounded vocabulary and only validated structured trace fields. Numeric confidence,
+reviewer-confidence averaging, majority voting and free-prose inference are forbidden.
+
+Classification is conservative and phase-ordered. Pending interaction, unresolved
+material context, partial/zero coverage, incomplete required reconsideration or degraded
+execution takes precedence and yields insufficient support. A full-coverage deterministic
+blocker can then yield well-supported human review. Material model findings,
+disagreement, limited usable context or non-degraded Council fallback yield support with
+limits; otherwise full clean coverage is well supported.
+
+Only insufficient support may alter behavior, and only by tightening an accidentally
+permissive result to `需人工复核 / 是`. No assessment may relax Policy Gate, override a
+blocker, upgrade publishability, create a choice or change valid user authority.
+
+Schema 2.6 persists the assessment. The normal report adds one concise `结论依据` line
+before the unchanged terminal disposition. Verification receipt 1.1 exposes the same
+canonical assessment in text and structured channels. V1 and V2.0-V2.5 records return
+`not_recorded` rather than a compatibility guess. The public surface remains five tools,
+the report remains five sections and bounded to 3,200 code points, and budgets/concurrency
+remain 6/13/18 and 1..3.
+
+The task graph is strictly ordered:
+
+1. PKG-075 / F-059: Schema 2.6 assessment model, bounded code vocabulary and total truth
+   table.
+2. PKG-076 / F-060: orchestration coherence, one-way safety tightening, persistence and
+   historical compatibility.
+3. PKG-077 / F-061: concise normal presentation and verification receipt 1.1.
+4. PKG-078 / F-062: executable 30-case Golden calibration and negative controls.
+5. PKG-079 / F-063: V0.13 release identifiers, documentation, lock and artifacts.
+
+r1 correctly completed and committed PKG-075, then stopped because two legacy regression
+files outside its allowlist still required permissive `COMPLETED_WITH_FALLBACK` results
+for degraded or non-delegation runtime fallback paths. Independent Foreman replay
+confirmed all seven conflicts are stale expectations, not a reason to weaken the frozen
+insufficient-evidence rule. r2 preserves PKG-075 and the reported PKG-076 intermediate,
+adds only those two regression files to the authorized test scope, and requires their
+expectations to move to `insufficient` plus `NEEDS_HUMAN_REVIEW` while retaining all
+fallback, warning, degradation, selection and privacy provenance.
+
+Q-015 is a separate Foreman/user-operated post-publication normal-Goose gate. It will
+verify a clean well-supported case, a material-edit supported-with-limits case and an
+unresolved-context insufficient case. Live provider calls, publication and acceptance
+are not part of the Worker contract.
+
+CAMPAIGN-013-r2 completed all five packages and passed independent product, regression,
+Golden, lock and fresh-build verification at `b01461b792ecb5eeda20229d47a404015ec6910c`.
+Foreman review found one bounded authoritative-documentation defect: the current V0.13
+architecture still calls the verification wrapper receipt Schema 1.0, while the frozen
+and implemented contract is 1.1. CAMPAIGN-013-r3 preserves all five commits and authorizes
+only that wording correction plus an existing release-contract regression assertion.
+
+CAMPAIGN-013-r3 is accepted at `4f976c2764a463dceb403084fa3faead5300211e`.
+The exact documentation correction and regression pass independently with the complete
+480-test suite. Combined r1-r3 evidence accepts F-059 through F-063. Local V0.13 work is
+closed; protected-main publication, six-job CI and Q-015 remain external gates.
 
 ## Campaign 012: Client-verifiable Evidence Receipt
 

@@ -4,16 +4,21 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-012`
-- Campaign state: `COMPLETE; Q-014-r2_ACCEPTED`
-- Active contract: `none`
-- Accepted implementation: `46849c9198213ad6d1e9888e8a0503bb1bccc61c`
-- Accepted review: `harness/evaluations/CAMPAIGN-012-r4-review.md`
+- Campaign: `CAMPAIGN-013-r3`
+- Campaign state: `ACCEPTED; LOCAL_RELEASE_PENDING_PUBLICATION`
+- Active contract: `harness/contracts/CAMPAIGN-013-r3.md`
+- Active baseline: `b01461b792ecb5eeda20229d47a404015ec6910c`
+- r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
+- r2 review: `harness/evaluations/CAMPAIGN-013-r2-review.md`
+- r3 review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
+- Design assessment: `harness/evaluations/NEXT-CAMPAIGN-013-ASSESSMENT.md`
+- Accepted implementation: `4f976c2764a463dceb403084fa3faead5300211e`
+- Accepted review: `harness/evaluations/CAMPAIGN-013-r3-review.md`
 - Accepted review SHA-256:
-  `F9A3B6657299AE2AAC45142B3332A5029EC876D9CFA75A0819D01FF4E9C6CEAF`
-- Accepted features: `58/58`
-- Accepted quality gates: `14/14`
-- Pending live gate: `none`
+  `D33EEFE60F1F23B5574F9B17725C6080B17002137D5E2DFB1B3B0DCE0DABFC05`
+- Accepted features: `63/63`
+- Accepted quality gates: `14/15`; Q-015 planned
+- Pending live gate: `Q-015` after local acceptance and publication
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -25,7 +30,7 @@
 - Publication review: `harness/evaluations/CAMPAIGN-012-r4-publication-ci-review.md`
 - Publication review SHA-256:
   `714A5C2675970754549FDD975C8634E8C0DB5A675CC11D5F6504B67298457204`
-- Next Campaign assessment:
+- Prior Campaign assessment:
   `harness/evaluations/NEXT-CAMPAIGN-012-ASSESSMENT.md`
 - Accepted correction contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Correction contract SHA-256:
@@ -34,8 +39,80 @@
 - Published product implementation: `47ec9256f0eb55892f5f58ec4bd6609aacf18aa8`
 - Q-014 issuance protected `main` / r4 baseline:
   `aceac3383b2a597bbf5414362d9b71ac6e601267`
-- Last updated: 2026-08-24 Asia/Shanghai
+- Last updated: 2026-08-25 Asia/Shanghai
 - Completion authority: Foreman only
+
+## Campaign 013 assignment
+
+- Decision: `DESIGN_FROZEN; ASSIGNED`.
+- Assessment: `harness/evaluations/NEXT-CAMPAIGN-013-ASSESSMENT.md`.
+- Contract: `harness/contracts/CAMPAIGN-013-r1.md`.
+- Product target: package/module `0.13.0`, build
+  `calibrated-evidence-council-v11`, Review Schema `2.6`, receipt Schema `1.1`.
+- Planned features: F-059 through F-063; accepted count remains 58 until independent
+  Foreman review.
+- Frozen semantic boundary: categorical support for the actual disposition, never a
+  translation-quality probability or averaged reviewer confidence.
+- Frozen levels: `well_supported`, `supported_with_limits`, `insufficient`; historical
+  records use `not_recorded`.
+- Only insufficient evidence may tighten a permissive chief result to human review. No
+  level may relax Policy Gate, blockers, review requirements or valid user authority.
+- Normal report gains one concise conclusion-support line; the terminal disposition
+  remains exactly once and last. Verification receipt 1.1 adds the same canonical fields.
+- Golden corpus target: exact 30 cases while preserving the prior eight metrics at 1.0
+  and adding calibration accuracy, zero-false-reassurance and coherence metrics.
+- Baseline admission: compile passed. The first full run hit the known Windows system
+  pytest-temp permission defect and produced 322 passes plus 122 setup errors; the
+  bounded repository-local basetemp rerun passed all 444 tests in 4.13 seconds. The
+  Foreman-created basetemp was removed.
+- GitHub issue admission: zero open issues. Existing user-owned untracked assets remain
+  protected and outside Campaign scope.
+- Worker may create at most three bounded subagents as allowed by the contract; live
+  Goose/provider calls, push, PR, release and deployment remain forbidden.
+- Q-015 remains planned and may be issued only after local acceptance and protected-main
+  publication.
+
+## Campaign 013 r1 review and r2 correction
+
+- r1 decision: `CHANGES_REQUESTED`; the Worker correctly obeyed the forbidden-path stop
+  condition rather than weakening the frozen safety rule.
+- Preserved r1 commit: `6a07f4ebc61146e60af8bb6e7456f2b144ce15a4` (PKG-075).
+- Independent evidence: PKG-075 classifier/model selection `39 passed`; complete
+  intermediate replay `467 passed, 10 failed`.
+- Seven failures are stale assertions in `test_r3_outcome_suppression.py` and
+  `test_r3_workflow.py`: they require permissive completion for degraded or
+  non-delegation runtime fallback paths that the Campaign intentionally classifies as
+  insufficient.
+- The remaining three failures are expected unfinished PKG-077/PKG-079 schema, receipt
+  and release assertions in paths already authorized by r1.
+- r2 keeps the frozen product design unchanged, admits the exact reported PKG-076
+  intermediate, authorizes only the two missing legacy test paths, and requires four
+  remaining commits for PKG-076 through PKG-079.
+
+## Campaign 013 r2 review and r3 correction
+
+- r2 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-013-r2-review.md`.
+- Preserved r2 implementation HEAD: `b01461b792ecb5eeda20229d47a404015ec6910c`;
+  all five PKG-075 through PKG-079 commits remain valid.
+- Independent evidence: complete regression `480 passed`, affected matrix `212 passed`,
+  exact Golden `30/30`, all inherited and new accuracy/coherence metrics at their frozen
+  targets, exact lock invariants and a fresh pinned-uv build/archive inspection.
+- Remaining defect: `docs/v0.4-architecture.md` still says the current verification view
+  derives a receipt-Schema 1.0 wrapper; V0.13 implements and advertises receipt Schema 1.1.
+- r3 is documentation-and-regression only. It may change exactly the architecture document
+  and existing V0.13 release-contract test, then must return one additional commit.
+
+## Campaign 013 r3 acceptance
+
+- Decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-013-r3-review.md`.
+- Accepted implementation HEAD: `4f976c2764a463dceb403084fa3faead5300211e`.
+- Exact r3 scope: the V0.13 architecture receipt-Schema wording and its existing release
+  regression test; production, package, schemas and lock are unchanged.
+- Independent verification: compile PASS, focused `2 passed`, complete `480 passed`,
+  protected hashes exact, lock byte-identical and stale/current phrase counts 0/1.
+- Combined CAMPAIGN-013-r1/r2/r3 evidence accepts F-059 through F-063. Local V0.13 is
+  accepted; Q-015 remains planned after protected-main publication and six-job CI.
 
 ## Campaign 012 assignment and r1 review
 
@@ -758,5 +835,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Assess the next product Campaign. No corrective implementation or live quality gate is
-active; V0.12.1 and Campaign 012 are complete.
+Archive the accepted CAMPAIGN-013 assets, publish V0.13 through protected `main`, confirm
+the required six-job CI matrix, then issue Q-015 normal-Goose validation. Publication and
+live validation require separate explicit execution authority and evidence.
