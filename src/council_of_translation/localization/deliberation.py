@@ -5,6 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Iterable
 
+from pydantic import ValidationError
+
 from council_of_translation.localization.models import (
     DecisionOption,
     DecisionPoint,
@@ -84,26 +86,45 @@ def position_matrix(cluster: IssueCluster) -> dict[str, list[dict[str, object]]]
     }
 
 
-def normalize_discussion_round(round_id: str, clusters: list[IssueCluster], raw_turns: Iterable[dict]) -> DiscussionRound:
+class DiscussionEnvelopeUnavailable(ValueError):
+    """Raised when one unsafe discussion envelope must be rejected atomically."""
+
+
+def normalize_discussion_round(round_id: str, clusters: list[IssueCluster], raw_turns: object) -> DiscussionRound:
     packets = {cluster.issue_id: cluster for cluster in clusters}
     allowed = {issue_id: set(cluster.participant_role_ids) for issue_id, cluster in packets.items()}
+    if not isinstance(raw_turns, list):
+        raise DiscussionEnvelopeUnavailable("discussion turns must be a list")
     turns: list[DiscussionTurn] = []
     for raw in raw_turns:
-        issue_id = str(raw.get("issue_id", ""))
-        speaker = str(raw.get("speaker", ""))
+        if not isinstance(raw, dict):
+            raise DiscussionEnvelopeUnavailable("discussion turn must be an object")
+        issue_id = raw.get("issue_id")
+        speaker = raw.get("speaker")
+        if not isinstance(issue_id, str) or not issue_id:
+            raise DiscussionEnvelopeUnavailable("discussion turn has no issue reference")
+        if not isinstance(speaker, str) or not speaker:
+            raise DiscussionEnvelopeUnavailable("discussion turn has no speaker reference")
         if issue_id not in allowed or speaker not in allowed[issue_id]:
-            continue
-        turn = DiscussionTurn.model_validate({**raw, "round_id": round_id})
+            raise DiscussionEnvelopeUnavailable("discussion turn has an unknown reference")
+        try:
+            turn = DiscussionTurn.model_validate({**raw, "round_id": round_id})
+        except (ValidationError, TypeError, ValueError) as exc:
+            raise DiscussionEnvelopeUnavailable("discussion turn failed schema validation") from exc
+        cluster = packets[issue_id]
+        if turn.proposed_action and turn.proposed_action not in cluster.candidate_actions:
+            raise DiscussionEnvelopeUnavailable("discussion turn proposed an invalid action")
         if turn.position_changed:
-            cluster = packets[issue_id]
             previous = next((item for item in cluster.positions if item.role_id == speaker), None)
             if (
                 previous is None
                 or previous.blocking
                 or previous.constraint_tier == "hard"
+                or not turn.proposed_action
                 or turn.proposed_action not in cluster.candidate_actions
+                or option_id_for_action(cluster.issue_id, turn.proposed_action) == previous.option_id
             ):
-                continue
+                raise DiscussionEnvelopeUnavailable("discussion turn declared an invalid position change")
         turns.append(turn)
     return DiscussionRound(round_id=round_id, issue_ids=list(allowed), turns=turns)
 
@@ -111,7 +132,8 @@ def normalize_discussion_round(round_id: str, clusters: list[IssueCluster], raw_
 def apply_discussion_updates(clusters: Iterable[IssueCluster], round_: DiscussionRound) -> int:
     """Apply safe declared discussion changes to their existing matrix rows."""
     by_issue = {cluster.issue_id: cluster for cluster in clusters}
-    applied = 0
+    applied_rows: set[tuple[str, str]] = set()
+    changed_issues: set[str] = set()
     for turn in round_.turns:
         if not turn.position_changed:
             continue
@@ -139,8 +161,24 @@ def apply_discussion_updates(clusters: Iterable[IssueCluster], round_: Discussio
             }
         )
         cluster.positions = [revised if item.role_id == turn.speaker else item for item in cluster.positions]
-        applied += 1
-    return applied
+        applied_rows.add((turn.issue_id, turn.speaker))
+        changed_issues.add(turn.issue_id)
+    for issue_id in changed_issues:
+        cluster = by_issue[issue_id]
+        participants = set(cluster.participant_role_ids)
+        final_options = {
+            position.option_id
+            for position in cluster.positions
+            if position.role_id in participants and position.option_id
+        }
+        cluster.consensus_status = (
+            "insufficient_evidence"
+            if not final_options
+            else "consensus"
+            if len(final_options) == 1
+            else "disputed"
+        )
+    return len(applied_rows)
 
 
 def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) -> list[DecisionPoint]:

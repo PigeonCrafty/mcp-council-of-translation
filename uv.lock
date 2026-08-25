@@ -239,7 +239,7 @@ wheels = [
 
 [[package]]
 name = "council-of-translation"
-version = "0.13.0"
+version = "0.13.1"
 source = { editable = "." }
 dependencies = [
     { name = "fastmcp" },
@@ -253,7 +253,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "fastmcp", specifier = ">=2.13.0.2" },
+    { name = "fastmcp", specifier = ">=2.13.0.2,<4" },
     { name = "pydantic", specifier = ">=2.12,<3" },
 ]
 

@@ -195,7 +195,7 @@ def test_v25_routing_provenance_round_trips_in_safe_structured_history(tmp_path,
 
 
 @pytest.mark.parametrize("history_mode", ["full", "metadata"])
-def test_new_write_persists_truthful_v0130_runtime_and_version_identifiers(tmp_path, history_mode):
+def test_new_write_persists_truthful_v0131_runtime_and_version_identifiers(tmp_path, history_mode):
     store = ReviewStore(tmp_path / "new", legacy_dir=tmp_path / "legacy")
     record = ReviewRecordV2(
         review_id=build_review_id(),
@@ -205,16 +205,16 @@ def test_new_write_persists_truthful_v0130_runtime_and_version_identifiers(tmp_p
 
     payload = json.loads(path.read_text(encoding="utf-8"))
     expected = {
-        "package_version": "0.13.0",
-        "diagnostic_build": "calibrated-evidence-council-v11",
+        "package_version": "0.13.1",
+        "diagnostic_build": "truthful-boundaries-council-v11.1",
     }
     assert {key: payload["runtime_metadata"][key] for key in expected} == expected
     assert {key: payload["version_metadata"][key] for key in expected} == expected
     assert payload["version_metadata"]["record_schema"] == "2.6"
 
     loaded = store.load(record.review_id)
-    assert loaded.runtime_metadata.package_version == "0.13.0"
-    assert loaded.runtime_metadata.diagnostic_build == "calibrated-evidence-council-v11"
+    assert loaded.runtime_metadata.package_version == "0.13.1"
+    assert loaded.runtime_metadata.diagnostic_build == "truthful-boundaries-council-v11.1"
     assert loaded.version_metadata == {**expected, "record_schema": "2.6"}
 
 

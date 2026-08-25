@@ -33,8 +33,7 @@ CALIBRATION_CASE_IDS = [
     "calibration_valid_user_decision_reconsidered",
 ]
 EXPECTED_CASE_IDS = [*ORIGINAL_CASE_IDS, *RISK_CASE_IDS, *CALIBRATION_CASE_IDS]
-ORIGINAL_CANONICAL_SHA256 = "2b00acceaa6b34563686a65b3256bbbead1b26cdd20bd5b62b91e7c4e017120d"
-PRIOR_TWENTY_FOUR_CANONICAL_SHA256 = "e8178a926eaf099998956e46e2f132f1c004f14ae5150d04477ac2fef181ba32"
+NON_RENAMED_CANONICAL_SHA256 = "e9d45c0c09efdc475bdf6502178a642f364183c87302c0723c56a3b7291aa992"
 
 
 def _cases():
@@ -44,14 +43,14 @@ def _cases():
 def test_golden_corpus_has_exact_thirty_input_cases_and_preserves_prior_twenty_four():
     cases = _cases()
     assert [case["case_id"] for case in cases] == EXPECTED_CASE_IDS
-    original_bytes = json.dumps(
-        cases[:18], ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    non_renamed = deepcopy(cases)
+    for case in non_renamed:
+        case["expected"].pop("critical_or_blocking_cluster_present")
+        case["expected"].pop("clean_case_has_no_clusters")
+    canonical = json.dumps(
+        non_renamed, ensure_ascii=False, sort_keys=True, separators=(",", ":")
     ).encode()
-    assert hashlib.sha256(original_bytes).hexdigest() == ORIGINAL_CANONICAL_SHA256
-    prior_bytes = json.dumps(
-        cases[:24], ensure_ascii=False, sort_keys=True, separators=(",", ":")
-    ).encode()
-    assert hashlib.sha256(prior_bytes).hexdigest() == PRIOR_TWENTY_FOUR_CANONICAL_SHA256
+    assert hashlib.sha256(canonical).hexdigest() == NON_RENAMED_CANONICAL_SHA256
     assert [case["case_id"] for case in cases[24:]] == CALIBRATION_CASE_IDS
     assert all(case.get("calibration_case") is True for case in cases[24:])
     assert len({case["category"] for case in cases}) >= 10
@@ -59,7 +58,15 @@ def test_golden_corpus_has_exact_thirty_input_cases_and_preserves_prior_twenty_f
     assert all(isinstance(case["task"], dict) for case in cases)
     assert all(isinstance(case["reviewers"], dict) for case in cases)
     assert all(case["expected"]["chief_consistent"] for case in cases)
-    assert any(case["expected"]["critical_issue_recalled"] for case in cases)
+    assert any(case["expected"]["critical_or_blocking_cluster_present"] for case in cases)
+    assert all(
+        case["expected"]["clean_case_has_no_clusters"] is None
+        for case in cases if case["category"] != "clean"
+    )
+    assert all(
+        case["expected"]["clean_case_has_no_clusters"] is True
+        for case in cases if case["category"] == "clean"
+    )
     assert any(not case["expected"]["conflict_detected"] for case in cases)
     assert {case["expected"]["discussion_marginal_value"] for case in cases} == {
         "not_applicable", "none", "material"
@@ -70,16 +77,18 @@ def test_offline_runner_executes_actual_orchestration_and_matches_frozen_corpus(
     aggregate = evaluate_golden_cases(_cases())
     json.dumps(aggregate, ensure_ascii=False)
 
-    assert aggregate["schema_version"] == "2.0"
+    assert aggregate["schema_version"] == "2.1"
     assert aggregate["total_cases"] == aggregate["passed_cases"] == 30
     assert aggregate["failed_case_ids"] == []
     for metric in (
-        "critical_issue_recall", "false_positive_free_rate",
+        "critical_presence_contract_accuracy", "clean_case_no_cluster_accuracy",
         "contribution_kind_accuracy", "conflict_detection_accuracy",
         "user_authority_accuracy", "chief_consistency_rate",
         "call_budget_accuracy", "discussion_marginal_value_accuracy",
     ):
         assert aggregate[metric] == 1.0
+    assert "critical_issue_recall" not in aggregate
+    assert "false_positive_free_rate" not in aggregate
     assert aggregate["decision_support_accuracy"] == 1.0
     assert aggregate["support_disposition_coherence"] == 1.0
     assert aggregate["insufficient_false_reassurance_rate"] == 0.0
@@ -134,7 +143,7 @@ def test_negative_mutations_rerun_production_instead_of_editing_observed_values(
     result = evaluate_golden_cases(input_mutation)
     assert "placeholder_loss" in result["failed_case_ids"]
     assert any(
-        item["case_id"] == "placeholder_loss" and item["property"] == "critical_issue_recalled"
+        item["case_id"] == "placeholder_loss" and item["property"] == "critical_or_blocking_cluster_present"
         for item in result["failures"]
     )
 
@@ -151,7 +160,7 @@ def test_negative_mutations_rerun_production_instead_of_editing_observed_values(
     result = evaluate_golden_cases(envelope_mutation)
     assert "clean_translation" in result["failed_case_ids"]
     assert any(
-        item["case_id"] == "clean_translation" and item["property"] == "false_positive_free"
+        item["case_id"] == "clean_translation" and item["property"] == "clean_case_has_no_clusters"
         for item in result["failures"]
     )
 

@@ -15,6 +15,7 @@ from council_of_translation.localization.clustering import cluster_findings
 from council_of_translation.localization.digest import build_process_digest, render_display_report
 from council_of_translation.localization.decision_support import finalize_decision_support
 from council_of_translation.localization.deliberation import (
+    DiscussionEnvelopeUnavailable,
     SampleBudget,
     apply_discussion_updates,
     build_decision_points,
@@ -359,6 +360,18 @@ def _suppression_warnings(suppressions: list[dict[str, str]]) -> list[str]:
         f"decision_suppressed:{item['reason_code']}"
         for item in suppressions
     ))
+
+
+def _input_truncation_warnings(diagnostics: InputDiagnostics | None) -> list[str]:
+    if diagnostics is None or not (
+        diagnostics.source_truncated or diagnostics.candidate_truncated
+    ):
+        return []
+    return [
+        "input_truncated",
+        *(["source_input_truncated"] if diagnostics.source_truncated else []),
+        *(["candidate_input_truncated"] if diagnostics.candidate_truncated else []),
+    ]
 
 
 def _validate_outcome_options(
@@ -786,6 +799,7 @@ def _build_phase_trace(
     context_interaction: ContextGapInteraction,
     context_provenance: PhaseReconsiderationProvenance,
     discussion_rounds: list[Any],
+    discussion_unavailable: bool,
     decisions: list[UserDecision],
     outcome_provenance: PhaseReconsiderationProvenance,
     suppressions: list[dict[str, str]],
@@ -800,7 +814,11 @@ def _build_phase_trace(
         PhaseRecord(phase="blind_spot_mapping", disposition="completed", counts={"clusters": len(clusters)}),
         PhaseRecord(phase="context_gap", disposition=context_interaction.action, counts={"asked": len(context_interaction.asked_gap_ids), "answered": len(context_interaction.answered_gap_ids)}),
         PhaseRecord(phase="context_reconsideration", disposition="completed" if context_provenance.completed_role_ids else "skipped", counts={"completed": len(context_provenance.completed_role_ids), "skipped": len(context_provenance.skipped_role_ids), "failed": len(context_provenance.failed_role_ids)}),
-        PhaseRecord(phase="discussion", disposition="completed" if discussion_rounds else "skipped", counts={"rounds": len(discussion_rounds)}),
+        PhaseRecord(
+            phase="discussion",
+            disposition=("degraded" if discussion_unavailable else "completed" if discussion_rounds else "skipped"),
+            counts={"rounds": len(discussion_rounds)},
+        ),
         PhaseRecord(phase="outcome_decision", disposition=decision_action, counts={"decisions": len(decisions)}),
         PhaseRecord(phase="outcome_reconsideration", disposition="completed" if outcome_provenance.completed_role_ids else "skipped", counts={"completed": len(outcome_provenance.completed_role_ids), "skipped": len(outcome_provenance.skipped_role_ids), "failed": len(outcome_provenance.failed_role_ids)}),
         PhaseRecord(phase="policy_gate", disposition="completed", counts={"suppressed": len(suppressions)}),
@@ -823,6 +841,10 @@ async def run_structured_review(
     concurrency = resolve_review_concurrency()
     telemetry.independent_review_concurrency_limit = concurrency.effective_limit
     telemetry.independent_review_concurrency_disposition = concurrency.disposition
+    truncation_warnings = _input_truncation_warnings(input_diagnostics)
+    input_truncated = bool(truncation_warnings)
+    if input_truncated:
+        telemetry.record(RuntimeEvent("fallback", "input_truncated"))
     if concurrency.disposition == "invalid_fallback":
         telemetry.record(RuntimeEvent("fallback", "review_concurrency_invalid"))
     fields = list(BRIEF_FIELDS) if task.briefing_mode == "always" else briefing_fields(task)
@@ -894,11 +916,14 @@ async def run_structured_review(
             effective_brief=effective_brief,
             briefing_interaction=brief_interaction,
             chief_editor_decision=early_chief,
-            status="RETURNED_PENDING",
-            fallback_reason=f"briefing_{brief_action}",
+            status=("NEEDS_HUMAN_REVIEW" if input_truncated else "RETURNED_PENDING"),
+            fallback_reason=";".join(filter(None, (
+                "input_truncated" if input_truncated else "",
+                f"briefing_{brief_action}",
+            ))),
             effective_task=_effective_task(effective_task),
             degraded=True,
-            warnings=[f"briefing_not_accepted:{brief_action}"],
+            warnings=[*truncation_warnings, f"briefing_not_accepted:{brief_action}"],
             phase_trace=PhaseTrace(phases=[
                 PhaseRecord(
                     phase="briefing",
@@ -1110,6 +1135,7 @@ async def run_structured_review(
     )
     discussion_issues = select_discussion_issues(clusters, effective_task.mode) if plan.discussion_enabled else []
     discussion_rounds = []
+    discussion_unavailable = False
     if discussion_issues and budget.remaining:
         raw = await _sample_json(
             executor,
@@ -1118,11 +1144,16 @@ async def run_structured_review(
             build_discussion_prompt(effective_task, discussion_issues),
             max_tokens=1_500,
         )
-        round_ = normalize_discussion_round(
-            "round_1", discussion_issues, raw.get("turns", []) if raw else []
-        )
-        apply_discussion_updates(clusters, round_)
-        discussion_rounds.append(round_)
+        try:
+            if raw is None or "turns" not in raw:
+                raise DiscussionEnvelopeUnavailable("discussion envelope has no turns")
+            round_ = normalize_discussion_round("round_1", discussion_issues, raw["turns"])
+        except DiscussionEnvelopeUnavailable:
+            discussion_unavailable = True
+            telemetry.record(RuntimeEvent("fallback", "discussion_unavailable"))
+        else:
+            apply_discussion_updates(clusters, round_)
+            discussion_rounds.append(round_)
 
     decision_suppressions: list[dict[str, str]] = []
     decision_points = _validate_outcome_options(
@@ -1132,7 +1163,11 @@ async def run_structured_review(
         suppression_provenance=decision_suppressions,
     )
     user_decisions: list[UserDecision] = []
-    fallback_reason = "material_context_unresolved" if material_context_unresolved else ""
+    fallback_reason = ";".join(filter(None, (
+        "input_truncated" if input_truncated else "",
+        "material_context_unresolved" if material_context_unresolved else "",
+        "discussion_unavailable" if discussion_unavailable else "",
+    )))
     if material_context_unresolved:
         telemetry.record(RuntimeEvent("fallback", "material_context_unresolved"))
     returned_pending = False
@@ -1155,13 +1190,14 @@ async def run_structured_review(
         ]
         delegated = any(decision.elicitation_action == "delegate" for decision in user_decisions)
         if failed_actions:
-            fallback_reason = f"user_interaction_{action}"
-            telemetry.record(RuntimeEvent("fallback", fallback_reason))
+            interaction_fallback = f"user_interaction_{action}"
+            fallback_reason = ";".join(filter(None, (fallback_reason, interaction_fallback)))
+            telemetry.record(RuntimeEvent("fallback", interaction_fallback))
             if effective_task.decision_fallback == "return_pending":
                 returned_pending = True
         elif delegated:
-            fallback_reason = "user_delegated_to_council"
-            telemetry.record(RuntimeEvent("fallback", fallback_reason))
+            fallback_reason = ";".join(filter(None, (fallback_reason, "user_delegated_to_council")))
+            telemetry.record(RuntimeEvent("fallback", "user_delegated_to_council"))
 
     if returned_pending:
         reconsiderations = []
@@ -1184,6 +1220,8 @@ async def run_structured_review(
         or context_reconsideration_degraded
         or decision_validation_degraded
         or material_context_unresolved
+        or input_truncated
+        or discussion_unavailable
     )
     if reconsideration_degraded:
         fallback_reason = ";".join(filter(None, (fallback_reason, "reconsideration_degraded")))
@@ -1216,6 +1254,10 @@ async def run_structured_review(
         chief.review_needed = "是"
         chief.publishability = "需人工复核"
         chief.review_reason = "关键背景尚未确认；在确认用途或约束前不能安全裁决措辞。"
+    if discussion_unavailable:
+        chief.review_needed = "是"
+        chief.publishability = "需人工复核"
+        chief.review_reason = "讨论输出不可用；未将缺失或无效讨论视为已解决分歧。"
 
     if returned_pending:
         status = "RETURNED_PENDING"
@@ -1283,8 +1325,10 @@ async def run_structured_review(
         ),
         degraded=degraded,
         warnings=[
+            *truncation_warnings,
             *context_warnings,
             *(["material_context_unresolved"] if material_context_unresolved else []),
+            *(["discussion_unavailable"] if discussion_unavailable else []),
             *([f"invalid_context_gaps:{invalid_context_gap_count}"] if invalid_context_gap_count else []),
             *reconsideration_warnings,
             *_suppression_warnings(decision_suppressions),
@@ -1321,6 +1365,7 @@ async def run_structured_review(
         context_interaction=context_gap_interaction,
         context_provenance=context_provenance,
         discussion_rounds=discussion_rounds,
+        discussion_unavailable=discussion_unavailable,
         decisions=user_decisions,
         outcome_provenance=outcome_provenance,
         suppressions=decision_suppressions,
@@ -1407,6 +1452,10 @@ async def continue_structured_review(
         if hasattr(executor, "telemetry"):
             setattr(executor, "telemetry", telemetry)
     telemetry.sample_budget = plan.sample_budget
+    truncation_warnings = _input_truncation_warnings(parent.input_diagnostics)
+    input_truncated = bool(truncation_warnings)
+    if input_truncated:
+        telemetry.record(RuntimeEvent("fallback", "input_truncated"))
     telemetry.independent_review_concurrency_limit = (
         parent.runtime_metadata.independent_review_concurrency_limit
     )
@@ -1449,7 +1498,7 @@ async def continue_structured_review(
         or reconsideration_provenance.failed_role_ids
     )
     decision_validation_degraded = bool(decision_suppressions)
-    degraded = reconsideration_degraded or decision_validation_degraded
+    degraded = reconsideration_degraded or decision_validation_degraded or input_truncated
     status = (
         "NEEDS_HUMAN_REVIEW"
         if chief.review_needed == "是"
@@ -1502,10 +1551,12 @@ async def continue_structured_review(
     record.status = status
     record.degraded = degraded
     record.warnings = [
+        *truncation_warnings,
         *reconsideration_warnings,
         *_suppression_warnings(decision_suppressions),
     ]
     record.fallback_reason = ";".join(filter(None, (
+        "input_truncated" if input_truncated else "",
         f"reviewer_coverage_{reviewer_coverage}"
         if reviewer_coverage in {"partial", "none"}
         else "",
@@ -1552,6 +1603,7 @@ async def continue_structured_review(
         context_interaction=record.context_gap_interaction,
         context_provenance=record.context_reconsideration_provenance,
         discussion_rounds=record.discussion_rounds,
+        discussion_unavailable="discussion_unavailable" in record.warnings,
         decisions=decisions,
         outcome_provenance=outcome_provenance,
         suppressions=decision_suppressions,

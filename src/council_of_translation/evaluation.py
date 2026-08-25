@@ -22,8 +22,8 @@ from council_of_translation.localization.runtime import (
 
 
 _PROPERTIES = (
-    "critical_issue_recalled",
-    "false_positive_free",
+    "critical_or_blocking_cluster_present",
+    "clean_case_has_no_clusters",
     "contribution_kinds",
     "conflict_detected",
     "user_authority",
@@ -58,6 +58,14 @@ def _safe_case(value: Any) -> dict[str, Any]:
     missing = [key for key in _PROPERTIES if key not in expected]
     if missing:
         raise ValueError(f"golden case {case_id} lacks properties: {', '.join(missing)}")
+    if not isinstance(expected["critical_or_blocking_cluster_present"], bool):
+        raise ValueError(f"golden case {case_id} requires boolean critical/blocking presence")
+    clean_expectation = expected["clean_case_has_no_clusters"]
+    if value.get("category") == "clean":
+        if not isinstance(clean_expectation, bool):
+            raise ValueError(f"golden clean case {case_id} requires a boolean no-cluster expectation")
+    elif clean_expectation is not None:
+        raise ValueError(f"golden non-clean case {case_id} requires null clean-case expectation")
     if value.get("calibration_case") is True:
         calibration_missing = [
             key for key in _CALIBRATION_PROPERTIES if key not in expected
@@ -268,8 +276,8 @@ def _observed(
         )
     )
     return {
-        "critical_issue_recalled": has_critical,
-        "false_positive_free": not record.issue_clusters if is_clean_case else True,
+        "critical_or_blocking_cluster_present": has_critical,
+        "clean_case_has_no_clusters": not record.issue_clusters if is_clean_case else None,
         "contribution_kinds": contributions,
         "conflict_detected": bool(record.discussion_rounds),
         "user_authority": authority,
@@ -298,8 +306,8 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
     calibration_total = 0
     insufficient_total = 0
     insufficient_false_reassurance = 0
-    critical_expected = 0
-    critical_recalled = 0
+    clean_case_total = 0
+    clean_case_matches = 0
     total_sampling_calls = 0
     total_elicitation_calls = 0
     total_sample_budget = 0
@@ -391,9 +399,12 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
                     or observed["review_needed"] != "是"
                     or observed["status"] not in {"NEEDS_HUMAN_REVIEW", "RETURNED_PENDING"}
                 )
-        if case["expected"]["critical_issue_recalled"]:
-            critical_expected += 1
-            critical_recalled += int(bool(observed["critical_issue_recalled"]))
+        if case.get("category") == "clean":
+            clean_case_total += 1
+            clean_case_matches += int(
+                observed["clean_case_has_no_clusters"]
+                == case["expected"]["clean_case_has_no_clusters"]
+            )
         if observed["sampling_calls"] > observed["sample_budget"]:
             failures.append({
                 "case_id": case["case_id"],
@@ -405,12 +416,16 @@ async def run_golden_cases(cases: Iterable[dict[str, Any]]) -> dict[str, Any]:
     total = len(values)
     failed_case_ids = sorted({item["case_id"] for item in failures})
     return {
-        "schema_version": "2.0",
+        "schema_version": "2.1",
         "total_cases": total,
         "passed_cases": total - len(failed_case_ids),
         "failed_case_ids": failed_case_ids,
-        "critical_issue_recall": critical_recalled / critical_expected if critical_expected else 1.0,
-        "false_positive_free_rate": property_matches["false_positive_free"] / total,
+        "critical_presence_contract_accuracy": (
+            property_matches["critical_or_blocking_cluster_present"] / total
+        ),
+        "clean_case_no_cluster_accuracy": (
+            clean_case_matches / clean_case_total if clean_case_total else 1.0
+        ),
         "contribution_kind_accuracy": property_matches["contribution_kinds"] / total,
         "conflict_detection_accuracy": property_matches["conflict_detected"] / total,
         "user_authority_accuracy": property_matches["user_authority"] / total,

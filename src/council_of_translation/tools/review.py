@@ -36,6 +36,7 @@ from council_of_translation.server import mcp
 
 
 MAX_REVIEW_FIELD_LENGTH = 12_000
+_TRUNCATION_MARKER = "... [truncated]"
 DIAGNOSTIC_BUILD = __diagnostic_build__
 
 
@@ -87,6 +88,13 @@ def _clean(value: str | None, max_length: int = MAX_REVIEW_FIELD_LENGTH) -> str:
     return sanitize_text(value or "", max_length=max_length)
 
 
+def _retained_caller_length(cleaned: str) -> int:
+    """Count retained caller characters without the synthetic truncation marker."""
+    if cleaned.endswith(_TRUNCATION_MARKER):
+        return len(cleaned) - len(_TRUNCATION_MARKER)
+    return len(cleaned)
+
+
 def _clean_list(values: list[str] | None, *, maximum: int = 100) -> list[str]:
     return [_clean(str(value), max_length=500) for value in (values or [])[:maximum] if str(value).strip()]
 
@@ -124,10 +132,10 @@ def _task_and_diagnostics(
     clean_candidate = _clean(candidate_translation)
     diagnostics = InputDiagnostics(
         source_original_length=len(source_text),
-        source_reviewed_length=len(clean_source),
+        source_reviewed_length=_retained_caller_length(clean_source),
         source_truncated=len(source_text) > MAX_REVIEW_FIELD_LENGTH,
         candidate_original_length=len(candidate_translation),
-        candidate_reviewed_length=len(clean_candidate),
+        candidate_reviewed_length=_retained_caller_length(clean_candidate),
         candidate_truncated=len(candidate_translation) > MAX_REVIEW_FIELD_LENGTH,
     )
     task = ReviewTaskV2.model_validate(
@@ -295,6 +303,15 @@ def view_review_record(
             })
         if isinstance(record, ReviewRecordV2) and detail_level == "summary":
             return dual_channel_result(compact_review_response(record))
+        if isinstance(record, ReviewRecordV1) and detail_level == "summary":
+            return dual_channel_result({
+                "schema_version": "1.0",
+                "review_id": record.review_id,
+                "mode": record.mode,
+                "status": record.status,
+                "publishability": record.chief_editor_decision.get("publishability"),
+                "review_needed": record.chief_editor_decision.get("review_needed"),
+            })
         if detail_level not in {"full", "summary", "verification"}:
             return dual_channel_result({
                 "error": "detail_level must be full, summary, or verification"

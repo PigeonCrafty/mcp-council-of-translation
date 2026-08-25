@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://pigeoncrafty.example/schemas/council-blind-evaluation-set-1.0.json",
+  "title": "Independent Council Blind Evaluation Set",
+  "description": "Schema for a later independently curated evaluation set. Conformance does not establish translation quality or benchmark independence by itself.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["set_id", "independent_curation", "cases"],
+  "properties": {
+    "set_id": {"type": "string", "minLength": 1, "maxLength": 120},
+    "independent_curation": {"$ref": "#/$defs/independentCuration"},
+    "cases": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/case"}
+    }
+  },
+  "$defs": {
+    "boundedText": {"type": "string", "minLength": 1, "maxLength": 2000},
+    "anchor": {"type": "string", "minLength": 1, "maxLength": 240},
+    "independentCuration": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["relationship_to_implementation", "curator", "curated_at", "methodology"],
+      "properties": {
+        "relationship_to_implementation": {"const": "independent_external"},
+        "curator": {"type": "string", "minLength": 1, "maxLength": 160},
+        "curated_at": {"type": "string", "format": "date"},
+        "methodology": {"type": "string", "minLength": 1, "maxLength": 1000}
+      }
+    },
+    "case": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "case_id",
+        "source",
+        "candidate",
+        "expected_issue_family",
+        "source_anchor",
+        "candidate_anchor",
+        "accepted_severity_range",
+        "allowed_alternative_interpretations",
+        "forbidden_findings"
+      ],
+      "properties": {
+        "case_id": {"type": "string", "minLength": 1, "maxLength": 120},
+        "source": {"$ref": "#/$defs/boundedText"},
+        "candidate": {"$ref": "#/$defs/boundedText"},
+        "expected_issue_family": {"type": "string", "minLength": 1, "maxLength": 120},
+        "source_anchor": {"$ref": "#/$defs/anchor"},
+        "candidate_anchor": {"$ref": "#/$defs/anchor"},
+        "accepted_severity_range": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["critical", "major", "minor", "preference"]}
+        },
+        "allowed_alternative_interpretations": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 500}
+        },
+        "forbidden_findings": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1, "maxLength": 500}
+        }
+      }
+    }
+  }
+}
