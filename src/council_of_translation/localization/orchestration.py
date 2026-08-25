@@ -361,6 +361,18 @@ def _suppression_warnings(suppressions: list[dict[str, str]]) -> list[str]:
     ))
 
 
+def _input_truncation_warnings(diagnostics: InputDiagnostics | None) -> list[str]:
+    if diagnostics is None or not (
+        diagnostics.source_truncated or diagnostics.candidate_truncated
+    ):
+        return []
+    return [
+        "input_truncated",
+        *(["source_input_truncated"] if diagnostics.source_truncated else []),
+        *(["candidate_input_truncated"] if diagnostics.candidate_truncated else []),
+    ]
+
+
 def _validate_outcome_options(
     decision_points: list[Any],
     task: ReviewTaskV2,
@@ -823,6 +835,10 @@ async def run_structured_review(
     concurrency = resolve_review_concurrency()
     telemetry.independent_review_concurrency_limit = concurrency.effective_limit
     telemetry.independent_review_concurrency_disposition = concurrency.disposition
+    truncation_warnings = _input_truncation_warnings(input_diagnostics)
+    input_truncated = bool(truncation_warnings)
+    if input_truncated:
+        telemetry.record(RuntimeEvent("fallback", "input_truncated"))
     if concurrency.disposition == "invalid_fallback":
         telemetry.record(RuntimeEvent("fallback", "review_concurrency_invalid"))
     fields = list(BRIEF_FIELDS) if task.briefing_mode == "always" else briefing_fields(task)
@@ -894,11 +910,14 @@ async def run_structured_review(
             effective_brief=effective_brief,
             briefing_interaction=brief_interaction,
             chief_editor_decision=early_chief,
-            status="RETURNED_PENDING",
-            fallback_reason=f"briefing_{brief_action}",
+            status=("NEEDS_HUMAN_REVIEW" if input_truncated else "RETURNED_PENDING"),
+            fallback_reason=";".join(filter(None, (
+                "input_truncated" if input_truncated else "",
+                f"briefing_{brief_action}",
+            ))),
             effective_task=_effective_task(effective_task),
             degraded=True,
-            warnings=[f"briefing_not_accepted:{brief_action}"],
+            warnings=[*truncation_warnings, f"briefing_not_accepted:{brief_action}"],
             phase_trace=PhaseTrace(phases=[
                 PhaseRecord(
                     phase="briefing",
@@ -1132,7 +1151,10 @@ async def run_structured_review(
         suppression_provenance=decision_suppressions,
     )
     user_decisions: list[UserDecision] = []
-    fallback_reason = "material_context_unresolved" if material_context_unresolved else ""
+    fallback_reason = ";".join(filter(None, (
+        "input_truncated" if input_truncated else "",
+        "material_context_unresolved" if material_context_unresolved else "",
+    )))
     if material_context_unresolved:
         telemetry.record(RuntimeEvent("fallback", "material_context_unresolved"))
     returned_pending = False
@@ -1184,6 +1206,7 @@ async def run_structured_review(
         or context_reconsideration_degraded
         or decision_validation_degraded
         or material_context_unresolved
+        or input_truncated
     )
     if reconsideration_degraded:
         fallback_reason = ";".join(filter(None, (fallback_reason, "reconsideration_degraded")))
@@ -1283,6 +1306,7 @@ async def run_structured_review(
         ),
         degraded=degraded,
         warnings=[
+            *truncation_warnings,
             *context_warnings,
             *(["material_context_unresolved"] if material_context_unresolved else []),
             *([f"invalid_context_gaps:{invalid_context_gap_count}"] if invalid_context_gap_count else []),
@@ -1407,6 +1431,10 @@ async def continue_structured_review(
         if hasattr(executor, "telemetry"):
             setattr(executor, "telemetry", telemetry)
     telemetry.sample_budget = plan.sample_budget
+    truncation_warnings = _input_truncation_warnings(parent.input_diagnostics)
+    input_truncated = bool(truncation_warnings)
+    if input_truncated:
+        telemetry.record(RuntimeEvent("fallback", "input_truncated"))
     telemetry.independent_review_concurrency_limit = (
         parent.runtime_metadata.independent_review_concurrency_limit
     )
@@ -1449,7 +1477,7 @@ async def continue_structured_review(
         or reconsideration_provenance.failed_role_ids
     )
     decision_validation_degraded = bool(decision_suppressions)
-    degraded = reconsideration_degraded or decision_validation_degraded
+    degraded = reconsideration_degraded or decision_validation_degraded or input_truncated
     status = (
         "NEEDS_HUMAN_REVIEW"
         if chief.review_needed == "是"
@@ -1502,10 +1530,12 @@ async def continue_structured_review(
     record.status = status
     record.degraded = degraded
     record.warnings = [
+        *truncation_warnings,
         *reconsideration_warnings,
         *_suppression_warnings(decision_suppressions),
     ]
     record.fallback_reason = ";".join(filter(None, (
+        "input_truncated" if input_truncated else "",
         f"reviewer_coverage_{reviewer_coverage}"
         if reviewer_coverage in {"partial", "none"}
         else "",

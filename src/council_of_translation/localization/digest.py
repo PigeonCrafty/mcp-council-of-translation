@@ -1106,6 +1106,10 @@ def render_display_report(
     final = next((item for item in reversed(checklist) if item.startswith("最终处置：")), "")
     conclusion.extend(item for item in checklist if item != final)
     status_lines: list[str] = []
+    if "input_truncated" in (warnings or []) or "input_truncated" in fallback_reason.split(";"):
+        status_lines.append(
+            "输入超过审校上限；本次仅审校了有界前缀，当前结论不构成全文发布许可。"
+        )
     if degraded or warnings or fallback_reason:
         status_lines.append("本次执行存在降级或回退；相关风险需在发布前人工确认。")
     if status == "RETURNED_PENDING":
