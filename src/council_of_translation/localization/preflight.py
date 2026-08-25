@@ -11,16 +11,62 @@ from council_of_translation.localization.models import PreflightCheck, Preflight
 
 
 _BRACED = re.compile(r"(?<!\{)\{[A-Za-z_][\w.-]*(?:![rsa])?(?::[^{}]+)?\}(?!\})")
-_PRINTF = re.compile(r"%(?!%)(?:\d+\$)?[-+#0 ']*(?:\d+|\*)?(?:\.(?:\d+|\*))?[hlLzjt]*[diuoxXfFeEgGaAcspn]")
+_PRINTF = re.compile(r"%%|%(?!%)(?:\d+\$)?[-+#0 ']*(?:\d+|\*)?(?:\.(?:\d+|\*))?[hlLzjt]*[diuoxXfFeEgGaAcspn]")
+_BARE_SPACE_PRINTF = re.compile(r"% +[diuoxXfFeEgGaAcspn]")
 _VARIABLE = re.compile(r"\$\{[A-Za-z_][A-Za-z0-9_]*\}|\$[A-Za-z_][A-Za-z0-9_]*")
 _COMMAND = re.compile(r"(?<![\w-])--[a-zA-Z][\w-]*|(?<!\w)/[a-zA-Z][\w-]*(?!\w)")
-_URL = re.compile(r"https?://[^\s<>\]\[\"']+")
+_URL = re.compile(r"https?://[^\s<>\"']+")
 _NUMBER = re.compile(r"(?<!\w)[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?%?(?!\w)")
 _VOID_TAGS = {"area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr"}
+_URL_SENTENCE_PUNCTUATION = frozenset(".,;:!?。，；：！？")
+_URL_CLOSING_PAIRS = {
+    ")": "(",
+    "]": "[",
+    "}": "{",
+    "）": "（",
+    "】": "【",
+    "》": "《",
+    "〉": "〈",
+    "」": "「",
+    "』": "『",
+    "”": "“",
+    "’": "‘",
+}
 
 
 def _counter(pattern: re.Pattern[str], text: str) -> Counter[str]:
     return Counter(pattern.findall(text))
+
+
+def _printf_counter(text: str) -> Counter[str]:
+    return Counter(
+        token
+        for match in _PRINTF.finditer(text)
+        if not _BARE_SPACE_PRINTF.fullmatch(token := match.group())
+    )
+
+
+def _trim_url_boundary(token: str) -> str:
+    """Remove surrounding prose punctuation without damaging balanced URL syntax."""
+    while token:
+        final = token[-1]
+        if final in _URL_SENTENCE_PUNCTUATION:
+            token = token[:-1]
+            continue
+        opening = _URL_CLOSING_PAIRS.get(final)
+        if opening is not None and token.count(final) > token.count(opening):
+            token = token[:-1]
+            continue
+        break
+    return token
+
+
+def _url_counter(text: str) -> Counter[str]:
+    return Counter(
+        token
+        for match in _URL.finditer(text)
+        if (token := _trim_url_boundary(match.group()))
+    )
 
 
 def _parity_check(
@@ -131,11 +177,11 @@ def run_preflight(
     hard = set(constraint_values)
     checks = [
         _parity_check("braced-placeholder-parity", "placeholder_parity", _counter(_BRACED, source_text), _counter(_BRACED, candidate_translation)),
-        _parity_check("printf-placeholder-parity", "printf_placeholder_parity", _counter(_PRINTF, source_text), _counter(_PRINTF, candidate_translation)),
+        _parity_check("printf-placeholder-parity", "printf_placeholder_parity", _printf_counter(source_text), _printf_counter(candidate_translation)),
         _parity_check("variable-parity", "variable_token_parity", _counter(_VARIABLE, source_text), _counter(_VARIABLE, candidate_translation)),
         _parity_check("command-parity", "command_token_parity", _counter(_COMMAND, source_text), _counter(_COMMAND, candidate_translation)),
         _tag_check(source_text, candidate_translation),
-        _parity_check("url-parity", "url_preservation", _counter(_URL, source_text), _counter(_URL, candidate_translation)),
+        _parity_check("url-parity", "url_preservation", _url_counter(source_text), _url_counter(candidate_translation)),
     ]
 
     dnt_values = [literal for literal in dict.fromkeys(str(item) for item in do_not_translate) if literal]
