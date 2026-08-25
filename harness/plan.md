@@ -6,7 +6,7 @@
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
 - Active Campaign: `CAMPAIGN-013-r3`
-- Campaign state: `PUBLISHED; Q-015_ISSUED`
+- Campaign state: `COMPLETE; Q-015_ACCEPTED`
 - Active contract: `harness/contracts/CAMPAIGN-013-r3.md`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
 - r2 review: `harness/evaluations/CAMPAIGN-013-r2-review.md`
@@ -27,12 +27,15 @@
 - Q-015 live contract: `harness/contracts/CAMPAIGN-013-q015-live.md`
 - Q-015 live contract SHA-256:
   `74C4179BA020629D9F34966B0756FFB3547D29710A01A0A820B779A38788EC99`
+- Q-015 live review: `harness/evaluations/CAMPAIGN-013-q015-live-review.md`
+- Q-015 live review SHA-256:
+  `9675941275A44C11188E794A0908CB7ACF1A3F9AC32377803CCD92598E1AD54B`
 - Accepted contract: `harness/contracts/CAMPAIGN-011-r3.md`
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `63/63`
-- Accepted quality gates: `14/15`; Q-015 planned
-- Pending live gate: `Q-015` issued for user-operated normal-Goose A/B/C validation
+- Accepted quality gates: `15/15`
+- Pending live gate: none; Q-015 accepted from three fresh normal-Goose records
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -123,10 +126,10 @@ adds only those two regression files to the authorized test scope, and requires 
 expectations to move to `insufficient` plus `NEEDS_HUMAN_REVIEW` while retaining all
 fallback, warning, degradation, selection and privacy provenance.
 
-Q-015 is a separate Foreman/user-operated post-publication normal-Goose gate. It will
-verify a clean well-supported case, a material-edit supported-with-limits case and an
+Q-015 was a separate Foreman/user-operated post-publication normal-Goose gate. It
+verified a clean well-supported case, a material-edit supported-with-limits case and an
 unresolved-context insufficient case. Live provider calls, publication and acceptance
-are not part of the Worker contract.
+were not part of the Worker contract.
 
 CAMPAIGN-013-r2 completed all five packages and passed independent product, regression,
 Golden, lock and fresh-build verification at `b01461b792ecb5eeda20229d47a404015ec6910c`.
@@ -137,15 +140,17 @@ only that wording correction plus an existing release-contract regression assert
 
 CAMPAIGN-013-r3 is accepted at `4f976c2764a463dceb403084fa3faead5300211e`.
 The exact documentation correction and regression pass independently with the complete
-480-test suite. Combined r1-r3 evidence accepts F-059 through F-063. Local V0.13 work is
-closed; protected-main publication, six-job CI and Q-015 remain external gates.
+480-test suite. Combined r1-r3 evidence accepts F-059 through F-063. Protected-main
+publication, six-job CI and Q-015 have also passed; CAMPAIGN-013 is complete.
 
 V0.13 was published through protected-main PR #31 at
 `95d90cf383d045778ce61afaa50dbcec199579ce`. All six PR jobs and all six post-merge
 Linux/Windows Python 3.10/3.12/3.13 jobs passed. The published product tree is identical
-to accepted HEAD. Q-015 is issued by `harness/contracts/CAMPAIGN-013-q015-live.md` for
-three fresh normal-Goose cases; it remains unaccepted pending Foreman review of live
-records.
+to accepted HEAD. Q-015 was issued by `harness/contracts/CAMPAIGN-013-q015-live.md` and
+accepted by `harness/evaluations/CAMPAIGN-013-q015-live-review.md` after joint Foreman
+review of three fresh normal-Goose records. The record labels for B and C were transposed
+in the conversational handoff and were normalized from their unique case content without
+rerun. All 63 features and all 15 quality gates are accepted.
 
 ## Campaign 012: Client-verifiable Evidence Receipt
 
