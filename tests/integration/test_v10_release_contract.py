@@ -1,7 +1,11 @@
 import asyncio
 import json
 from pathlib import Path
-import tomllib
+
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python 3.10
+    import tomli as tomllib
 
 from council_of_translation import __diagnostic_build__, __schema_version__, __version__
 from council_of_translation.localization.compatibility import parse_review_record
