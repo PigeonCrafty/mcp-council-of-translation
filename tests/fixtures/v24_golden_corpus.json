@@ -4,21 +4,21 @@
     "category": "technical_blocker",
     "task": {"source_text": "Delete {count} files", "candidate_translation": "删除文件", "mode": "lightweight"},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "broken_markup",
     "category": "technical_blocker",
     "task": {"source_text": "Click <b>Save</b>", "candidate_translation": "点击保存", "mode": "lightweight"},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "meaning_reversal",
     "category": "semantic_blocker",
     "task": {"source_text": "Enable sync", "candidate_translation": "禁用同步"},
     "reviewers": {"fidelity_reviewer": {"role_feedback": "meaning checked", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Enable sync", "candidate_span": "禁用同步", "problem": "Meaning is reversed", "evidence": "enable differs from disable", "action": "Restore source meaning", "confidence": 0.99}]}},
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "negation_error",
@@ -28,7 +28,7 @@
       "fidelity_reviewer": {"role_feedback": "negation checked", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Do not delete", "candidate_span": "删除", "problem": "Negation is omitted", "evidence": "not is absent", "action": "Restore negation", "confidence": 0.99}]},
       "fluency_reviewer": {"role_feedback": "negation corroborated", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Do not delete", "candidate_span": "删除", "problem": "Negation is omitted", "evidence": "candidate states the opposite action", "action": "Restore negation", "confidence": 0.9}]}
     },
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "modality_shift",
@@ -38,35 +38,35 @@
       "fidelity_reviewer": {"role_feedback": "modality checked", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "may and must differ", "action": "Restore modality", "confidence": 0.9}]},
       "risk_ambiguity_reviewer": {"role_feedback": "risk corroborated", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "obligation changes user rights", "action": "Restore modality", "confidence": 0.9}]}
     },
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "risk_ambiguity_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "corroborating", "risk_ambiguity_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "critical_omission",
     "category": "semantic_blocker",
     "task": {"source_text": "Back up data before reset", "candidate_translation": "重置"},
     "reviewers": {"fidelity_reviewer": {"role_feedback": "omission checked", "findings": [{"issue_type": "accuracy", "severity": "critical", "source_span": "Back up data", "candidate_span": "", "problem": "Safety instruction is omitted", "evidence": "backup instruction is absent", "action": "Restore the instruction", "confidence": 0.99}]}},
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "hard_tb_violation",
     "category": "caller_rule_blocker",
     "task": {"source_text": "Open Acme Cloud", "candidate_translation": "打开云服务", "hard_constraints": ["required_literal:Acme"]},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "natural_but_inaccurate",
     "category": "accuracy",
     "task": {"source_text": "Archive", "candidate_translation": "删除"},
     "reviewers": {"fidelity_reviewer": {"role_feedback": "accuracy checked", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "Archive", "candidate_span": "删除", "problem": "Action meaning is inaccurate", "evidence": "archive is not delete", "action": "Use the archive meaning", "confidence": 0.9}]}},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unique_material", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "unique_material", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "accurate_but_unnatural",
     "category": "fluency",
     "task": {"source_text": "Try again", "candidate_translation": "进行再一次尝试"},
     "reviewers": {"fluency_reviewer": {"role_feedback": "fluency checked", "findings": [{"issue_type": "fluency", "severity": "minor", "source_span": "Try again", "candidate_span": "进行再一次尝试", "problem": "Wording is unnatural", "evidence": "target-language convention", "action": "Use concise natural wording", "confidence": 0.9}]}},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "confirmation_only", "fluency_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "confirmation_only", "fluency_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "ui_context_mismatch",
@@ -76,7 +76,7 @@
       "product_context_reviewer": {"role_feedback": "context checked", "findings": [{"issue_type": "context", "severity": "major", "source_span": "Continue", "candidate_span": "继续", "problem": "Label mismatches the final step", "evidence": "component is the final action", "action": "Use a completion label", "confidence": 0.9}]},
       "ux_copy_reviewer": {"role_feedback": "UX corroborated", "findings": [{"issue_type": "context", "severity": "major", "source_span": "Continue", "candidate_span": "继续", "problem": "Label mismatches the final step", "evidence": "user expects completion", "action": "Use a completion label", "confidence": 0.9}]}
     },
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"product_context_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"product_context_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "terminology_vs_fluency",
@@ -87,14 +87,14 @@
       "fluency_reviewer": {"role_feedback": "fluency option", "findings": [{"issue_type": "fluency", "severity": "minor", "finding_kind": "choice", "proposed_value": "下一步", "source_span": "Continue", "candidate_span": "继续", "problem": "Two valid labels have different emphasis", "evidence": "next step is explicit", "action": "Choose by product context", "confidence": 0.8}]}
     },
     "discussion": "material",
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"terminology_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 13, "discussion_marginal_value": "material"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"terminology_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 13, "discussion_marginal_value": "material"}
   },
   {
     "case_id": "consent_authorization_ambiguity",
     "category": "risk_conflict",
     "task": {"source_text": "Authorize access", "candidate_translation": "授权访问", "content_type": "marketing"},
     "reviewers": {"risk_ambiguity_reviewer": {"role_feedback": "authorization context missing", "findings": [{"issue_type": "risk", "severity": "major", "source_span": "Authorize access", "candidate_span": "授权访问", "problem": "Authorization scope is ambiguous", "evidence": "resource scope is not stated", "action": "Clarify the scope", "confidence": 0.8}], "context_gaps": [{"question": "此授权用于哪个产品场景？", "materiality": "答案会改变风险判断和发布决定", "affected_role_ids": ["risk_ambiguity_reviewer"]}]}},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "brand_only_preference",
@@ -106,14 +106,14 @@
     },
     "discussion": "none",
     "interaction": {"choice_index": 1},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"brand_voice_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"brand_voice_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none"}
   },
   {
     "case_id": "clean_translation",
     "category": "clean",
     "task": {"source_text": "Save", "candidate_translation": "保存"},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "confirmation_only", "fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": true, "contribution_kinds": {"technical_safety_reviewer": "confirmation_only", "fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "multiple_valid_candidates",
@@ -125,7 +125,7 @@
     },
     "discussion": "none",
     "interaction": {"choice_index": 1},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none"}
   },
   {
     "case_id": "user_context_changes_decision",
@@ -134,7 +134,7 @@
     "reviewers": {"product_context_reviewer": {"role_feedback": "product context needed", "findings": [{"issue_type": "context", "severity": "major", "source_span": "Done", "candidate_span": "完成", "problem": "Component purpose affects interpretation", "evidence": "status and action labels differ", "action": "Confirm component purpose", "confidence": 0.8}], "context_gaps": [{"question": "这是状态标签还是功能按钮？", "materiality": "答案会改变产品场景判断和推荐结果", "affected_role_ids": ["product_context_reviewer"]}]}},
     "interaction": {"context_answer": "这是已完成状态标签"},
     "context_reconsideration": {"change_effect": "changed", "findings": []},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"product_context_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_update_applied", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"product_context_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_update_applied", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "user_preference_conflicts_blocker",
@@ -148,7 +148,7 @@
     "discussion": "none",
     "interaction": {"initial_action": "decline"},
     "continuation_probe": "reject_invalid_then_accept_valid",
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "blocked_by_policy", "chief_consistent": true, "sampling_calls": 9, "sample_budget": 13, "discussion_marginal_value": "none"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "blocked_by_policy", "chief_consistent": true, "sampling_calls": 9, "sample_budget": 13, "discussion_marginal_value": "none"}
   },
   {
     "case_id": "no_real_conflict",
@@ -158,7 +158,7 @@
       "fidelity_reviewer": {"role_feedback": "same issue", "findings": [{"issue_type": "accuracy", "severity": "minor", "source_span": "Close", "candidate_span": "关闭", "problem": "Object is not explicit", "evidence": "source lacks an object", "action": "Confirm object from context", "confidence": 0.7}]},
       "fluency_reviewer": {"role_feedback": "same issue corroborated", "findings": [{"issue_type": "accuracy", "severity": "minor", "source_span": "Close", "candidate_span": "关闭", "problem": "Object is not explicit", "evidence": "candidate also lacks an object", "action": "Confirm object from context", "confidence": 0.7}]}
     },
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "corroborating", "fluency_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "legal_risk_lightweight_modality_shift",
@@ -168,7 +168,7 @@
       "fidelity_reviewer": {"role_feedback": "modality checked", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "may and must express different obligation levels", "action": "Restore the source modality", "confidence": 0.95}]},
       "risk_ambiguity_reviewer": {"role_feedback": "rights impact corroborated", "findings": [{"issue_type": "risk", "severity": "major", "source_span": "may cancel", "candidate_span": "必须取消", "problem": "Permission became obligation", "evidence": "the candidate expands the stated obligation", "action": "Restore the source modality", "confidence": 0.9}]}
     },
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "corroborating", "risk_ambiguity_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "corroborating", "risk_ambiguity_reviewer": "corroborating"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 4, "sample_budget": 6, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "legal_risk_product_state_blind_spot",
@@ -177,7 +177,7 @@
     "reviewers": {
       "product_context_reviewer": {"role_feedback": "state transition checked", "findings": [{"issue_type": "context", "severity": "major", "source_span": "after verification", "candidate_span": "已经生效", "problem": "A conditional state is presented as already effective", "evidence": "verification is the stated activation boundary", "action": "Restore the conditional state", "confidence": 0.9}]}
     },
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"product_context_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"product_context_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "legal_risk_user_understanding_blind_spot",
@@ -186,7 +186,7 @@
     "reviewers": {
       "ux_copy_reviewer": {"role_feedback": "user consequence checked", "findings": [{"issue_type": "ux", "severity": "major", "source_span": "accept the consequence", "candidate_span": "确认", "problem": "The action label hides the material acknowledgment consequence", "evidence": "the source explicitly ties acknowledgment to acceptance", "action": "Make the consequence clear without adding obligations", "confidence": 0.9}]}
     },
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"ux_copy_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"ux_copy_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "legal_risk_missing_jurisdiction_context",
@@ -195,21 +195,21 @@
     "reviewers": {
       "risk_ambiguity_reviewer": {"role_feedback": "jurisdiction context is required for a bounded risk conclusion", "findings": [{"issue_type": "risk", "severity": "major", "source_span": "This notice", "candidate_span": "本通知", "problem": "The applicable jurisdiction context is not supplied", "evidence": "no caller-provided jurisdiction or binding rule is present", "action": "Request caller-supplied jurisdiction context without inferring a law", "confidence": 0.8}], "context_gaps": [{"question": "调用方适用的司法辖区或项目规则是什么？", "materiality": "该背景会改变风险措辞判断", "affected_role_ids": ["risk_ambiguity_reviewer"]}]}
     },
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "legal_risk_strict_required_literal",
     "category": "legal_risk_deterministic_blocker",
     "task": {"source_text": "EU notice applies", "candidate_translation": "本通知适用", "content_type": "legal_risk", "mode": "strict", "hard_constraints": ["required_literal:EU"]},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 18, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 7, "sample_budget": 18, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "legal_risk_clean_panorama",
     "category": "clean",
     "task": {"source_text": "You may withdraw after notice", "candidate_translation": "通知后可以撤回", "content_type": "legal_risk"},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "risk_ambiguity_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": true, "contribution_kinds": {"fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "risk_ambiguity_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable"}
   },
   {
     "case_id": "calibration_clean_full_coverage",
@@ -217,7 +217,7 @@
     "calibration_case": true,
     "task": {"source_text": "Settings saved", "candidate_translation": "设置已保存", "content_type": "ui", "context": "settings confirmation message", "audience": "general users", "term_glossary": "Settings=设置", "style_guide": "concise interface copy"},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "confirmation_only", "fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "well_supported", "publishability": "可发布", "review_needed": "否", "status": "COMPLETED", "support_disposition_coherent": true}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": true, "contribution_kinds": {"technical_safety_reviewer": "confirmation_only", "fidelity_reviewer": "confirmation_only", "terminology_reviewer": "confirmation_only", "product_context_reviewer": "confirmation_only", "ux_copy_reviewer": "confirmation_only", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "well_supported", "publishability": "可发布", "review_needed": "否", "status": "COMPLETED", "support_disposition_coherent": true}
   },
   {
     "case_id": "calibration_deterministic_blocker",
@@ -225,7 +225,7 @@
     "calibration_case": true,
     "task": {"source_text": "Save 12 files", "candidate_translation": "保存文件", "content_type": "ui", "hard_constraints": ["numeric_parity"]},
     "reviewers": {},
-    "expected": {"critical_issue_recalled": true, "false_positive_free": true, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "well_supported", "publishability": "需人工复核", "review_needed": "是", "status": "NEEDS_HUMAN_REVIEW", "support_disposition_coherent": true}
+    "expected": {"critical_or_blocking_cluster_present": true, "clean_case_has_no_clusters": null, "contribution_kinds": {"technical_safety_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "well_supported", "publishability": "需人工复核", "review_needed": "是", "status": "NEEDS_HUMAN_REVIEW", "support_disposition_coherent": true}
   },
   {
     "case_id": "calibration_material_model_edits",
@@ -233,7 +233,7 @@
     "calibration_case": true,
     "task": {"source_text": "Archive item", "candidate_translation": "删除项目", "content_type": "ui"},
     "reviewers": {"fidelity_reviewer": {"role_feedback": "material meaning issue", "findings": [{"issue_type": "accuracy", "severity": "major", "source_span": "Archive", "candidate_span": "删除", "problem": "Archive was rendered as delete", "evidence": "The actions have different effects", "action": "Restore the archive meaning", "confidence": 0.9}]}},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unique_material", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "supported_with_limits", "publishability": "修改后可发布", "review_needed": "否", "status": "COMPLETED", "support_disposition_coherent": true}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "unique_material", "fluency_reviewer": "confirmation_only"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "supported_with_limits", "publishability": "修改后可发布", "review_needed": "否", "status": "COMPLETED", "support_disposition_coherent": true}
   },
   {
     "case_id": "calibration_unresolved_material_context",
@@ -241,7 +241,7 @@
     "calibration_case": true,
     "task": {"source_text": "This notice applies", "candidate_translation": "本通知适用", "content_type": "legal_risk", "interactive_mode": "off"},
     "reviewers": {"risk_ambiguity_reviewer": {"role_feedback": "material scope context is missing", "findings": [{"issue_type": "risk", "severity": "major", "source_span": "This notice", "candidate_span": "本通知", "problem": "Applicable scope is unresolved", "evidence": "No caller-supplied jurisdiction is present", "action": "Request the applicable scope", "confidence": 0.8}], "context_gaps": [{"question": "调用方适用的司法辖区或项目规则是什么？", "materiality": "该背景会改变风险措辞判断", "affected_role_ids": ["risk_ambiguity_reviewer"]}]}},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "insufficient", "publishability": "需人工复核", "review_needed": "是", "status": "NEEDS_HUMAN_REVIEW", "support_disposition_coherent": true}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"risk_ambiguity_reviewer": "unique_material"}, "conflict_detected": false, "user_authority": "context_requested", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "insufficient", "publishability": "需人工复核", "review_needed": "是", "status": "NEEDS_HUMAN_REVIEW", "support_disposition_coherent": true}
   },
   {
     "case_id": "calibration_partial_coverage",
@@ -249,7 +249,7 @@
     "calibration_case": true,
     "task": {"source_text": "Save", "candidate_translation": "保存", "content_type": "ui"},
     "reviewers": {"fidelity_reviewer": "error"},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"fidelity_reviewer": "unavailable"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "insufficient", "publishability": "需人工复核", "review_needed": "是", "status": "NEEDS_HUMAN_REVIEW", "support_disposition_coherent": true}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"fidelity_reviewer": "unavailable"}, "conflict_detected": false, "user_authority": "not_applicable", "chief_consistent": true, "sampling_calls": 6, "sample_budget": 13, "discussion_marginal_value": "not_applicable", "decision_support_level": "insufficient", "publishability": "需人工复核", "review_needed": "是", "status": "NEEDS_HUMAN_REVIEW", "support_disposition_coherent": true}
   },
   {
     "case_id": "calibration_valid_user_decision_reconsidered",
@@ -262,6 +262,6 @@
     },
     "discussion": "none",
     "interaction": {"choice_index": 1},
-    "expected": {"critical_issue_recalled": false, "false_positive_free": true, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none", "decision_support_level": "supported_with_limits", "publishability": "可发布", "review_needed": "否", "status": "COMPLETED", "support_disposition_coherent": true}
+    "expected": {"critical_or_blocking_cluster_present": false, "clean_case_has_no_clusters": null, "contribution_kinds": {"terminology_reviewer": "corroborating", "ux_copy_reviewer": "corroborating"}, "conflict_detected": true, "user_authority": "valid_choice_respected", "chief_consistent": true, "sampling_calls": 8, "sample_budget": 13, "discussion_marginal_value": "none", "decision_support_level": "supported_with_limits", "publishability": "可发布", "review_needed": "否", "status": "COMPLETED", "support_disposition_coherent": true}
   }
 ]
