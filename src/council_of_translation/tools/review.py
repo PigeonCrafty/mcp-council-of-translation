@@ -303,6 +303,15 @@ def view_review_record(
             })
         if isinstance(record, ReviewRecordV2) and detail_level == "summary":
             return dual_channel_result(compact_review_response(record))
+        if isinstance(record, ReviewRecordV1) and detail_level == "summary":
+            return dual_channel_result({
+                "schema_version": "1.0",
+                "review_id": record.review_id,
+                "mode": record.mode,
+                "status": record.status,
+                "publishability": record.chief_editor_decision.get("publishability"),
+                "review_needed": record.chief_editor_decision.get("review_needed"),
+            })
         if detail_level not in {"full", "summary", "verification"}:
             return dual_channel_result({
                 "error": "detail_level must be full, summary, or verification"
