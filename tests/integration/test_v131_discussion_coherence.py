@@ -3,6 +3,8 @@ import json
 
 import pytest
 
+from council_of_translation.localization.clustering import cluster_findings
+from council_of_translation.localization.models import FindingV2
 from council_of_translation.localization.models import ReviewTaskV2
 from council_of_translation.localization.orchestration import run_structured_review
 from council_of_translation.localization.persistence import ReviewStore
@@ -63,6 +65,17 @@ def _run(tmp_path, discussion):
     return record, executor
 
 
+def _issue_id():
+    findings = []
+    for role, action in (("terminology_reviewer", "继续"), ("fluency_reviewer", "下一步")):
+        findings.append(FindingV2.model_validate({
+            **_finding(action),
+            "agent_name": role,
+            "role_perspective": role,
+        }))
+    return cluster_findings(findings)[0].issue_id
+
+
 @pytest.mark.parametrize(
     "discussion",
     [
@@ -105,3 +118,49 @@ def test_valid_empty_discussion_is_completed_without_discussion_degradation(tmp_
     assert "discussion_unavailable" not in record.fallback_reason
     assert next(item for item in record.phase_trace.phases if item.phase == "discussion").disposition == "completed"
     assert len(executor.prompts) == 7
+
+
+def test_valid_discussion_convergence_updates_every_derived_view(tmp_path):
+    issue_id = _issue_id()
+    discussion = json.dumps({"turns": [{
+        "issue_id": issue_id,
+        "speaker": "terminology_reviewer",
+        "stance": "reconsider",
+        "claim": "bounded context favors the alternative",
+        "evidence": ["candidate_span:继续"],
+        "proposed_action": "下一步",
+        "confidence": 0.9,
+        "position_changed": True,
+    }]})
+    record, _ = _run(tmp_path, discussion)
+
+    cluster = record.issue_clusters[0]
+    assert cluster.consensus_status == "consensus"
+    assert len({position.option_id for position in cluster.positions if position.option_id}) == 1
+    assert record.council_value_metrics.discussion_position_change_count == 1
+    assert record.council_value_metrics.discussion_resolved_issue_count == 1
+    assert cluster.topic in record.deliberation_summary.consensus
+    assert cluster.topic not in record.deliberation_summary.material_disagreement
+    assert cluster.topic not in record.process_digest.material_disagreements
+    assert record.process_digest.minority_report.role_ids == []
+    assert "material_disagreement" not in record.decision_support.limitation_codes
+
+
+def test_valid_discussion_without_position_change_preserves_genuine_split(tmp_path):
+    issue_id = _issue_id()
+    discussion = json.dumps({"turns": [{
+        "issue_id": issue_id,
+        "speaker": "terminology_reviewer",
+        "stance": "challenge",
+        "claim": "the alternatives remain materially distinct",
+        "evidence": [],
+        "confidence": 0.8,
+        "position_changed": False,
+    }]})
+    record, _ = _run(tmp_path, discussion)
+
+    cluster = record.issue_clusters[0]
+    assert cluster.consensus_status == "disputed"
+    assert cluster.topic in record.deliberation_summary.material_disagreement
+    assert cluster.topic in record.process_digest.material_disagreements
+    assert "material_disagreement" in record.decision_support.limitation_codes

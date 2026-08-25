@@ -512,6 +512,7 @@ def test_new_evidence_is_low_value_and_real_resolution_is_material():
         }]
     )
     assert apply_discussion_updates(clusters, resolution_round) == 1
+    assert clusters[0].consensus_status == "consensus"
     material = compute_council_value_metrics(
         active_role_ids=roles,
         independent_reviews=[_review(role) for role in roles],

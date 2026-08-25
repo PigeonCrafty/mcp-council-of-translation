@@ -78,6 +78,9 @@ def test_discussion_applies_only_safe_existing_option_changes():
     assert after["terminology_reviewer"].blocking is False
     assert after["terminology_reviewer"].constraint_tier == "advisory"
     assert after["terminology_reviewer"].evidence_origin == "model"
+    assert cluster.consensus_status == "consensus"
+    assert cluster.needs_user_input is True
+    assert len(build_decision_points([cluster])) == 1
 
 
 def test_invalid_later_turn_rejects_valid_earlier_turn_atomically():
@@ -103,6 +106,39 @@ def test_invalid_later_turn_rejects_valid_earlier_turn_atomically():
             ],
         )
     assert cluster.model_dump(mode="json") == before
+
+
+def test_consensus_recomputation_uses_final_material_options_once():
+    cluster = _production_cluster()
+    duplicate_turns = normalize_discussion_round(
+        "round_1",
+        [cluster],
+        [
+            {
+                "issue_id": cluster.issue_id,
+                "speaker": "terminology_reviewer",
+                "proposed_action": "下一步",
+                "position_changed": True,
+            },
+            {
+                "issue_id": cluster.issue_id,
+                "speaker": "terminology_reviewer",
+                "proposed_action": "下一步",
+                "position_changed": True,
+            },
+        ],
+    )
+    assert apply_discussion_updates([cluster], duplicate_turns) == 1
+    assert cluster.consensus_status == "consensus"
+
+    cluster.positions[0].option_id = ""
+    cluster.positions[1].option_id = ""
+    cluster.consensus_status = "disputed"
+    cluster.needs_user_input = True
+    empty_option_change = duplicate_turns.model_copy(update={"turns": []})
+    assert apply_discussion_updates([cluster], empty_option_change) == 0
+    assert cluster.consensus_status == "disputed"
+    assert cluster.needs_user_input is True
 
 
 def test_position_matrix_uses_provenance_tier_blocking_and_confidence_without_majority():

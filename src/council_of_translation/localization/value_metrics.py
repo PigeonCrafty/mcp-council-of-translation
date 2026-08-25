@@ -241,7 +241,7 @@ def _discussion_deltas(
 
     resolved: set[str] = set()
     for issue_id, cluster in by_issue.items():
-        if cluster.consensus_status != "disputed" or not _material_roles(cluster, set(cluster.participant_role_ids)):
+        if cluster.consensus_status != "consensus" or not _material_roles(cluster, set(cluster.participant_role_ids)):
             continue
         final_options = {
             position.option_id

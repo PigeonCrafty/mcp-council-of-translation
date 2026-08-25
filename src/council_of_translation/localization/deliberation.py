@@ -132,7 +132,8 @@ def normalize_discussion_round(round_id: str, clusters: list[IssueCluster], raw_
 def apply_discussion_updates(clusters: Iterable[IssueCluster], round_: DiscussionRound) -> int:
     """Apply safe declared discussion changes to their existing matrix rows."""
     by_issue = {cluster.issue_id: cluster for cluster in clusters}
-    applied = 0
+    applied_rows: set[tuple[str, str]] = set()
+    changed_issues: set[str] = set()
     for turn in round_.turns:
         if not turn.position_changed:
             continue
@@ -160,8 +161,24 @@ def apply_discussion_updates(clusters: Iterable[IssueCluster], round_: Discussio
             }
         )
         cluster.positions = [revised if item.role_id == turn.speaker else item for item in cluster.positions]
-        applied += 1
-    return applied
+        applied_rows.add((turn.issue_id, turn.speaker))
+        changed_issues.add(turn.issue_id)
+    for issue_id in changed_issues:
+        cluster = by_issue[issue_id]
+        participants = set(cluster.participant_role_ids)
+        final_options = {
+            position.option_id
+            for position in cluster.positions
+            if position.role_id in participants and position.option_id
+        }
+        cluster.consensus_status = (
+            "insufficient_evidence"
+            if not final_options
+            else "consensus"
+            if len(final_options) == 1
+            else "disputed"
+        )
+    return len(applied_rows)
 
 
 def build_decision_points(clusters: Iterable[IssueCluster], maximum: int = 3) -> list[DecisionPoint]:
