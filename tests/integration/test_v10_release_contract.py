@@ -1,5 +1,6 @@
 import asyncio
 import json
+from pathlib import Path
 
 from council_of_translation import __diagnostic_build__, __schema_version__, __version__
 from council_of_translation.localization.compatibility import parse_review_record
@@ -30,6 +31,11 @@ def test_v0130_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
         "review_translation", "continue_review", "view_review_record",
         "list_review_records", "get_server_info",
     ]
+    architecture = (
+        Path(__file__).parents[2] / "docs" / "v0.4-architecture.md"
+    ).read_text(encoding="utf-8")
+    assert "receipt-schema 1.1 wrapper" in architecture
+    assert "receipt-schema 1.0 wrapper" not in architecture
 
 
 def test_v25_full_and_metadata_writes_are_truthful_and_old_records_still_read(tmp_path):
