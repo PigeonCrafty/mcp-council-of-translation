@@ -20,6 +20,18 @@ from council_of_translation.server import mcp
 from council_of_translation.tools.review import _server_info
 
 
+def _states_targeted_discussion_boundary(text: str) -> bool:
+    normalized = " ".join(text.lower().split())
+    return all(
+        phrase in normalized
+        for phrase in (
+            "one bounded model sample",
+            "simulates cross-role deliberation",
+            "not peer-to-peer communication among autonomous agents",
+        )
+    )
+
+
 def test_fastmcp_declared_compatibility_is_bounded_to_tested_major_versions():
     project = tomllib.loads(
         (Path(__file__).parents[2] / "pyproject.toml").read_text(encoding="utf-8")
@@ -49,6 +61,17 @@ def test_v0131_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
     ).read_text(encoding="utf-8")
     assert "receipt-schema 1.1 wrapper" in architecture
     assert "receipt-schema 1.0 wrapper" not in architecture
+
+
+def test_public_docs_state_targeted_discussion_model_boundary():
+    root = Path(__file__).parents[2]
+    for relative_path in ("README.md", "docs/v0.4-architecture.md"):
+        assert _states_targeted_discussion_boundary(
+            (root / relative_path).read_text(encoding="utf-8")
+        )
+
+    stale_ambiguous_wording = "optional single bounded discussion round"
+    assert not _states_targeted_discussion_boundary(stale_ambiguous_wording)
 
 
 def test_v25_full_and_metadata_writes_are_truthful_and_old_records_still_read(tmp_path):
