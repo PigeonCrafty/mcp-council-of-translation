@@ -4,11 +4,20 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-014-Q016-r3`
-- Campaign state: `PUBLISHED; Q-016-r2_CLIENT_LIMIT; Q-016-r3_ISSUED`
-- Active contract: `harness/contracts/CAMPAIGN-014-q016-external-r3.md`
-- Q-016-r3 contract SHA-256:
-  `2A39143062D068F5103C9779797E8F9732876283B5C44D71F2DB9C8DC199BE10`
+- Campaign: `CAMPAIGN-014-Q016-r4-publication`
+- Campaign state: `Q-016-r4_ACCEPTED; PROTECTED_MAIN_PUBLICATION_PENDING`
+- Active contract: `harness/contracts/CAMPAIGN-014-q016-external-r4.md`
+- Q-016-r4 contract SHA-256:
+  `3FFD9F75CE284BE2EB220E22D4F8F28746CFABFA61D3113B7BC807E360DDD6F3`
+- Q-016-r4 accepted HEAD: `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`
+- Q-016-r4 review:
+  `harness/evaluations/CAMPAIGN-014-q016-r4-review.md`
+- Q-016-r4 review SHA-256:
+  `65A417D62BECB418BE84D49FF62403DC6D0E60443E0E36433C32083766EBEFF6`
+- Q-016-r3 review:
+  `harness/evaluations/CAMPAIGN-014-q016-r3-review.md`
+- Q-016-r3 review SHA-256:
+  `4C23DC1FD5276FB2FA15723AF207B465EDF06A4B6F3BD4F1EB37FCA851CBFA6D`
 - Q-016-r2 review:
   `harness/evaluations/CAMPAIGN-014-q016-live-r2-review.md`
 - Q-016-r2 review SHA-256:
@@ -50,9 +59,9 @@
 - Q-015 live review SHA-256:
   `9675941275A44C11188E794A0908CB7ACF1A3F9AC32377803CCD92598E1AD54B`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016-r2 ended at the truthful Goose client limit and
-  r3 is issued
-- Pending gate: black-box MCP A3 plus independent remediation re-audit; B/C are frozen
+- Accepted quality gates: `15/16`; Q-016-r4 is locally accepted
+- Pending gate: protected-main publication and PR/post-merge six-way CI for the exact
+  documentation/test correction; no further A4, B/C or AUD rerun is required
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -154,6 +163,17 @@
 - Active revision: `harness/contracts/CAMPAIGN-014-q016-external-r3.md`; execute one
   isolated black-box A3 against the published product commit and the independent
   AUD-001..AUD-007 re-audit. Do not call Goose or rerun B/C.
+
+## Q-016 r4 acceptance and publication gate
+
+- Decision: `ACCEPTED` by `harness/evaluations/CAMPAIGN-014-q016-r4-review.md`.
+- Accepted correction: `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`, exactly README,
+  architecture documentation and its release-contract regression.
+- A4 record: `20260828T042741132302Z_56841705d054`; exact double truncation,
+  fail-closed outcome, receipt completeness and text/structured equality passed.
+- Frozen carry-forward B/C and AUD-001..AUD-007 remain accepted; they are not rerun.
+- Final closure waits only for protected-main publication plus PR and post-merge six-way
+  CI. No product, Goose, provider or model rerun remains.
 
 ## Campaign 013 assignment
 

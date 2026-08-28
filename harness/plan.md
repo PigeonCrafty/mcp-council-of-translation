@@ -5,11 +5,20 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-014-Q016-r3`
-- Campaign state: `PUBLISHED; Q-016-r2_CLIENT_LIMIT; Q-016-r3_ISSUED`
-- Active contract: `harness/contracts/CAMPAIGN-014-q016-external-r3.md`
-- Q-016-r3 contract SHA-256:
-  `2A39143062D068F5103C9779797E8F9732876283B5C44D71F2DB9C8DC199BE10`
+- Active Campaign: `CAMPAIGN-014-Q016-r4-publication`
+- Campaign state: `Q-016-r4_ACCEPTED; PROTECTED_MAIN_PUBLICATION_PENDING`
+- Active contract: `harness/contracts/CAMPAIGN-014-q016-external-r4.md`
+- Q-016-r4 contract SHA-256:
+  `3FFD9F75CE284BE2EB220E22D4F8F28746CFABFA61D3113B7BC807E360DDD6F3`
+- Q-016-r4 accepted HEAD: `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`
+- Q-016-r4 review:
+  `harness/evaluations/CAMPAIGN-014-q016-r4-review.md`
+- Q-016-r4 review SHA-256:
+  `65A417D62BECB418BE84D49FF62403DC6D0E60443E0E36433C32083766EBEFF6`
+- Q-016-r3 review:
+  `harness/evaluations/CAMPAIGN-014-q016-r3-review.md`
+- Q-016-r3 review SHA-256:
+  `4C23DC1FD5276FB2FA15723AF207B465EDF06A4B6F3BD4F1EB37FCA851CBFA6D`
 - Q-016-r2 review:
   `harness/evaluations/CAMPAIGN-014-q016-live-r2-review.md`
 - Q-016-r2 review SHA-256:
@@ -56,9 +65,9 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016-r2 ended at the truthful Goose client limit and
-  r3 is issued
-- Pending gate: black-box MCP A3 plus independent remediation re-audit; B/C are frozen
+- Accepted quality gates: `15/16`; Q-016-r4 is locally accepted
+- Pending gate: protected-main publication and PR/post-merge six-way CI for the exact
+  documentation/test correction; no further A4, B/C or AUD rerun is required
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -176,6 +185,22 @@ debate.
   service's incomplete-input behavior is assessed without another provider run.
 - r3 also requires the outstanding AUD-001..AUD-007 independent repository re-audit.
   Feature expansion stays frozen until Foreman accepts both parts.
+
+### Q-016 r4 acceptance and publication gate
+
+- r3 ended `BLOCKED`: the black-box A3 transport timed out before dispatch and the
+  independent re-audit left only the Targeted Discussion documentation boundary open.
+- r4 documents Targeted Discussion as one bounded model sample simulating cross-role
+  deliberation, not peer-to-peer agent communication; the accepted product delta is the
+  exact three-path commit `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`.
+- A4 record `20260828T042741132302Z_56841705d054` proves both 16,000-character inputs
+  were reviewed as 12,000-character bounded prefixes and fail closed with
+  `NEEDS_HUMAN_REVIEW`, degraded execution, `input_truncated`, insufficient support and
+  coherent `需人工复核 / 是` channels.
+- The disclosed local parser deviation occurred only after all MCP calls and evidence
+  capture; the preserved text and structured receipts independently parse equal.
+- Q-016 remains issued until this accepted evidence is merged through protected `main`
+  and both PR and post-merge six-way CI pass.
 
 ## Campaign 013: Calibrated Decision Support
 
