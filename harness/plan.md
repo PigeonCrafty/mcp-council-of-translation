@@ -5,11 +5,15 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-014-Q016-r2`
-- Campaign state: `PUBLISHED; Q-016-r1_CHANGES_REQUESTED; Q-016-r2_ISSUED`
-- Active contract: `harness/contracts/CAMPAIGN-014-q016-live-r2.md`
-- Q-016-r2 contract SHA-256:
-  `DA7B2C06517F9657BDCD61574C80AB0E078FD3CB0D093662E462489DEE1F3B4E`
+- Active Campaign: `CAMPAIGN-014-Q016-r3`
+- Campaign state: `PUBLISHED; Q-016-r2_CLIENT_LIMIT; Q-016-r3_ISSUED`
+- Active contract: `harness/contracts/CAMPAIGN-014-q016-external-r3.md`
+- Q-016-r3 contract SHA-256:
+  `2A39143062D068F5103C9779797E8F9732876283B5C44D71F2DB9C8DC199BE10`
+- Q-016-r2 review:
+  `harness/evaluations/CAMPAIGN-014-q016-live-r2-review.md`
+- Q-016-r2 review SHA-256:
+  `45EECF9E1D3945304F7304806C24BD420B68122AE85FF3838A576CF5C3215D4F`
 - Q-016-r1 live review:
   `harness/evaluations/CAMPAIGN-014-q016-live-review.md`
 - Q-016-r1 live review SHA-256:
@@ -52,8 +56,9 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016-r1 requested changes and r2 is issued
-- Pending gate: replacement A2 plus independent remediation re-audit; B/C are frozen
+- Accepted quality gates: `15/16`; Q-016-r2 ended at the truthful Goose client limit and
+  r3 is issued
+- Pending gate: black-box MCP A3 plus independent remediation re-audit; B/C are frozen
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -153,7 +158,7 @@ debate.
 - State: Q-016 is issued. The external feature-expansion block remains until its three
   fresh Goose cases and independent repository re-audit are accepted together.
 
-### Q-016 r1 live review and r2 replacement
+### Q-016 r1/r2 review and r3 replacement
 
 - r1 decision: `CHANGES_REQUESTED` by
   `harness/evaluations/CAMPAIGN-014-q016-live-review.md`.
@@ -162,10 +167,15 @@ debate.
 - Case A `20260828T024323225222Z_918a4a44c6af` safely returned human review but did not
   expose the bounded-prefix warning or any admissible truncation evidence; its receipt
   was incomplete for unrelated degraded paths.
-- r2 authorizes exactly one replacement A2 using identical over-limit source/candidate
-  inputs. It forbids admission, B/C reruns, continuation and retries.
-- The AUD-001..AUD-007 independent repository re-audit remains outstanding. Even a
-  passing A2 completes only the live portion; feature expansion stays frozen.
+- r2 A2 correctly stopped before the MCP call with `CLIENT_LIMIT` because Goose could not
+  guarantee two actual arguments above 12,000 characters. This is a truthful client
+  boundary, not a product failure, and Goose must not retry.
+- r3 replaces only A's evidence carrier with an isolated FastMCP 3.4.7 black-box STDIO
+  client pinned to the published product commit. It programmatically materializes two
+  identical 16,000-character arguments and uses deterministic clean sampling so the
+  service's incomplete-input behavior is assessed without another provider run.
+- r3 also requires the outstanding AUD-001..AUD-007 independent repository re-audit.
+  Feature expansion stays frozen until Foreman accepts both parts.
 
 ## Campaign 013: Calibrated Decision Support
 

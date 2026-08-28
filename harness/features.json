@@ -2,9 +2,9 @@
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
   "target_version": "0.13.1",
-  "active_campaign": "CAMPAIGN-014-Q016-r2",
+  "active_campaign": "CAMPAIGN-014-Q016-r3",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "d595daf54eea141451fe3a1db4c7f45764fa980e",
+  "source_baseline": "26e2822cb375f1d593ee386d9d66b3c13f89c3fe",
   "features": [
     {
       "id": "F-001",
