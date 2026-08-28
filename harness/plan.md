@@ -5,8 +5,8 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-014-Q016-r4-publication`
-- Campaign state: `Q-016-r4_ACCEPTED; PROTECTED_MAIN_PUBLICATION_PENDING`
+- Active Campaign: `CAMPAIGN-014-CLOSED`
+- Campaign state: `Q-016_ACCEPTED; CAMPAIGN-014_CLOSED`
 - Active contract: `harness/contracts/CAMPAIGN-014-q016-external-r4.md`
 - Q-016-r4 contract SHA-256:
   `3FFD9F75CE284BE2EB220E22D4F8F28746CFABFA61D3113B7BC807E360DDD6F3`
@@ -19,6 +19,12 @@
   `harness/evaluations/CAMPAIGN-014-q016-r3-review.md`
 - Q-016-r3 review SHA-256:
   `4C23DC1FD5276FB2FA15723AF207B465EDF06A4B6F3BD4F1EB37FCA851CBFA6D`
+- Q-016-r4 publication and CI review:
+  `harness/evaluations/CAMPAIGN-014-q016-r4-publication-ci-review.md`
+- Q-016-r4 publication and CI review SHA-256:
+  `61AE7B1B8D065F9ACD4D400818898BA281F3956157ABD31EF8BCF9B845343DAF`
+- Q-016-r4 published protected `main`:
+  `292fa5757528f90acbcf975af6c0a27a20f7b4b9`
 - Q-016-r2 review:
   `harness/evaluations/CAMPAIGN-014-q016-live-r2-review.md`
 - Q-016-r2 review SHA-256:
@@ -65,9 +71,9 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016-r4 is locally accepted
-- Pending gate: protected-main publication and PR/post-merge six-way CI for the exact
-  documentation/test correction; no further A4, B/C or AUD rerun is required
+- Accepted quality gates: `16/16`; Q-016 is accepted and CAMPAIGN-014 is closed
+- Next gate: evaluate the next product Campaign; no further A4, B/C, Goose or AUD rerun
+  is required for Q-016
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -199,8 +205,9 @@ debate.
   coherent `需人工复核 / 是` channels.
 - The disclosed local parser deviation occurred only after all MCP calls and evidence
   capture; the preserved text and structured receipts independently parse equal.
-- Q-016 remains issued until this accepted evidence is merged through protected `main`
-  and both PR and post-merge six-way CI pass.
+- Protected-main PR #38 and its post-merge `main` run each passed the required six-way
+  Windows/Linux Python 3.10/3.12/3.13 matrix. Q-016 is accepted and CAMPAIGN-014 is
+  closed by `harness/evaluations/CAMPAIGN-014-q016-r4-publication-ci-review.md`.
 
 ## Campaign 013: Calibrated Decision Support
 

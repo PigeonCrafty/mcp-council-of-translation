@@ -2,9 +2,9 @@
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
   "target_version": "0.13.1",
-  "active_campaign": "CAMPAIGN-014-Q016-r4-publication",
+  "active_campaign": "CAMPAIGN-014-CLOSED",
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4",
+  "source_baseline": "292fa5757528f90acbcf975af6c0a27a20f7b4b9",
   "features": [
     {
       "id": "F-001",
@@ -862,7 +862,7 @@
     {
       "id": "Q-016",
       "name": "Independent audit-remediation and incomplete-input Goose evidence",
-      "status": "issued"
+      "status": "accepted"
     }
   ]
 }
