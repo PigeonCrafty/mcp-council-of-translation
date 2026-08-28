@@ -5,11 +5,15 @@
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-014-Q016`
-- Campaign state: `PUBLISHED; Q-016_ISSUED`
-- Active contract: `harness/contracts/CAMPAIGN-014-q016-live.md`
-- Q-016 contract SHA-256:
-  `CE7BE423518D976D6C63417CDC4A93E097EEFAD0BABDB4054C4BA5AB146F92F6`
+- Active Campaign: `CAMPAIGN-014-Q016-r2`
+- Campaign state: `PUBLISHED; Q-016-r1_CHANGES_REQUESTED; Q-016-r2_ISSUED`
+- Active contract: `harness/contracts/CAMPAIGN-014-q016-live-r2.md`
+- Q-016-r2 contract SHA-256:
+  `DA7B2C06517F9657BDCD61574C80AB0E078FD3CB0D093662E462489DEE1F3B4E`
+- Q-016-r1 live review:
+  `harness/evaluations/CAMPAIGN-014-q016-live-review.md`
+- Q-016-r1 live review SHA-256:
+  `E5904C0708EA3EDC6F186DF2499A6189DDF8C9D99613C23809180117CB370449`
 - CAMPAIGN-014 r2 review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - CAMPAIGN-014 r1 review: `harness/evaluations/CAMPAIGN-014-r1-review.md`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
@@ -48,8 +52,8 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016 is issued and awaiting evidence
-- Pending gate: Q-016 normal-Goose A/B/C plus independent remediation re-audit
+- Accepted quality gates: `15/16`; Q-016-r1 requested changes and r2 is issued
+- Pending gate: replacement A2 plus independent remediation re-audit; B/C are frozen
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -148,6 +152,20 @@ debate.
   Windows/Linux Python 3.10/3.12/3.13 jobs passed.
 - State: Q-016 is issued. The external feature-expansion block remains until its three
   fresh Goose cases and independent repository re-audit are accepted together.
+
+### Q-016 r1 live review and r2 replacement
+
+- r1 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-014-q016-live-review.md`.
+- Case B `20260828T024458690799Z_8badddd7158f` and Case C
+  `20260828T024543336644Z_2422acf98836` are accepted and frozen for carry-forward.
+- Case A `20260828T024323225222Z_918a4a44c6af` safely returned human review but did not
+  expose the bounded-prefix warning or any admissible truncation evidence; its receipt
+  was incomplete for unrelated degraded paths.
+- r2 authorizes exactly one replacement A2 using identical over-limit source/candidate
+  inputs. It forbids admission, B/C reruns, continuation and retries.
+- The AUD-001..AUD-007 independent repository re-audit remains outstanding. Even a
+  passing A2 completes only the live portion; feature expansion stays frozen.
 
 ## Campaign 013: Calibrated Decision Support
 

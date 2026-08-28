@@ -4,11 +4,15 @@
 
 - Role: FOREMAN
 - Mode: STRICT_CAMPAIGN
-- Campaign: `CAMPAIGN-014-Q016`
-- Campaign state: `PUBLISHED; Q-016_ISSUED`
-- Active contract: `harness/contracts/CAMPAIGN-014-q016-live.md`
-- Q-016 contract SHA-256:
-  `CE7BE423518D976D6C63417CDC4A93E097EEFAD0BABDB4054C4BA5AB146F92F6`
+- Campaign: `CAMPAIGN-014-Q016-r2`
+- Campaign state: `PUBLISHED; Q-016-r1_CHANGES_REQUESTED; Q-016-r2_ISSUED`
+- Active contract: `harness/contracts/CAMPAIGN-014-q016-live-r2.md`
+- Q-016-r2 contract SHA-256:
+  `DA7B2C06517F9657BDCD61574C80AB0E078FD3CB0D093662E462489DEE1F3B4E`
+- Q-016-r1 live review:
+  `harness/evaluations/CAMPAIGN-014-q016-live-review.md`
+- Q-016-r1 live review SHA-256:
+  `E5904C0708EA3EDC6F186DF2499A6189DDF8C9D99613C23809180117CB370449`
 - CAMPAIGN-014 r2 review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - CAMPAIGN-014 r1 review: `harness/evaluations/CAMPAIGN-014-r1-review.md`
 - Audited product baseline: `95d90cf383d045778ce61afaa50dbcec199579ce`
@@ -42,8 +46,8 @@
 - Q-015 live review SHA-256:
   `9675941275A44C11188E794A0908CB7ACF1A3F9AC32377803CCD92598E1AD54B`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `15/16`; Q-016 is issued and awaiting evidence
-- Pending gate: Q-016 normal-Goose A/B/C plus independent remediation re-audit
+- Accepted quality gates: `15/16`; Q-016-r1 requested changes and r2 is issued
+- Pending gate: replacement A2 plus independent remediation re-audit; B/C are frozen
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -129,6 +133,18 @@
   run `32841918734` each passed all six Windows/Linux Python 3.10/3.12/3.13 jobs.
 - Q-016 is issued by `harness/contracts/CAMPAIGN-014-q016-live.md`. Feature expansion
   remains blocked until Foreman accepts its live and independent-audit evidence together.
+
+## Q-016 r1 live review and r2 replacement
+
+- r1 decision: `CHANGES_REQUESTED` by
+  `harness/evaluations/CAMPAIGN-014-q016-live-review.md`.
+- Accepted carry-forward B: `20260828T024458690799Z_8badddd7158f`.
+- Accepted carry-forward C: `20260828T024543336644Z_2422acf98836`.
+- Rejected as truncation evidence A: `20260828T024323225222Z_918a4a44c6af`; it was
+  safely restrictive but lacked the primary bounded-prefix warning and admissible input
+  diagnostics, while its receipt reflected unrelated partial/degraded execution.
+- Active revision: `harness/contracts/CAMPAIGN-014-q016-live-r2.md`; execute only A2.
+- AUD-001..AUD-007 independent re-audit remains required after the live portion passes.
 
 ## Campaign 013 assignment
 
@@ -953,6 +969,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Execute the issued Q-016 contract against published protected main. Return three fresh
-normal-Goose records plus the independent AUD-001..AUD-007 repository re-audit. Do not
-begin ordinary feature expansion until Q-016 is accepted.
+Execute only Q-016-r2 Case A2. Do not rerun admission, B or C. After Foreman accepts A2,
+return the independent AUD-001..AUD-007 repository re-audit. Do not begin ordinary
+feature expansion until Q-016 is accepted.
