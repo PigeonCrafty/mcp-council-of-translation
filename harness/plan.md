@@ -1,13 +1,27 @@
-# Council of Translation V0.13.1 Audit-Remediation Harness Plan
+# Council of Translation V0.13.2 Terminal-Truthfulness Closure Harness Plan
 
 ## Control
 
 - Harness mode: `STRICT_CAMPAIGN`
 - Foreman: Codex
 - Main Worker: Codex Main Worker in a separate new conversation
-- Active Campaign: `CAMPAIGN-014-CLOSED`
-- Campaign state: `Q-016_ACCEPTED; CAMPAIGN-014_CLOSED`
-- Active contract: `harness/contracts/CAMPAIGN-014-q016-external-r4.md`
+- Active Campaign: `none`
+- Campaign class: `closure_only`; this is not a new product Feature Campaign
+- Campaign state: `ACCEPTED; LOCAL V0.13.2 CANDIDATE`
+- Active contract: `none`
+- Local implementation baseline: `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`
+- Accepted Closure implementation: `c0f0d190ff5b5bc753f9dc743ce3a5743fe32bdf`
+- Accepted Closure contract: `harness/contracts/CAMPAIGN-015-r1.md`
+- Accepted Closure review: `harness/evaluations/CAMPAIGN-015-r1-review.md`
+- Accepted Closure review SHA-256:
+  `BFD51A1D651C82098FBC3B8F3A76FB0D36329C905F927560FC34B7EC8F5A4B2A`
+- Protected-main audit baseline: `dde2761469f5b5f6f8fd841ed4230ba4efe2827b`
+- Confirmed defect: `NEW-AUD-008`; unrelated continuation can clear a parent
+  `discussion_unavailable` evidence gap and relax human review to publishable
+- Independent review:
+  `mcp-council-of-translation-v0.13.1-independent-review.md`
+- Foreman response:
+  `harness/evaluations/V0.13.1-INDEPENDENT-REVIEW-FOREMAN-RESPONSE.md`
 - Q-016-r4 contract SHA-256:
   `3FFD9F75CE284BE2EB220E22D4F8F28746CFABFA61D3113B7BC807E360DDD6F3`
 - Q-016-r4 accepted HEAD: `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`
@@ -19,20 +33,6 @@
   `harness/evaluations/CAMPAIGN-014-q016-r3-review.md`
 - Q-016-r3 review SHA-256:
   `4C23DC1FD5276FB2FA15723AF207B465EDF06A4B6F3BD4F1EB37FCA851CBFA6D`
-- Q-016-r4 publication and CI review:
-  `harness/evaluations/CAMPAIGN-014-q016-r4-publication-ci-review.md`
-- Q-016-r4 publication and CI review SHA-256:
-  `61AE7B1B8D065F9ACD4D400818898BA281F3956157ABD31EF8BCF9B845343DAF`
-- Q-016-r4 published protected `main`:
-  `292fa5757528f90acbcf975af6c0a27a20f7b4b9`
-- Q-016-r2 review:
-  `harness/evaluations/CAMPAIGN-014-q016-live-r2-review.md`
-- Q-016-r2 review SHA-256:
-  `45EECF9E1D3945304F7304806C24BD420B68122AE85FF3838A576CF5C3215D4F`
-- Q-016-r1 live review:
-  `harness/evaluations/CAMPAIGN-014-q016-live-review.md`
-- Q-016-r1 live review SHA-256:
-  `E5904C0708EA3EDC6F186DF2499A6189DDF8C9D99613C23809180117CB370449`
 - CAMPAIGN-014 r2 review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - CAMPAIGN-014 r1 review: `harness/evaluations/CAMPAIGN-014-r1-review.md`
 - r1 review: `harness/evaluations/CAMPAIGN-013-r1-review.md`
@@ -51,11 +51,6 @@
 - Accepted Campaign review: `harness/evaluations/CAMPAIGN-014-r2-review.md`
 - Accepted Campaign review SHA-256:
   `83BC19972BEE72BC2D92EF36D32A16F26617B169A148F4E77A1A66505B95585E`
-- V0.13.1 publication review:
-  `harness/evaluations/CAMPAIGN-014-r2-publication-ci-review.md`
-- V0.13.1 publication review SHA-256:
-  `E685A257DCA91605B41BB33E930423F19CAA3DEF300EF231381357212D71C480`
-- V0.13.1 published protected `main`: `9d8f1f987efe73946377883e6ad3a681abe11989`
 - V0.13 publication review:
   `harness/evaluations/CAMPAIGN-013-r3-publication-ci-review.md`
 - V0.13 publication review SHA-256:
@@ -71,9 +66,10 @@
 - Accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
-- Accepted quality gates: `16/16`; Q-016 is accepted and CAMPAIGN-014 is closed
-- Next gate: evaluate the next product Campaign; no further A4, B/C, Goose or AUD rerun
-  is required for Q-016
+- Accepted quality gates: `16/16`; Q-016 is closed on protected main
+- Pending closure: only CLOSURE-004—protected-main publication, six-way CI, annotated
+  `v0.13.2` tag, GitHub Release, artifacts and checksums; no ordinary feature expansion
+  is authorized
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -106,13 +102,75 @@
 - Historical V0.11.1 final archive `main`: `6544d41d308f9ed7ab253dac5a70a94581cd04d8`
 - Historical V0.11.1 published implementation: `6d3a5b6843550ec37ae61ce2670de51a93580bf8`
 - Historical V0.11.1 accepted implementation: `76921ecb69ec26f0034ec772433e102a3f7715bf`
-- Product target: recommended `0.13.1`
-- Diagnostic build target: recommended `truthful-boundaries-council-v11.1`
+- Product target: `0.13.2`
+- Diagnostic build target: `truthful-boundaries-council-v11.2`
 - Persisted schema target: `2.6`
 - Verification receipt schema target: `1.1`
 - Acceptance authority: Foreman only
 
 Repository artifacts are the source of truth. Conversation summaries do not override this plan, `features.json`, `progress.md`, or the active Campaign contract.
+
+## Campaign 015 planning: V0.13.2 Terminal Truthfulness Closure
+
+CAMPAIGN-015-r1 is a closure-only maintenance Campaign created from the confirmed
+`NEW-AUD-008` independent-review finding. It does not reopen the completed formal product
+scope and does not authorize roadmap expansion. The issue is a terminal-truthfulness
+regression: a parent record can fail closed because Targeted Discussion is unavailable,
+then a continuation that resolves only an unrelated valid DecisionPoint can discard that
+historical evidence gap and become publishable.
+
+The frozen principle is: an evidence gap may be cleared only by new equivalent or higher
+authority evidence that actually resolves that gap. An unrelated continuation cannot
+clear historical degradation. The valid user decision, selected outcome, targeted
+reconsideration and `valid_user_choice` trace for the unrelated DecisionPoint must remain
+effective; the correction applies to terminal disposition completeness, not user-authority
+rollback.
+
+The strictly ordered package graph is:
+
+1. `PKG-088 / CLOSURE-001`: establish the adversarial red test before production edits,
+   then minimally preserve parent `discussion_unavailable` through continuation.
+2. `PKG-089 / CLOSURE-001-coherence`: prove full record, compact response, phase trace and
+   verification receipt agree on degradation/fallback/disposition, plus a negative control
+   proving clean parents do not acquire the fallback.
+3. `PKG-090 / CLOSURE-002-003`: correct commit-provenance wording and migrate package/module
+   to `0.13.2` with build `truthful-boundaries-council-v11.2`, while keeping Review/receipt/
+   evaluator Schemas exactly `2.6/1.1/2.1`.
+
+The Worker must capture the initial red-test failure without committing a failing tree,
+then finish exactly three green scoped commits. No generic `persistent_evidence_gaps`
+framework, new persisted field, schema migration, role/route/prompt/provider/tool change,
+new model call, long-document feature or observation telemetry is authorized.
+
+Local acceptance requires targeted continuation/discussion/decision-support/verification
+checks, exact 30/30 Golden evidence, complete regression, compile/diff/import checks,
+canonical uv 0.12.3 root-only lock migration, fresh wheel/sdist plus archive hashes, and
+installed-wheel smokes under FastMCP 2.13.0.2 and 3.4.7. Protected-main publication,
+six-way Windows/Linux Python 3.10/3.12/3.13 CI, annotated tag `v0.13.2` and GitHub Release
+remain Foreman-owned post-acceptance actions and are forbidden to the Worker.
+
+After CLOSURE-001 through CLOSURE-004 are independently accepted and published, the
+target state is `FEATURE SCOPE COMPLETE`, `ENGINEERING FEATURE COMPLETE`,
+`PRODUCTION VALIDATED: NOT YET`, followed by Feature Freeze and privacy-bounded
+real-project observation.
+
+### Campaign 015 local acceptance
+
+- Decision: `ACCEPTED` by
+  `harness/evaluations/CAMPAIGN-015-r1-review.md`.
+- Accepted final HEAD: `c0f0d190ff5b5bc753f9dc743ce3a5743fe32bdf` with exactly
+  three commits and all 14 authorized paths.
+- CLOSURE-001 through CLOSURE-003 are accepted. The canonical
+  `discussion_unavailable` gap remains fail-closed across unrelated continuation while
+  the valid user decision, selected outcome, completed reconsideration and
+  `valid_user_choice` trace remain effective.
+- Independent Foreman evidence: affected matrix `246 passed`, Golden exact `30/30`,
+  complete regression `578 passed`, root-only lock migration, clean archive inspection
+  and installed-wheel diagnostics/tool-surface smoke on FastMCP 2.13.0.2 and 3.4.7.
+- CLOSURE-004 remains open: protected-main publication, six required CI contexts,
+  annotated tag `v0.13.2`, GitHub Release, artifacts/checksums and known limitations.
+- Do not declare `ENGINEERING FEATURE COMPLETE` until CLOSURE-004 is independently
+  verified. No Feature Campaign is active or authorized.
 
 ## Campaign 014 planning: V0.13 Independent-Audit Remediation
 
@@ -147,12 +205,12 @@ cross-role deliberation. Existing documentation already limits it to one call/ro
 states that only independent reviewer sampling is concurrent; this is a terminology
 clarification, not an architecture redesign.
 
-V0.13.1 is published through protected main at `9d8f1f9`; PR and post-merge six-way CI
-both passed. Q-016 is issued by `harness/contracts/CAMPAIGN-014-q016-live.md`. It combines
-three normal-Goose published-main cases with an independent repository re-audit of the
-mandatory counterexamples, V1 minimization, F-069 evaluator semantics/schema and F-070
-compatibility evidence. Publication does not lift the feature-expansion block; Q-016
-acceptance does.
+Q-016 remains planned. After independent Foreman acceptance, V0.13.1 may be published
+through protected main solely so Q-016 can exercise published bytes in normal Goose.
+Q-016 will externally replay the five mandatory counterexamples, inspect V1 data
+minimization, accept F-069 semantics/schema and the F-070 compatibility decision, and
+require a normal-Goose truncation receipt. Publication does not lift the feature-
+expansion block; Q-016 acceptance does.
 
 Explicit non-goals are long-document chunking, new roles/routes/providers/tools,
 translation generation, file editing, UI, A2A, context-MCP coupling and multi-round peer
@@ -167,47 +225,9 @@ debate.
 - Independent evidence: exact 29-path Campaign scope and 10-path r2 scope, 575 full
   regressions, 30/30 Golden cases, fresh archives, and installed-wheel five-tool smokes
   under FastMCP 2.13.0.2 and 3.4.7.
-- Publication: protected-main PR #34 merged at
-  `9d8f1f987efe73946377883e6ad3a681abe11989`; all six PR jobs and all six post-merge
-  Windows/Linux Python 3.10/3.12/3.13 jobs passed.
-- State: Q-016 is issued. The external feature-expansion block remains until its three
-  fresh Goose cases and independent repository re-audit are accepted together.
-
-### Q-016 r1/r2 review and r3 replacement
-
-- r1 decision: `CHANGES_REQUESTED` by
-  `harness/evaluations/CAMPAIGN-014-q016-live-review.md`.
-- Case B `20260828T024458690799Z_8badddd7158f` and Case C
-  `20260828T024543336644Z_2422acf98836` are accepted and frozen for carry-forward.
-- Case A `20260828T024323225222Z_918a4a44c6af` safely returned human review but did not
-  expose the bounded-prefix warning or any admissible truncation evidence; its receipt
-  was incomplete for unrelated degraded paths.
-- r2 A2 correctly stopped before the MCP call with `CLIENT_LIMIT` because Goose could not
-  guarantee two actual arguments above 12,000 characters. This is a truthful client
-  boundary, not a product failure, and Goose must not retry.
-- r3 replaces only A's evidence carrier with an isolated FastMCP 3.4.7 black-box STDIO
-  client pinned to the published product commit. It programmatically materializes two
-  identical 16,000-character arguments and uses deterministic clean sampling so the
-  service's incomplete-input behavior is assessed without another provider run.
-- r3 also requires the outstanding AUD-001..AUD-007 independent repository re-audit.
-  Feature expansion stays frozen until Foreman accepts both parts.
-
-### Q-016 r4 acceptance and publication gate
-
-- r3 ended `BLOCKED`: the black-box A3 transport timed out before dispatch and the
-  independent re-audit left only the Targeted Discussion documentation boundary open.
-- r4 documents Targeted Discussion as one bounded model sample simulating cross-role
-  deliberation, not peer-to-peer agent communication; the accepted product delta is the
-  exact three-path commit `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`.
-- A4 record `20260828T042741132302Z_56841705d054` proves both 16,000-character inputs
-  were reviewed as 12,000-character bounded prefixes and fail closed with
-  `NEEDS_HUMAN_REVIEW`, degraded execution, `input_truncated`, insufficient support and
-  coherent `需人工复核 / 是` channels.
-- The disclosed local parser deviation occurred only after all MCP calls and evidence
-  capture; the preserved text and structured receipts independently parse equal.
-- Protected-main PR #38 and its post-merge `main` run each passed the required six-way
-  Windows/Linux Python 3.10/3.12/3.13 matrix. Q-016 is accepted and CAMPAIGN-014 is
-  closed by `harness/evaluations/CAMPAIGN-014-q016-r4-publication-ci-review.md`.
+- State: local acceptance complete; protected-main publication, six-way CI and Q-016
+  issuance remain separate gates. The external feature-expansion block remains until
+  Q-016 acceptance.
 
 ## Campaign 013: Calibrated Decision Support
 

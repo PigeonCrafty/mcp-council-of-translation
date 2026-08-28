@@ -4,7 +4,7 @@ from pathlib import Path
 
 try:
     import tomllib
-except ModuleNotFoundError:  # Python 3.10
+except ModuleNotFoundError:  # Python 3.10 compatibility
     import tomli as tomllib
 
 from council_of_translation import __diagnostic_build__, __schema_version__, __version__
@@ -40,14 +40,14 @@ def test_fastmcp_declared_compatibility_is_bounded_to_tested_major_versions():
     assert fastmcp == ["fastmcp>=2.13.0.2,<4"]
 
 
-def test_v0131_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
+def test_v0132_identifiers_surface_and_frozen_runtime_limits(monkeypatch):
     monkeypatch.delenv("COUNCIL_REVIEW_CONCURRENCY", raising=False)
     assert (__version__, __diagnostic_build__, __schema_version__) == (
-        "0.13.1", "truthful-boundaries-council-v11.1", "2.6"
+        "0.13.2", "truthful-boundaries-council-v11.2", "2.6"
     )
     info = _server_info()
-    assert info["package_version"] == info["module_version"] == "0.13.1"
-    assert info["diagnostic_build"] == "truthful-boundaries-council-v11.1"
+    assert info["package_version"] == info["module_version"] == "0.13.2"
+    assert info["diagnostic_build"] == "truthful-boundaries-council-v11.2"
     assert info["schema_version"] == "2.6"
     assert info["sample_budgets"] == {"lightweight": 6, "standard": 13, "strict": 18}
     assert info["independent_review_concurrency_limit"] == 3
@@ -93,8 +93,8 @@ def test_v25_full_and_metadata_writes_are_truthful_and_old_records_still_read(tm
         payload = json.loads(path.read_text(encoding="utf-8"))
         assert payload["schema_version"] == "2.6"
         assert payload["version_metadata"] == {
-            "package_version": "0.13.1",
-            "diagnostic_build": "truthful-boundaries-council-v11.1",
+            "package_version": "0.13.2",
+            "diagnostic_build": "truthful-boundaries-council-v11.2",
             "record_schema": "2.6",
         }
         assert payload["council_value_metrics"]["unique_material_issue_count"] == 1

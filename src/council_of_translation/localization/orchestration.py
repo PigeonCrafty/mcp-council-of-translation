@@ -1477,6 +1477,12 @@ async def continue_structured_review(
         task, clusters, decisions, executor, telemetry, budget
     )
     chief, trace = build_chief_decision(clusters, parent.decision_points, decisions)
+    inherited_discussion_unavailable = (
+        any(warning == "discussion_unavailable" for warning in parent.warnings)
+        or "discussion_unavailable" in {
+            code for code in parent.fallback_reason.split(";") if code
+        }
+    )
     reviewer_coverage = parent.runtime_metadata.reviewer_coverage
     if reviewer_coverage in {"partial", "none"}:
         chief.review_needed = "是"
@@ -1498,7 +1504,16 @@ async def continue_structured_review(
         or reconsideration_provenance.failed_role_ids
     )
     decision_validation_degraded = bool(decision_suppressions)
-    degraded = reconsideration_degraded or decision_validation_degraded or input_truncated
+    degraded = (
+        reconsideration_degraded
+        or decision_validation_degraded
+        or input_truncated
+        or inherited_discussion_unavailable
+    )
+    if inherited_discussion_unavailable:
+        chief.review_needed = "是"
+        chief.publishability = "需人工复核"
+        chief.review_reason = "讨论输出不可用；未将无关的后续用户决定视为已解决分歧。"
     status = (
         "NEEDS_HUMAN_REVIEW"
         if chief.review_needed == "是"
@@ -1552,11 +1567,13 @@ async def continue_structured_review(
     record.degraded = degraded
     record.warnings = [
         *truncation_warnings,
+        *(["discussion_unavailable"] if inherited_discussion_unavailable else []),
         *reconsideration_warnings,
         *_suppression_warnings(decision_suppressions),
     ]
     record.fallback_reason = ";".join(filter(None, (
         "input_truncated" if input_truncated else "",
+        "discussion_unavailable" if inherited_discussion_unavailable else "",
         f"reviewer_coverage_{reviewer_coverage}"
         if reviewer_coverage in {"partial", "none"}
         else "",
