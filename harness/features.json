@@ -1,10 +1,10 @@
 {
   "schema_version": "1.0",
   "project": "mcp-council-of-translation",
-  "target_version": "0.13.1",
-  "active_campaign": "CAMPAIGN-014-CLOSED",
+  "target_version": "0.13.2",
+  "active_campaign": null,
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "292fa5757528f90acbcf975af6c0a27a20f7b4b9",
+  "source_baseline": "c0f0d190ff5b5bc753f9dc743ce3a5743fe32bdf",
   "features": [
     {
       "id": "F-001",
@@ -863,6 +863,49 @@
       "id": "Q-016",
       "name": "Independent audit-remediation and incomplete-input Goose evidence",
       "status": "accepted"
+    }
+  ],
+  "closure_items": [
+    {
+      "id": "CLOSURE-001",
+      "name": "Sticky continuation evidence-gap truthfulness",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-015-r1",
+      "criteria": [
+        "A failing adversarial regression is recorded before production edits for a discussion_unavailable parent plus an unrelated valid DecisionPoint",
+        "Continuation preserves discussion_unavailable, degraded execution, insufficient support and NEEDS_HUMAN_REVIEW without cancelling the unrelated valid user decision or reconsideration",
+        "Full record, compact response, phase trace and verification receipt remain coherent, while a clean-parent negative control does not invent the fallback"
+      ]
+    },
+    {
+      "id": "CLOSURE-002",
+      "name": "V0.13.1 stage-report commit provenance correction",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-015-r1",
+      "criteria": [
+        "The stage report distinguishes local Campaign accepted HEAD, protected-main squash publication, black-box execution provenance, accepted documentation HEAD, final closure and report-publication SHAs",
+        "No architecture or runtime claim is changed by the audit-trail correction"
+      ]
+    },
+    {
+      "id": "CLOSURE-003",
+      "name": "V0.13.2 runtime release candidate",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-015-r1",
+      "criteria": [
+        "Package/module 0.13.2 and diagnostic build truthful-boundaries-council-v11.2 preserve Review/receipt/evaluator Schemas 2.6/1.1/2.1",
+        "Complete regression, Golden evidence, canonical lock migration, fresh artifacts and FastMCP 2.13.0.2/3.4.7 installed-wheel smokes pass"
+      ]
+    },
+    {
+      "id": "CLOSURE-004",
+      "name": "Named and checksum-verifiable V0.13.2 release baseline",
+      "status": "planned",
+      "owner": "FOREMAN_POST_ACCEPTANCE",
+      "criteria": [
+        "The accepted candidate is published through protected main and the six required Windows/Linux Python jobs pass",
+        "An annotated v0.13.2 tag and GitHub Release reference the verified protected-main commit and publish wheel/sdist SHA-256 checksums plus known limitations"
+      ]
     }
   ]
 }
