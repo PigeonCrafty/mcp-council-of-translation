@@ -4,7 +4,7 @@
   "target_version": "0.13.2",
   "active_campaign": null,
   "acceptance_authority": "FOREMAN",
-  "source_baseline": "c0f0d190ff5b5bc753f9dc743ce3a5743fe32bdf",
+  "source_baseline": "b3c36b0998730d9380d4838e642733ca5ffeb9c3",
   "features": [
     {
       "id": "F-001",
@@ -900,8 +900,8 @@
     {
       "id": "CLOSURE-004",
       "name": "Named and checksum-verifiable V0.13.2 release baseline",
-      "status": "planned",
-      "owner": "FOREMAN_POST_ACCEPTANCE",
+      "status": "accepted",
+      "accepted_by": "CAMPAIGN-015-r1-PUBLICATION",
       "criteria": [
         "The accepted candidate is published through protected main and the six required Windows/Linux Python jobs pass",
         "An annotated v0.13.2 tag and GitHub Release reference the verified protected-main commit and publish wheel/sdist SHA-256 checksums plus known limitations"

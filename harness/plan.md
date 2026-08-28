@@ -7,7 +7,7 @@
 - Main Worker: Codex Main Worker in a separate new conversation
 - Active Campaign: `none`
 - Campaign class: `closure_only`; this is not a new product Feature Campaign
-- Campaign state: `ACCEPTED; LOCAL V0.13.2 CANDIDATE`
+- Campaign state: `COMPLETE; ENGINEERING FEATURE COMPLETE`
 - Active contract: `none`
 - Local implementation baseline: `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`
 - Accepted Closure implementation: `c0f0d190ff5b5bc753f9dc743ce3a5743fe32bdf`
@@ -15,6 +15,13 @@
 - Accepted Closure review: `harness/evaluations/CAMPAIGN-015-r1-review.md`
 - Accepted Closure review SHA-256:
   `BFD51A1D651C82098FBC3B8F3A76FB0D36329C905F927560FC34B7EC8F5A4B2A`
+- Published protected `main`: `b3c36b0998730d9380d4838e642733ca5ffeb9c3`
+- Publication review:
+  `harness/evaluations/CAMPAIGN-015-r1-publication-ci-review.md`
+- Annotated release tag: `v0.13.2`; tag object
+  `4d5fb4b2586af9cef2d92699ee3fe8c0d013385b`
+- GitHub Release:
+  `https://github.com/PigeonCrafty/mcp-council-of-translation/releases/tag/v0.13.2`
 - Protected-main audit baseline: `dde2761469f5b5f6f8fd841ed4230ba4efe2827b`
 - Confirmed defect: `NEW-AUD-008`; unrelated continuation can clear a parent
   `discussion_unavailable` evidence gap and relax human review to publishable
@@ -67,9 +74,10 @@
 - Accepted review: `harness/evaluations/CAMPAIGN-011-r3-review.md`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
 - Accepted quality gates: `16/16`; Q-016 is closed on protected main
-- Pending closure: only CLOSURE-004—protected-main publication, six-way CI, annotated
-  `v0.13.2` tag, GitHub Release, artifacts and checksums; no ordinary feature expansion
-  is authorized
+- Accepted closure: `CLOSURE-001` through `CLOSURE-004`; no closure item remains open
+- Stage state: `FEATURE SCOPE COMPLETE`; `ENGINEERING FEATURE COMPLETE`;
+  `PRODUCTION VALIDATED: NOT YET`
+- Feature Freeze is active. New feature work requires an evidence-driven trigger.
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -167,10 +175,13 @@ real-project observation.
 - Independent Foreman evidence: affected matrix `246 passed`, Golden exact `30/30`,
   complete regression `578 passed`, root-only lock migration, clean archive inspection
   and installed-wheel diagnostics/tool-surface smoke on FastMCP 2.13.0.2 and 3.4.7.
-- CLOSURE-004 remains open: protected-main publication, six required CI contexts,
-  annotated tag `v0.13.2`, GitHub Release, artifacts/checksums and known limitations.
-- Do not declare `ENGINEERING FEATURE COMPLETE` until CLOSURE-004 is independently
-  verified. No Feature Campaign is active or authorized.
+- CLOSURE-004 is accepted. PR CI run `33154237497` and protected-main CI run
+  `33154325010` each passed all six Windows/Linux Python 3.10/3.12/3.13 jobs.
+- Protected-main commit `b3c36b0998730d9380d4838e642733ca5ffeb9c3` is the
+  named release baseline. Annotated tag `v0.13.2` points to it, and the GitHub Release
+  publishes wheel/sdist plus `SHA256SUMS.txt` and known limitations.
+- Final state: `FEATURE SCOPE COMPLETE`, `ENGINEERING FEATURE COMPLETE`,
+  `PRODUCTION VALIDATED: NOT YET`. No Feature Campaign is active or authorized.
 
 ## Campaign 014 planning: V0.13 Independent-Audit Remediation
 

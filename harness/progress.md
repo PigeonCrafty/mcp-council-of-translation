@@ -6,7 +6,7 @@
 - Mode: STRICT_CAMPAIGN
 - Campaign: `none`
 - Campaign class: `closure_only`; no ordinary feature expansion
-- Campaign state: `CAMPAIGN-015-r1 ACCEPTED; CLOSURE-004 PENDING`
+- Campaign state: `COMPLETE; ENGINEERING FEATURE COMPLETE; FEATURE FREEZE`
 - Active contract: `none`
 - Local implementation baseline: `c7d788ca37ecb5d6bd3f1ebec01d48d5c7d52fb4`
 - Accepted V0.13.2 candidate: `c0f0d190ff5b5bc753f9dc743ce3a5743fe32bdf`
@@ -14,6 +14,13 @@
 - Accepted Closure review: `harness/evaluations/CAMPAIGN-015-r1-review.md`
 - Accepted Closure review SHA-256:
   `BFD51A1D651C82098FBC3B8F3A76FB0D36329C905F927560FC34B7EC8F5A4B2A`
+- Published protected `main`: `b3c36b0998730d9380d4838e642733ca5ffeb9c3`
+- Publication review:
+  `harness/evaluations/CAMPAIGN-015-r1-publication-ci-review.md`
+- Annotated tag: `v0.13.2`; tag object
+  `4d5fb4b2586af9cef2d92699ee3fe8c0d013385b`
+- GitHub Release:
+  `https://github.com/PigeonCrafty/mcp-council-of-translation/releases/tag/v0.13.2`
 - Protected-main audit baseline: `dde2761469f5b5f6f8fd841ed4230ba4efe2827b`
 - Confirmed defect: `NEW-AUD-008`
 - Independent review:
@@ -60,10 +67,10 @@
   `9675941275A44C11188E794A0908CB7ACF1A3F9AC32377803CCD92598E1AD54B`
 - Accepted features: `70/70`; F-064 through F-070 accepted by `CAMPAIGN-014-r2`
 - Accepted quality gates: `16/16`; Q-016 is closed on protected main
-- Accepted closure: CLOSURE-001 through CLOSURE-003; `NEW-AUD-008` is locally closed
-- Pending closure: only CLOSURE-004—protected-main publication, six-way CI, annotated
-  tag, GitHub Release and artifact checksums; ordinary product Feature Campaigns remain
-  frozen
+- Accepted closure: CLOSURE-001 through CLOSURE-004; `NEW-AUD-008` is closed
+- Stage state: `FEATURE SCOPE COMPLETE`; `ENGINEERING FEATURE COMPLETE`;
+  `PRODUCTION VALIDATED: NOT YET`
+- Feature Freeze is active; ordinary product Feature Campaigns remain unauthorized
 - Parent Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-review.md`
 - Final Q-014 live review: `harness/evaluations/CAMPAIGN-012-q014-live-r2-review.md`
 - Final Q-014 live review SHA-256:
@@ -129,9 +136,15 @@
   exact `30/30`; complete `578 passed`; clean root-only lock delta; archive privacy
   inspection and isolated FastMCP 2.13.0.2/3.4.7 installed diagnostics/tool-surface
   smoke PASS.
-- Accepted closure items: CLOSURE-001, CLOSURE-002 and CLOSURE-003.
-- Remaining gate: CLOSURE-004. Local acceptance is not protected-main publication,
-  six-way CI, tag, GitHub Release or production validation.
+- Accepted closure items: CLOSURE-001 through CLOSURE-004.
+- Publication PR #41 passed six required jobs in run `33154237497` and was squash-merged
+  to protected `main` at `b3c36b0998730d9380d4838e642733ca5ffeb9c3`.
+- Protected-main run `33154325010` passed the same six-job matrix.
+- Annotated `v0.13.2` tag object `4d5fb4b2586af9cef2d92699ee3fe8c0d013385b`
+  points to the verified main commit. The GitHub Release publishes the wheel, sdist,
+  exact SHA-256 checksums and known limitations.
+- Completion declaration: `FEATURE SCOPE COMPLETE`; `ENGINEERING FEATURE COMPLETE`;
+  `PRODUCTION VALIDATED: NOT YET`.
 
 ## Campaign 014 independent-audit assessment
 
@@ -1016,7 +1029,6 @@ The Worker may create only the active Campaign ledger and report under `harness/
 
 ## Next step
 
-Archive the accepted CAMPAIGN-015-r1 evidence and publish V0.13.2 through protected
-`main`. Confirm all six required Windows/Linux Python 3.10/3.12/3.13 CI contexts, then
-create annotated tag `v0.13.2` and a GitHub Release containing wheel/sdist artifacts,
-SHA-256 checksums and known limitations. Do not begin another Feature Campaign.
+Maintain Feature Freeze and begin privacy-bounded real-project observation. Do not begin
+another Feature Campaign without an evidence-driven trigger. Production validation is
+not yet claimed.
